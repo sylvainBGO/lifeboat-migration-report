@@ -1,0 +1,33 @@
+name: Publish verified handoff
+on:
+  push:
+    paths:
+      - '.github/workflows/publish-handoff.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble and verify archive
+        run: python3 scripts/assemble_handoff.py
+      - name: Publish original archive and screenshot appendix
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=handoff-2026-11-02
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" release-assets/* --clobber
+            gh release edit "$tag" --draft=false --prerelease
+          else
+            gh release create "$tag" release-assets/* --prerelease --title "Lifeboat developer handoff — 2026-11-02" --notes "Verified original handoff archive, source patches, three Windows builds, test reports and 34 anonymized screenshots. Unofficial incident-specific recovery tooling. See README and the issue report for verification scope and limitations."
+          fi
+      - name: Make reviewed sources and evidence browsable
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add handoff/2026-11-02
+          git diff --cached --quiet || git commit -m "Extract reviewed sources, patches, tests and anonymized evidence"
+          git push

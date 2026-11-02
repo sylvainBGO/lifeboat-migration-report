@@ -1,0 +1,1303 @@
+[
+  {
+    "page": 2,
+    "capture": "01-105996.jpg",
+    "group": "Essais initiaux - mesures ponctuelles",
+    "sourceSha256": "047fd877247760804649964a5e36cd7843d0ea680d1c44cd20c2c3b5a0bc320d",
+    "redactionRectangles": [
+      [
+        0,
+        78,
+        709,
+        164
+      ]
+    ]
+  },
+  {
+    "page": 3,
+    "capture": "01-106000.jpg",
+    "group": "Essais initiaux - mesures ponctuelles",
+    "sourceSha256": "9e43ca33ce972fb565ccaa05b7710734b18d6440ca3051682920ff082369beb1",
+    "redactionRectangles": [
+      [
+        0,
+        78,
+        709,
+        164
+      ],
+      [
+        51,
+        99,
+        125,
+        137
+      ],
+      [
+        273,
+        106,
+        473,
+        136
+      ]
+    ]
+  },
+  {
+    "page": 4,
+    "capture": "01-106006.jpg",
+    "group": "Essais initiaux - mesures ponctuelles",
+    "sourceSha256": "abb563be45a701907aed783f40a590553b646df2d3af527960a38500cc6aadc6",
+    "redactionRectangles": [
+      [
+        0,
+        78,
+        709,
+        164
+      ],
+      [
+        273,
+        106,
+        473,
+        136
+      ]
+    ]
+  },
+  {
+    "page": 5,
+    "capture": "01-106092.jpg",
+    "group": "Essais initiaux - mesures ponctuelles",
+    "sourceSha256": "013aa21aa29850a6a43a6010bcac7e43170d89fc14ba2f673ca4162bb138e023",
+    "redactionRectangles": [
+      [
+        0,
+        78,
+        709,
+        164
+      ],
+      [
+        51,
+        99,
+        125,
+        137
+      ],
+      [
+        272,
+        95,
+        473,
+        141
+      ],
+      [
+        621,
+        96,
+        656,
+        137
+      ]
+    ]
+  },
+  {
+    "page": 6,
+    "capture": "01-106094.jpg",
+    "group": "Essais initiaux - mesures ponctuelles",
+    "sourceSha256": "5facb5d79a2b0671d9f7c77291f77ac2ed55f888966b67c4da2e8a52dca8951d",
+    "redactionRectangles": [
+      [
+        0,
+        78,
+        709,
+        164
+      ]
+    ]
+  },
+  {
+    "page": 7,
+    "capture": "01-106096.jpg",
+    "group": "Essais initiaux - mesures ponctuelles",
+    "sourceSha256": "f53873c41138cb3c23d718a2ef2d95e6744d4cdd1732fb7150df00ea269aa791",
+    "redactionRectangles": [
+      [
+        0,
+        78,
+        709,
+        164
+      ],
+      [
+        51,
+        99,
+        125,
+        137
+      ],
+      [
+        272,
+        95,
+        473,
+        141
+      ],
+      [
+        621,
+        96,
+        656,
+        137
+      ]
+    ]
+  },
+  {
+    "page": 8,
+    "capture": "01-106104.jpg",
+    "group": "Stockage du backup",
+    "sourceSha256": "eb1775f2f34844531f92be84c54443013082403778d9e9c4a96b6307335bc9aa",
+    "redactionRectangles": [
+      [
+        0,
+        78,
+        709,
+        164
+      ],
+      [
+        273,
+        106,
+        473,
+        136
+      ]
+    ]
+  },
+  {
+    "page": 9,
+    "capture": "01-106112.jpg",
+    "group": "Controle prealable - progression et ressources",
+    "sourceSha256": "5d0def2c9e63f66340c67bc1cbdd2dff8bf7a256c90740d0893d87fb7e9b20f6",
+    "redactionRectangles": [
+      [
+        115,
+        313,
+        340,
+        332
+      ],
+      [
+        0,
+        78,
+        709,
+        164
+      ],
+      [
+        51,
+        99,
+        125,
+        137
+      ],
+      [
+        273,
+        101,
+        473,
+        141
+      ],
+      [
+        621,
+        92,
+        659,
+        141
+      ]
+    ]
+  },
+  {
+    "page": 10,
+    "capture": "02-106110.jpg",
+    "group": "Controle prealable - progression et ressources",
+    "sourceSha256": "6d9b8954a18f2b955f56651c9f8eb71568788f59d6741a746bed30adbddec438",
+    "redactionRectangles": [
+      [
+        184,
+        163,
+        400,
+        184
+      ],
+      [
+        184,
+        238,
+        400,
+        258
+      ],
+      [
+        68,
+        0,
+        1450,
+        88
+      ],
+      [
+        634,
+        32,
+        835,
+        63
+      ]
+    ]
+  },
+  {
+    "page": 11,
+    "capture": "02-106114.jpg",
+    "group": "Controle prealable - progression et ressources",
+    "sourceSha256": "9e8ae09a7842b50b6cd19130982e4474259350f9e1b6b9c356201c5b7e2d0b3c",
+    "redactionRectangles": [
+      [
+        115,
+        313,
+        340,
+        332
+      ],
+      [
+        0,
+        78,
+        709,
+        164
+      ],
+      [
+        273,
+        106,
+        473,
+        136
+      ]
+    ]
+  },
+  {
+    "page": 12,
+    "capture": "01-106118.jpg",
+    "group": "Controle prealable - progression et ressources",
+    "sourceSha256": "0ec8c0250a6e5718d81dbd397e156b45f148349410f5529429436b357c0cfcb2",
+    "redactionRectangles": [
+      [
+        0,
+        170,
+        709,
+        399
+      ],
+      [
+        115,
+        313,
+        340,
+        332
+      ],
+      [
+        0,
+        78,
+        709,
+        164
+      ]
+    ]
+  },
+  {
+    "page": 13,
+    "capture": "02-106129.jpg",
+    "group": "Controle prealable - progression et ressources",
+    "sourceSha256": "06b447f1c1c55b252272f169ce1c176a1e84983827588ae807599d660c9ff56b",
+    "redactionRectangles": [
+      [
+        115,
+        313,
+        340,
+        332
+      ],
+      [
+        0,
+        78,
+        709,
+        164
+      ]
+    ]
+  },
+  {
+    "page": 14,
+    "capture": "01-106131.jpg",
+    "group": "Controle prealable - progression et ressources",
+    "sourceSha256": "cbd9153b0e1a7ec9271e1e3a2ee16e583b258f095fbd8574d7c748998ae70172",
+    "redactionRectangles": [
+      [
+        115,
+        313,
+        340,
+        332
+      ],
+      [
+        0,
+        78,
+        709,
+        164
+      ]
+    ]
+  },
+  {
+    "page": 15,
+    "capture": "01-106152.jpg",
+    "group": "Controle prealable - progression et ressources",
+    "sourceSha256": "83226464ff8de040bb9e03b81e4ed79868aacc6011b4c7fb6fe747cd964a92b2",
+    "redactionRectangles": [
+      [
+        115,
+        313,
+        340,
+        332
+      ],
+      [
+        0,
+        78,
+        709,
+        164
+      ],
+      [
+        273,
+        106,
+        473,
+        136
+      ]
+    ]
+  },
+  {
+    "page": 16,
+    "capture": "03-106127.jpg",
+    "group": "Controle prealable - progression et ressources",
+    "sourceSha256": "9256a264cdfcabe95c00ba29d18618edc4709ab860f2950a778bdbe72d219ee9",
+    "redactionRectangles": [
+      [
+        184,
+        163,
+        400,
+        184
+      ],
+      [
+        184,
+        238,
+        400,
+        258
+      ],
+      [
+        68,
+        0,
+        1450,
+        88
+      ],
+      [
+        634,
+        32,
+        835,
+        63
+      ]
+    ]
+  },
+  {
+    "page": 17,
+    "capture": "01-106159.jpg",
+    "group": "Controle prealable - progression et ressources",
+    "sourceSha256": "079f2f62fe62ff67b5339bbb58598b3ac8ac1ce639e052838c99e9f529196d24",
+    "redactionRectangles": [
+      [
+        184,
+        163,
+        400,
+        184
+      ],
+      [
+        184,
+        163,
+        400,
+        184
+      ],
+      [
+        184,
+        238,
+        400,
+        258
+      ],
+      [
+        68,
+        0,
+        1450,
+        88
+      ],
+      [
+        634,
+        32,
+        835,
+        63
+      ]
+    ]
+  },
+  {
+    "page": 18,
+    "capture": "01-106161.jpg",
+    "group": "Controle prealable - progression et ressources",
+    "sourceSha256": "36f7cd1ec6db7e67c9266866e32a952ad0ad6b7bb80e143cfddce54dadabffd6",
+    "redactionRectangles": [
+      [
+        115,
+        313,
+        340,
+        332
+      ],
+      [
+        115,
+        313,
+        340,
+        332
+      ],
+      [
+        0,
+        78,
+        709,
+        164
+      ],
+      [
+        51,
+        99,
+        125,
+        137
+      ],
+      [
+        273,
+        98,
+        473,
+        141
+      ],
+      [
+        621,
+        96,
+        656,
+        137
+      ]
+    ]
+  },
+  {
+    "page": 19,
+    "capture": "02-1793392396722.jpeg",
+    "group": "Controle prealable - progression et ressources",
+    "sourceSha256": "36f7cd1ec6db7e67c9266866e32a952ad0ad6b7bb80e143cfddce54dadabffd6",
+    "redactionRectangles": [
+      [
+        115,
+        313,
+        340,
+        332
+      ],
+      [
+        115,
+        313,
+        340,
+        332
+      ],
+      [
+        0,
+        78,
+        709,
+        164
+      ],
+      [
+        51,
+        99,
+        125,
+        137
+      ],
+      [
+        273,
+        98,
+        473,
+        141
+      ],
+      [
+        621,
+        96,
+        656,
+        137
+      ]
+    ]
+  },
+  {
+    "page": 20,
+    "capture": "01-106170.jpg",
+    "group": "Controle prealable - progression et ressources",
+    "sourceSha256": "5c3e2fcd9e7a836f04ddbbe3df64bd411afa6cb2e53d4364b8a5bc1b86e94692",
+    "redactionRectangles": [
+      [
+        116,
+        313,
+        340,
+        332
+      ],
+      [
+        115,
+        313,
+        340,
+        332
+      ],
+      [
+        0,
+        78,
+        709,
+        164
+      ],
+      [
+        51,
+        99,
+        125,
+        137
+      ],
+      [
+        273,
+        101,
+        473,
+        141
+      ],
+      [
+        621,
+        92,
+        659,
+        141
+      ]
+    ]
+  },
+  {
+    "page": 21,
+    "capture": "02-106168.jpg",
+    "group": "Controle prealable - progression et ressources",
+    "sourceSha256": "90eedfb9783cdbf5e5865ae0ad2b3a584a5811e0f49aa1843cb0aef5b6b664ee",
+    "redactionRectangles": [
+      [
+        184,
+        163,
+        400,
+        184
+      ],
+      [
+        184,
+        238,
+        400,
+        258
+      ],
+      [
+        68,
+        0,
+        1450,
+        88
+      ],
+      [
+        634,
+        32,
+        835,
+        63
+      ]
+    ]
+  },
+  {
+    "page": 22,
+    "capture": "01-106197.jpg",
+    "group": "Controle prealable - progression et ressources",
+    "sourceSha256": "55dc2ea97f77abf1ea00cefc90de5ba438a4aae312d8abd852b679c2ed4c87b4",
+    "redactionRectangles": [
+      [
+        115,
+        313,
+        340,
+        332
+      ],
+      [
+        115,
+        313,
+        340,
+        332
+      ],
+      [
+        0,
+        78,
+        709,
+        164
+      ],
+      [
+        105,
+        105,
+        125,
+        131
+      ],
+      [
+        273,
+        101,
+        473,
+        140
+      ],
+      [
+        621,
+        92,
+        659,
+        141
+      ]
+    ]
+  },
+  {
+    "page": 23,
+    "capture": "02-106195.jpg",
+    "group": "Controle prealable - progression et ressources",
+    "sourceSha256": "b194d83a51c53170141b606d7fb82c476d306dbbb104eb3d394cd52a5dc164c1",
+    "redactionRectangles": [
+      [
+        184,
+        163,
+        400,
+        184
+      ],
+      [
+        184,
+        238,
+        400,
+        258
+      ],
+      [
+        68,
+        0,
+        1450,
+        88
+      ],
+      [
+        634,
+        32,
+        835,
+        63
+      ]
+    ]
+  },
+  {
+    "page": 24,
+    "capture": "image(20261031-144530).png",
+    "group": "Controle prealable - progression et ressources",
+    "sourceSha256": "05d29cad1d58332da73852c69d0a1e9537d92f6e2dd635c2830846c8dd6cd714",
+    "redactionRectangles": [
+      [
+        145,
+        193,
+        580,
+        222
+      ],
+      [
+        157,
+        208,
+        216,
+        219
+      ],
+      [
+        216,
+        212,
+        223,
+        217
+      ],
+      [
+        223,
+        208,
+        265,
+        219
+      ],
+      [
+        266,
+        208,
+        296,
+        219
+      ]
+    ]
+  },
+  {
+    "page": 25,
+    "capture": "image(20261031-175036).png",
+    "group": "Restauration a 94 %",
+    "sourceSha256": "2f33cdfc59a8ec307d36adbe9ce0642ae083128605b460e481698db165c08d70",
+    "redactionRectangles": [
+      [
+        710,
+        426,
+        978,
+        454
+      ],
+      [
+        420,
+        572,
+        1190,
+        593
+      ],
+      [
+        145,
+        193,
+        580,
+        222
+      ],
+      [
+        214,
+        195,
+        223,
+        227
+      ],
+      [
+        221,
+        207,
+        295,
+        218
+      ],
+      [
+        894,
+        211,
+        910,
+        216
+      ],
+      [
+        280,
+        429,
+        313,
+        438
+      ],
+      [
+        712,
+        427,
+        768,
+        439
+      ],
+      [
+        768,
+        417,
+        775,
+        449
+      ],
+      [
+        774,
+        427,
+        876,
+        440
+      ],
+      [
+        878,
+        417,
+        908,
+        449
+      ]
+    ]
+  },
+  {
+    "page": 26,
+    "capture": "image(20261031-175324).png",
+    "group": "Restauration a 94 %",
+    "sourceSha256": "f9b58a5869e917a298fe49dc209d638884b114ef45ca27681951d2b3cf74eebf",
+    "redactionRectangles": [
+      [
+        375,
+        730,
+        1550,
+        851
+      ],
+      [
+        145,
+        193,
+        580,
+        222
+      ],
+      [
+        30,
+        730,
+        1570,
+        850
+      ],
+      [
+        213,
+        190,
+        222,
+        222
+      ],
+      [
+        220,
+        202,
+        294,
+        213
+      ],
+      [
+        179,
+        561,
+        205,
+        593
+      ],
+      [
+        204,
+        572,
+        273,
+        586
+      ],
+      [
+        266,
+        561,
+        275,
+        593
+      ],
+      [
+        286,
+        572,
+        422,
+        586
+      ],
+      [
+        420,
+        561,
+        462,
+        593
+      ],
+      [
+        456,
+        572,
+        634,
+        586
+      ]
+    ]
+  },
+  {
+    "page": 27,
+    "capture": "image(20261031-175513).png",
+    "group": "Restauration a 94 %",
+    "sourceSha256": "394412612ff7b18ed34f9f25b39d46826506e0a72003e929e2b8273c485d18c9",
+    "redactionRectangles": [
+      [
+        375,
+        730,
+        1550,
+        851
+      ],
+      [
+        145,
+        193,
+        580,
+        222
+      ],
+      [
+        30,
+        730,
+        1570,
+        850
+      ],
+      [
+        213,
+        195,
+        222,
+        227
+      ],
+      [
+        220,
+        207,
+        294,
+        218
+      ],
+      [
+        249,
+        566,
+        289,
+        598
+      ],
+      [
+        291,
+        566,
+        347,
+        598
+      ],
+      [
+        350,
+        581,
+        357,
+        586
+      ],
+      [
+        357,
+        566,
+        403,
+        598
+      ],
+      [
+        403,
+        577,
+        701,
+        591
+      ],
+      [
+        630,
+        566,
+        695,
+        598
+      ],
+      [
+        700,
+        577,
+        737,
+        588
+      ]
+    ]
+  },
+  {
+    "page": 28,
+    "capture": "image(20261101-142603).png",
+    "group": "Restauration a 94 %",
+    "sourceSha256": "695447a8ee54e53dfcbcb7e2455661196a1af5e3474603d29bc10eb3f1873254",
+    "redactionRectangles": []
+  },
+  {
+    "page": 29,
+    "capture": "image(20261101-143303).png",
+    "group": "Restauration a 94 %",
+    "sourceSha256": "7ce5dfad0dc13793d5466352905d33bea2ce13b50bfc833c1c283c6e68ae31bf",
+    "redactionRectangles": []
+  },
+  {
+    "page": 30,
+    "capture": "image(20261101-143814).png",
+    "group": "Restauration a 94 %",
+    "sourceSha256": "abec6a4c2e6db8fa413acca9fa113c71a12651f10dc9da4b894a24b0c0561adc",
+    "redactionRectangles": [
+      [
+        375,
+        730,
+        1550,
+        851
+      ],
+      [
+        145,
+        193,
+        580,
+        222
+      ],
+      [
+        30,
+        730,
+        1570,
+        850
+      ],
+      [
+        225,
+        182,
+        235,
+        216
+      ],
+      [
+        235,
+        195,
+        307,
+        206
+      ],
+      [
+        906,
+        196,
+        935,
+        205
+      ],
+      [
+        945,
+        195,
+        972,
+        206
+      ],
+      [
+        978,
+        198,
+        986,
+        205
+      ],
+      [
+        1001,
+        199,
+        1015,
+        204
+      ],
+      [
+        262,
+        552,
+        302,
+        586
+      ],
+      [
+        302,
+        552,
+        362,
+        586
+      ],
+      [
+        363,
+        569,
+        369,
+        574
+      ],
+      [
+        369,
+        565,
+        494,
+        579
+      ],
+      [
+        1342,
+        567,
+        1348,
+        574
+      ]
+    ]
+  },
+  {
+    "page": 31,
+    "capture": "image(20261101-171955).png",
+    "group": "Restauration a 94 %",
+    "sourceSha256": "4e8b9d9546400d19c7ff2726f090aa2a0d477fac30b6c20b8604b5bf2a3e5a35",
+    "redactionRectangles": [
+      [
+        375,
+        730,
+        1550,
+        851
+      ],
+      [
+        160,
+        125,
+        620,
+        145
+      ],
+      [
+        375,
+        704,
+        1500,
+        760
+      ],
+      [
+        30,
+        690,
+        1550,
+        770
+      ],
+      [
+        231,
+        117,
+        240,
+        149
+      ],
+      [
+        238,
+        129,
+        312,
+        140
+      ]
+    ]
+  },
+  {
+    "page": 32,
+    "capture": "image(20261101-205626).png",
+    "group": "Echec disque plein",
+    "sourceSha256": "0ccf90537d04df31a5070cb26c264fd45e33cdec59dad137b88878b013efd99e",
+    "redactionRectangles": [
+      [
+        145,
+        193,
+        580,
+        222
+      ],
+      [
+        216,
+        187,
+        225,
+        219
+      ],
+      [
+        223,
+        199,
+        297,
+        210
+      ]
+    ]
+  },
+  {
+    "page": 33,
+    "capture": "image(20261102-090341).png",
+    "group": "Preparation de reprise et espace disponible",
+    "sourceSha256": "bc97b1a6680fba711b5bbd0aa91f7fafb1c65cbb0eab5a5fc4ee5ac9572ddc32",
+    "redactionRectangles": [
+      [
+        160,
+        126,
+        789,
+        205
+      ],
+      [
+        83,
+        131,
+        130,
+        145
+      ],
+      [
+        163,
+        131,
+        223,
+        143
+      ],
+      [
+        224,
+        117,
+        231,
+        153
+      ],
+      [
+        229,
+        131,
+        340,
+        145
+      ],
+      [
+        344,
+        117,
+        372,
+        153
+      ],
+      [
+        373,
+        131,
+        656,
+        145
+      ],
+      [
+        805,
+        131,
+        848,
+        143
+      ],
+      [
+        110,
+        187,
+        143,
+        201
+      ],
+      [
+        163,
+        187,
+        223,
+        198
+      ],
+      [
+        268,
+        187,
+        307,
+        201
+      ],
+      [
+        304,
+        187,
+        411,
+        201
+      ],
+      [
+        374,
+        173,
+        408,
+        209
+      ],
+      [
+        413,
+        187,
+        529,
+        201
+      ],
+      [
+        566,
+        187,
+        599,
+        201
+      ],
+      [
+        601,
+        173,
+        643,
+        209
+      ],
+      [
+        805,
+        187,
+        849,
+        198
+      ]
+    ]
+  },
+  {
+    "page": 34,
+    "capture": "image(20261102-090746).png",
+    "group": "Preparation de reprise et espace disponible",
+    "sourceSha256": "4ddf876fedad1fcaa0a26ce827a451486692ac9eca8c2d5793957761fbfb307c",
+    "redactionRectangles": [
+      [
+        156,
+        138,
+        786,
+        218
+      ],
+      [
+        79,
+        146,
+        127,
+        160
+      ],
+      [
+        160,
+        146,
+        220,
+        158
+      ],
+      [
+        219,
+        135,
+        226,
+        167
+      ],
+      [
+        239,
+        146,
+        337,
+        160
+      ],
+      [
+        339,
+        146,
+        369,
+        158
+      ],
+      [
+        369,
+        146,
+        408,
+        158
+      ],
+      [
+        410,
+        148,
+        485,
+        158
+      ],
+      [
+        485,
+        135,
+        522,
+        167
+      ],
+      [
+        160,
+        174,
+        200,
+        185
+      ],
+      [
+        202,
+        174,
+        220,
+        186
+      ],
+      [
+        94,
+        202,
+        140,
+        216
+      ],
+      [
+        161,
+        202,
+        220,
+        213
+      ]
+    ]
+  },
+  {
+    "page": 35,
+    "capture": "image(20261102-102644).png",
+    "group": "Preparation de reprise et espace disponible",
+    "sourceSha256": "d61c77e57bb821aec05b3768169ebcea19cb577ce811d62cd2a406fa9886b3ee",
+    "redactionRectangles": []
+  }
+]

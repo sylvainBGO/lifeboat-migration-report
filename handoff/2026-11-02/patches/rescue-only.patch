@@ -1,0 +1,910 @@
+diff --git a/docs/RESCUE-20261102.md b/docs/RESCUE-20261102.md
+new file mode 100644
+index 0000000..3369c28
+--- /dev/null
++++ b/docs/RESCUE-20261102.md
+@@ -0,0 +1,83 @@
++# Lifeboat Recovery — reprise spécifique 3.4.7
++
++Cet outil termine une restauration 3.4.7 interrompue dans `_restore_sessions`,
++après copie complète des projets et du profil portable vers un profil initialement
++vide. Il ne remplace pas le Restore général et ne doit pas être utilisé pour un
++autre point d'échec.
++
++## Utilisation
++
++1. Fermer Codex et l'ancien Lifeboat. Extraire le ZIP dans un nouveau dossier.
++2. Ouvrir `Codex-Lifeboat-Recovery.exe`.
++3. Sélectionner le `restore-journal.json` original et le fichier texte contenant
++   la trace complète de l'erreur. Le chemin du point de récupération de cet incident
++   est proposé par défaut ; corriger si nécessaire.
++4. Choisir où enregistrer `reprise-plan.json`, puis **Préparer le plan**.
++   Cette étape fonctionne sous 500 Mo : seules les métadonnées et les listes de
++   conversations sont lues. La base temporaire subit un quick_check SQLite.
++5. Conserver le plan. Ne pas modifier/déplacer les dossiers source/destination.
++   Attendre la fin de la préparation avant un redémarrage de Windows.
++6. Après ajout d'espace, rouvrir l'outil, **Charger un plan**, puis **Reprendre**.
++   Aucun inventaire ou contrôle de chemins n'est répété.
++
++Le plan contient des chemins et métadonnées privés : ne pas le publier.
++Il reste nécessaire de conserver le backup source et le point de récupération.
++
++## Ce qui est évité
++
++- Pas de validation préalable des 88 Gio ni de lecture de `sha256.csv`.
++- Pas de recopie/contrôle des groupes de projets déjà terminés.
++- Pas de recopie du profil portable, ni de suppression globale des sessions.
++- Pas de copie de l'index source immédiatement suivie d'une reconstruction :
++  l'index est construit une seule fois depuis la base finale.
++- Pas d'audit final récursif de portabilité. Le rapport indique cette limitation.
++
++Le parcours rglob original n'a pas d'ordre garanti. La préparation ne s'appuie
++pas sur le nom/date de la conversation pour déduire ce qui est terminé : elle
++réutilise les fichiers définitifs présents dans `sessions`, car l'ancien code a
++supprimé ce dossier au début puis finalisé chaque fichier par remplacement atomique.
++Le fichier correspondant au temporaire est toujours recopié. Les archives ne sont
++pas présumées terminées : cette phase n'avait pas commencé.
++
++Cette confiance est spécifique à l'incident et suppose que les dossiers sont
++restés inchangés. Les projets ne sont pas revérifiés, même les six groupes internes
++que la copie ultérieure du profil a pu réécrire.
++
++## Manque d'espace et interruptions
++
++Réserve : exactement 500 000 000 octets. Seule l'exécution est soumise au seuil.
++Les écritures de fichiers sont découpées en blocs avec contrôle de l'espace avant
++chaque bloc, y compris les grosses lignes JSONL. Un supplément couvre le bloc en
++cours et les buffers ; l'arrêt peut donc intervenir légèrement au-dessus de 500 Mo.
++Le disque peut encore se remplir brutalement à cause d'un autre processus : ENOSPC
++reste traité et ne déclenche jamais de rollback.
++
++Le fichier interrompu n'est pas validé ; la prochaine reprise le recommence.
++Les points terminés sont enregistrés atomiquement après chaque fichier/étape.
++Si l'enregistrement lui-même échoue, le dernier plan valide reste utilisable ;
++au pire la dernière opération est répétée, sans effacer les autres fichiers.
++La petite base préparée est conservée et installée par copie atomique pour rendre
++cette étape rejouable après une coupure.
++
++Il n'y a pas de pause manuelle dans cette version. Ne pas fermer pendant le travail.
++Le verrou empêche deux exécutions de secours simultanées pour le même point.
++
++## Finalisation
++
++L'outil réutilise les routines natives de paramètres portables, index, validation
++SQLite/identifiants des conversations, registre des projets, lineage, rapports et
++rétention conservatrice des points de récupération. Les contrôles projets et le
++parcours complet de portabilité sont explicitement sautés. Le journal original est
++complété avec une section `rescue` ; le rapport final est dans `Documents/Codex Restore Reports`.
++Le plan est marqué `complete` après les étapes de finalisation.
++
++L'interface est une fenêtre de secours distincte avec activité, compteurs et
++état d'interruption. Elle ne simule pas les anciens pourcentages 62 % / 94 %.
++
++## Construction et tests
++
++Base officielle v3.4.7 : `32ae7df2c5c56b5c5974138b4f6f2e383fbe6c5d`,
++avec le patch LongPaths/projets imbriqués puis le patch de secours.
++Le workflow Windows exécute les régressions, les auto-tests officiels et le test
++de démarrage de l'exécutable. Les données de test sont synthétiques.
++Aucune restauration réelle n'a encore été exécutée avec cette version.
+diff --git a/src/codex_transfer/rescue.py b/src/codex_transfer/rescue.py
+new file mode 100644
+index 0000000..401fbd0
+--- /dev/null
++++ b/src/codex_transfer/rescue.py
+@@ -0,0 +1,398 @@
++"""Targeted rescue of a 3.4.7 restore stopped inside _restore_sessions.
++
++No preflight, project walks, portable-profile recopy or rollback. The plan is
++local operational state: keep it with the original recovery point, not in git.
++"""
++from __future__ import annotations
++
++import contextlib
++import datetime as dt
++import errno
++import json
++import os
++import shutil
++import sqlite3
++import time
++import traceback
++from pathlib import PurePosixPath
++from typing import Callable
++
++from .fs_paths import Path, sqlite_uri
++from . import atomic_io, backup, lineage, project_identity, recovery, restore, windows
++from . import rollout
++
++VERSION = 1
++RESERVE = 500_000_000  # 500 Mo, decimal; preparation is exempt.
++CHUNK = 1024 * 1024
++
++
++class SpacePause(RuntimeError):
++    pass
++
++
++def temporary_for(destination: Path) -> Path:
++    return destination.with_name('.' + destination.name + '.restore.tmp' +
++                                 ('.jsonl.zst' if rollout.is_compressed(destination) else '.jsonl'))
++
++
++class SpaceGuard:
++    def __init__(self, reserve=RESERVE):
++        self.reserve = reserve
++
++    def check(self, path: Path, pending=0):
++        probe = path if path.is_dir() else path.parent
++        while not probe.exists():
++            probe = probe.parent
++        free = shutil.disk_usage(probe).free
++        if free <= self.reserve + pending:
++            raise SpacePause(f'Espace insuffisant : {free / 1_000_000:.1f} Mo libres ; '
++                             f'reserve {self.reserve / 1_000_000:.0f} Mo. Liberez de l’espace puis reprenez.')
++
++
++def _save(path, plan):
++    plan['updatedAtUtc'] = backup.utc_now()
++    atomic_io.write_json(path, plan)
++
++
++def _read_only_counts(database):
++    with contextlib.closing(sqlite3.connect(sqlite_uri(database), uri=True)) as db:
++        check = backup.sqlite_quick_check(db)
++        if check != 'ok':
++            raise restore.RestoreError(f'Base temporaire invalide : {check}')
++        return {'finalThreads': db.execute('SELECT count(*) FROM threads').fetchone()[0]}
++
++
++def _translator_state(translator):
++    return {
++        'source_profile': str(translator.source_profile),
++        'target_profile': str(translator.target_profile),
++        'package_root': str(translator.package_root),
++        'project_targets': {k: str(v) for k, v in translator.project_targets.items()},
++        'attachment_targets': {k: str(v) for k, v in translator.attachment_targets.items()},
++        'approved_external_roots': [str(p) for p in translator.approved_external_roots],
++        'replacements': translator.replacements,
++        'mappings': translator.mappings,
++    }
++
++
++def _load_translator(state):
++    # Use prepared mappings; no new location resolution or inventory at execution.
++    obj = restore.PathTranslator.__new__(restore.PathTranslator)
++    for name in ('source_profile', 'target_profile', 'package_root'):
++        setattr(obj, name, Path(state[name]))
++    for name in ('project_targets', 'attachment_targets'):
++        setattr(obj, name, {k: Path(v) for k, v in state[name].items()})
++    obj.approved_external_roots = tuple(Path(p) for p in state['approved_external_roots'])
++    obj.replacements = state['replacements']
++    obj.mappings = state['mappings']
++    return obj
++
++
++def prepare(journal_path: Path, log_path: Path, plan_path: Path,
++            progress: Callable[[str], None] = lambda _: None):
++    """One-time metadata-only preparation. Never guarded by the 500 MB threshold."""
++    journal_path, log_path, plan_path = map(Path, (journal_path, log_path, plan_path))
++    if plan_path.exists():
++        raise restore.RestoreError('Le plan existe deja : chargez-le ou choisissez un autre nom.')
++    journal = backup.read_json(journal_path)
++    if journal.get('status') != 'restoring':
++        raise restore.RestoreError('Cette reprise exige le journal interrompu au statut restoring.')
++    if journal.get('targetThreadsBefore') != 0 or journal.get('targetProjectsBefore') != 0:
++        raise restore.RestoreError('Outil reserve a cette restauration vers un profil initialement vide.')
++    if journal.get('approvedExternalRoots'):
++        raise restore.RestoreError('Cette version de secours ne traite pas les racines externes.')
++    projects = journal.get('projects', [])
++    if not projects or any(p.get('status') != 'complete' for p in projects):
++        raise restore.RestoreError('Tous les groupes de projets doivent avoir termine dans le journal.')
++    for item in (journal.get('comparisonPlan') or {}).get('items', []):
++        if item.get('proposedAction') in ('retain', 'keep-both', 'archive', 'delete-project', 'archive-and-replace'):
++            raise restore.RestoreError('Decision de conservation/conflit hors du perimetre de ce secours.')
++    # Read only the tail of the supplied GUI log, not millions of validation lines.
++    with log_path.open('rb') as handle:
++        handle.seek(max(0, log_path.stat().st_size - 256 * 1024))
++        tail = handle.read().decode('utf-8-sig', errors='replace')
++    if not all(token in tail for token in ('_restore_sessions', '_rewrite_copy', 'No space left on device',
++                                           'Replacing local portable Codex user data')):
++        raise restore.RestoreError('La trace ne confirme pas l’arret attendu dans la copie des conversations.')
++    if 'running automatic rollback' in tail or 'Rollback completed' in tail:
++        raise restore.RestoreError('Un rollback est mentionne : cette reprise directe ne convient pas.')
++    package = Path(journal['package'])
++    profile = Path(journal['targetProfile'])
++    safety = journal_path.parent
++    codex = profile / '.codex'
++    database = safety / 'state_5.restored.tmp.sqlite'
++    progress('Lecture du journal et de la base deja preparee...')
++    counts = _read_only_counts(database)
++    translator = restore.PathTranslator(package, profile)
++    sessions_root = codex / 'sessions'
++    partials = list(sessions_root.rglob('*.restore.tmp*'))
++    if len(partials) != 1:
++        raise restore.RestoreError(f'Un seul fichier interrompu attendu ; trouves : {len(partials)}.')
++    partial = partials[0]
++    tasks, reused = [], []
++    partial_matched = False
++    progress('Inventaire des conversations uniquement (aucun parcours des projets)...')
++    for folder in ('sessions', 'archived_sessions'):
++        source_root = package / 'codex' / folder
++        for source in rollout.iter_files(source_root):
++            destination = codex / folder / source.relative_to(source_root)
++            is_partial = temporary_for(destination) == partial
++            partial_matched |= is_partial
++            # _restore_sessions removes sessions before starting and commits each
++            # file with os.replace. Presence proves completion in this incident.
++            # rglob order is NOT stable: never infer a lexical resume position.
++            if folder == 'sessions' and destination.is_file() and not is_partial:
++                reused.append(str(destination))
++            else:
++                tasks.append({'kind': 'rewrite', 'source': str(source),
++                              'target': str(destination), 'status': 'pending',
++                              'bytes': source.stat().st_size})
++    if not partial_matched:
++        raise restore.RestoreError('Le fichier interrompu ne correspond a aucune conversation source.')
++    tasks.sort(key=lambda task: (temporary_for(Path(task['target'])) != partial, task['target']))
++    # Source index would immediately be rebuilt: generate it once from final DB.
++    for item in translator.mappings.get('attachments', []):
++        if item.get('sourcePresent'):
++            source = package / Path(*PurePosixPath(item['backupRelativePath']).parts)
++            tasks.append({'kind': 'copy', 'source': str(source),
++                          'target': str(translator.attachment_targets[str(item['id'])]),
++                          'status': 'pending', 'bytes': source.stat().st_size})
++    plan = {
++        'format': 'lifeboat-targeted-rescue', 'version': VERSION,
++        'createdAtUtc': backup.utc_now(), 'status': 'prepared',
++        'originalFailureTail': tail[-12000:],
++        'journalPath': str(journal_path.resolve()), 'journal': journal,
++        'package': str(package), 'profile': str(profile), 'safety': str(safety),
++        'database': str(database), 'databaseCounts': counts,
++        'translator': _translator_state(translator), 'tasks': tasks,
++        'reusedSessions': reused, 'interruptedFile': str(partial),
++        'completedSteps': [], 'reserveBytes': RESERVE,
++        'authHash': backup.sha256_file(codex / 'auth.json'),
++        'reportPath': str(windows.documents_folder(profile) / 'Codex Restore Reports' /
++                          ('rescue-' + safety.name + '.json')),
++        'verificationScope': 'Prior project validation reused; no repeated tree/hash/portability audit.',
++    }
++    _save(plan_path, plan)
++    progress(f'Plan enregistre : {len(reused)} conversations conservees, '
++             f'{sum(t["kind"] == "rewrite" for t in tasks)} a terminer, '
++             f'{sum(t["kind"] == "copy" for t in tasks)} pieces jointes a copier.')
++    return plan
++
++
++def _write_task(task, translator, guard, progress):
++    source, target = Path(task['source']), Path(task['target'])
++    guard.check(target)
++    target.parent.mkdir(parents=True, exist_ok=True)
++    temporary = temporary_for(target)
++    written = 0
++    next_update = time.monotonic()
++    def write_chunks(writer, value):
++        nonlocal written, next_update
++        for offset in range(0, len(value), CHUNK):
++            part = value[offset:offset + CHUNK]
++            # Reserve for UTF-8 expansion and buffered/compressed writer output.
++            guard.check(target, len(part) * (4 if isinstance(part, str) else 1) + 65536)
++            writer.write(part)
++            written += len(part)
++            if time.monotonic() >= next_update:
++                progress(f'{target.name} : {written / 1_000_000:.1f} Mo traites')
++                next_update = time.monotonic() + 1
++    if task['kind'] == 'rewrite':
++        with rollout.open_text(source, errors='replace', newline='') as reader:
++            with rollout.open_text_writer(temporary) as writer:
++                parts, buffered = [], 0
++                for line in reader:
++                    value = translator.text(line.rstrip('\r\n')) + '\n'
++                    parts.append(value)
++                    buffered += len(value)
++                    if buffered >= CHUNK:
++                        write_chunks(writer, ''.join(parts))
++                        parts, buffered = [], 0
++                if parts:
++                    write_chunks(writer, ''.join(parts))
++                guard.check(target, 65536)
++    else:
++        with source.open('rb') as reader, temporary.open('wb') as writer:
++            while chunk := reader.read(CHUNK):
++                write_chunks(writer, chunk)
++            writer.flush()
++            os.fsync(writer.fileno())
++    # Flush compressed footer before fsync and atomic commit.
++    with temporary.open('rb+') as handle:
++        os.fsync(handle.fileno())
++    guard.check(target)
++    os.replace(temporary, target)
++    atomic_io._sync_parent(target.parent)
++
++
++@contextlib.contextmanager
++def _exclusive(safety):
++    path = Path(safety) / 'rescue.lock'
++    with path.open('a+b') as handle:
++        handle.seek(0)
++        if os.name == 'nt':
++            import msvcrt
++            if path.stat().st_size == 0:
++                handle.write(b'0'); handle.flush()
++            handle.seek(0)
++            try:
++                msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
++            except OSError as exc:
++                raise restore.RestoreError('Une autre reprise est deja ouverte.') from exc
++        else:
++            import fcntl
++            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
++        try:
++            yield
++        finally:
++            handle.seek(0)
++            if os.name == 'nt':
++                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
++            else:
++                fcntl.flock(handle, fcntl.LOCK_UN)
++
++
++def execute(plan_path: Path, progress: Callable[[str], None] = lambda _: None):
++    plan_path = Path(plan_path)
++    plan = backup.read_json(plan_path)
++    if plan.get('format') != 'lifeboat-targeted-rescue' or plan.get('version') != VERSION:
++        raise restore.RestoreError('Format de plan non reconnu.')
++    if plan['status'] == 'complete':
++        progress('Cette reprise est deja terminee.')
++        return plan
++    with _exclusive(plan['safety']):
++        # Reload under lock; no inventory, hash scan or preparation repeated.
++        plan = backup.read_json(plan_path)
++        if plan['status'] == 'complete':
++            return plan
++        try:
++            return _execute(plan_path, plan, progress)
++        except Exception as exc:
++            plan['status'] = 'paused-space' if isinstance(exc, SpacePause) or (
++                isinstance(exc, OSError) and (exc.errno == errno.ENOSPC or getattr(exc, 'winerror', None) == 112)
++            ) else 'interrupted'
++            plan['lastError'] = {'message': str(exc), 'traceback': traceback.format_exc(), 'at': backup.utc_now()}
++            try:
++                _save(plan_path, plan)
++            except Exception as save_error:
++                progress(f'Le dernier point enregistre reste utilisable. Echec journal : {save_error}')
++            # Never invoke rollback. Never mask the original exception.
++            raise
++
++
++def _execute(plan_path, plan, progress):
++    guard = SpaceGuard(RESERVE)
++    profile, package, safety = (Path(plan[k]) for k in ('profile', 'package', 'safety'))
++    codex = profile / '.codex'
++    guard.check(codex)
++    guard.check(plan_path)
++    translator = _load_translator(plan['translator'])
++    journal = plan['journal']
++    comparison = journal.get('comparisonPlan')
++    plan['status'] = 'running'
++    plan.pop('lastError', None)
++    _save(plan_path, plan)
++    for number, task in enumerate(plan['tasks'], 1):
++        if task['status'] == 'done':
++            continue
++        plan['current'] = task['target']
++        progress(f'Fichier restant {number}/{len(plan["tasks"])} : {task["target"]}')
++        _write_task(task, translator, guard, progress)
++        task['status'] = 'done'
++        _save(plan_path, plan)
++
++    def step(name, action):
++        if name in plan['completedSteps']:
++            return
++        guard.check(codex)
++        guard.check(plan_path)
++        progress(name)
++        plan['current'] = name
++        result = action()
++        if result is not None:
++            plan.setdefault('results', {})[name] = result
++        plan['completedSteps'].append(name)
++        _save(plan_path, plan)
++
++    step('Parametres portables', lambda: restore._restore_global_state(package, codex, translator, comparison))
++
++    def install_database():
++        database = Path(plan['database'])
++        # Retain prepared DB as restart evidence. Copy just ~4 MiB atomically;
++        # unlike a move, crash between replacement and checkpoint is retryable.
++        for suffix in ('-wal', '-shm'):
++            (codex / ('state_5.sqlite' + suffix)).unlink(missing_ok=True)
++        _write_task({'kind': 'copy', 'source': str(database), 'target': str(codex / 'state_5.sqlite')},
++                    translator, guard, progress)
++    step('Installation de la base preparee', install_database)
++    step('Index des conversations', lambda: restore._rebuild_session_index(codex / 'state_5.sqlite', codex))
++
++    def verify():
++        if backup.sha256_file(codex / 'auth.json') != plan['authHash']:
++            raise restore.RestoreError('L’authentification locale a change depuis la preparation.')
++        result = restore.verify_restored(package, profile, translator, comparison,
++                                         reuse_project_evidence=journal['projects'])
++        if not result['valid']:
++            raise restore.RestoreError('; '.join(result['errors'][:10]))
++        return result
++    step('Verification finale ciblee', verify)
++
++    def identities():
++        path = package / 'manifest/project-identities.json'
++        if not path.is_file():
++            return 0
++        manifest = backup.read_json(path)
++        registry_path = windows.project_registry_path(profile)
++        registry = project_identity.load_registry(registry_path)
++        project_identity.register_restored_roots(registry, manifest, translator.project_targets)
++        restore._remove_dispositioned_identity_roots(registry, comparison)
++        project_identity.save_registry(registry_path, registry)
++        return len(manifest.get('roots', []))
++    step('Registre des projets', identities)
++
++    def register_lineage():
++        source = package / 'manifest/lineage.json'
++        target = windows.lineage_state_path(profile)
++        if source.is_file():
++            lineage.save_state(target, lineage.state_from_manifest(backup.read_json(source)))
++            return True
++        target.unlink(missing_ok=True)
++        return False
++    step('Historique de sauvegarde', register_lineage)
++
++    def complete_journal():
++        journal.update({
++            'status': 'complete', 'completedAtUtc': backup.utc_now(),
++            'databaseCounts': plan['databaseCounts'],
++            'recentIndexEntries': plan['results']['Index des conversations'],
++            'verification': plan['results']['Verification finale ciblee'],
++            'projectIdentitiesRegistered': plan['results']['Registre des projets'],
++            'lineageRegistered': plan['results']['Historique de sauvegarde'],
++            'pathMappings': plan['translator']['project_targets'],
++            'rescue': {'plan': str(plan_path), 'preparedAtUtc': plan['createdAtUtc'],
++                       'reusedSessions': len(plan['reusedSessions']),
++                       'copiedSessions': sum(t['kind'] == 'rewrite' for t in plan['tasks']),
++                       'copiedAttachments': sum(t['kind'] == 'copy' for t in plan['tasks']),
++                       'reusedProjectGroups': len(journal['projects']),
++                       'verificationScope': plan['verificationScope'],
++                       'interruptedFile': plan['interruptedFile']},
++        })
++        backup.write_json(Path(plan['journalPath']), journal)
++        backup.write_json(Path(plan['reportPath']), journal)
++    step('Journal et rapport de restauration', complete_journal)
++
++    def retention():
++        # Same conservative native retention after success only.
++        try:
++            result = recovery.enforce_retention(profile, keep=recovery.DEFAULT_KEEP, progress=progress)
++            journal['recoveryRetention'] = result
++        except Exception as exc:
++            journal['recoveryRetentionError'] = f'{type(exc).__name__}: {exc}'
++        backup.write_json(Path(plan['journalPath']), journal)
++        backup.write_json(Path(plan['reportPath']), journal)
++    step('Archivage des points de recuperation', retention)
++    plan['status'] = 'complete'
++    plan['completedAtUtc'] = backup.utc_now()
++    _save(plan_path, plan)
++    progress('Restauration terminee. Rapport : ' + plan['reportPath'])
++    return plan
+diff --git a/src/codex_transfer/rescue_gui.py b/src/codex_transfer/rescue_gui.py
+new file mode 100644
+index 0000000..427c9cc
+--- /dev/null
++++ b/src/codex_transfer/rescue_gui.py
+@@ -0,0 +1,143 @@
++"""Small, isolated French rescue UI; native restore GUI is unchanged."""
++from __future__ import annotations
++import argparse
++import json
++import os
++import queue
++import sys
++import threading
++import tkinter as tk
++from tkinter import filedialog, messagebox, ttk
++from .fs_paths import Path
++from . import rescue
++
++
++def main():
++    parser = argparse.ArgumentParser()
++    parser.add_argument('--prepare', metavar='JOURNAL')
++    parser.add_argument('--log')
++    parser.add_argument('--plan')
++    parser.add_argument('--resume', metavar='PLAN')
++    parser.add_argument('--smoke-test', metavar='RESULT')
++    args = parser.parse_args()
++    if args.smoke_test:
++        # Validate packaged imports and actual Tk availability, without user data.
++        root = tk.Tk(); root.withdraw(); root.update(); root.destroy()
++        Path(args.smoke_test).write_text(json.dumps({'passed': True, 'planVersion': rescue.VERSION,
++                                                    'reserveBytes': rescue.RESERVE}))
++        return 0
++    if args.prepare or args.resume:
++        try:
++            output = lambda msg: print(msg, flush=True) if sys.stdout else None
++            if args.prepare:
++                if not args.log or not args.plan:
++                    parser.error('--prepare requires --log and --plan')
++                rescue.prepare(Path(args.prepare), Path(args.log), Path(args.plan), output)
++            else:
++                rescue.execute(Path(args.resume), output)
++            return 0
++        except Exception as exc:
++            if sys.stderr:
++                print(str(exc), file=sys.stderr)
++            return 2
++    run_gui()
++    return 0
++
++
++def run_gui():
++    root = tk.Tk()
++    root.title('Codex Lifeboat — Reprise specifique 3.4.7')
++    root.geometry('1000x690')
++    root.minsize(800, 580)
++    root.configure(background='#f4f7fa')
++    frame = ttk.Frame(root, padding=20)
++    frame.pack(fill='both', expand=True)
++    ttk.Label(frame, text='Terminer la restauration interrompue', font=('Segoe UI', 18, 'bold')).pack(anchor='w')
++    ttk.Label(frame, text='1. Preparer et enregistrer le plan.  2. Charger ce plan pour reprendre, meme apres redemarrage.',
++              wraplength=900).pack(anchor='w', pady=(8, 15))
++    default = Path(os.environ.get('LOCALAPPDATA', str(Path.home()))) / 'Codex Lifeboat/recovery-points/20261031-162112'
++    journal = tk.StringVar(value=str(default / 'restore-journal.json'))
++    log = tk.StringVar()
++    plan = tk.StringVar(value=str(default / 'reprise-plan.json'))
++    controls = []
++    def row(label, value, save=False):
++        box = ttk.Frame(frame); box.pack(fill='x', pady=4)
++        ttk.Label(box, text=label, width=22).pack(side='left')
++        entry = ttk.Entry(box, textvariable=value); entry.pack(side='left', fill='x', expand=True)
++        def select():
++            chosen = (filedialog.asksaveasfilename(defaultextension='.json') if save else
++                      filedialog.askopenfilename())
++            if chosen: value.set(chosen)
++        button = ttk.Button(box, text='Parcourir', command=select); button.pack(side='left', padx=(8, 0))
++        controls.extend((entry, button))
++    row('Journal precedent', journal)
++    row('Trace de l’erreur (.txt)', log)
++    row('Document de reprise', plan, save=True)
++    buttons = ttk.Frame(frame); buttons.pack(fill='x', pady=12)
++    state = tk.StringVar(value='Preparation possible sous 500 Mo. Le seuil concerne uniquement la restauration.')
++    ttk.Label(frame, textvariable=state, wraplength=920).pack(anchor='w', pady=8)
++    bar = ttk.Progressbar(frame, mode='indeterminate'); bar.pack(fill='x')
++    ttk.Label(frame, text='Activite — les projets termines ne sont ni recopies ni recontroles').pack(anchor='w', pady=(12, 4))
++    box = ttk.Frame(frame); box.pack(fill='both', expand=True)
++    text = tk.Text(box, background='#142431', foreground='#e9f4fa', wrap='word', state='disabled')
++    scrollbar = ttk.Scrollbar(box, command=text.yview)
++    text.configure(yscrollcommand=scrollbar.set)
++    scrollbar.pack(side='right', fill='y'); text.pack(fill='both', expand=True)
++    events = queue.Queue()
++    busy = False
++    def append(msg):
++        text.configure(state='normal'); text.insert('end', msg + '\n'); text.see('end')
++        if int(text.index('end-1c').split('.')[0]) > 2000: text.delete('1.0', '501.0')
++        text.configure(state='disabled')
++    def launch(mode):
++        nonlocal busy
++        if busy: return
++        path = Path(plan.get())
++        if not plan.get() or (mode == 'prepare' and (not journal.get() or not log.get())):
++            messagebox.showerror('Champs manquants', 'Selectionnez les documents necessaires.'); return
++        j, l = Path(journal.get()), Path(log.get())
++        busy = True
++        for item in controls: item.configure(state='disabled')
++        bar.start(15)
++        state.set('Preparation du plan...' if mode == 'prepare' else 'Reprise en cours — ne fermez pas cette fenetre.')
++        def work():
++            try:
++                result = (rescue.prepare(j, l, path, lambda m: events.put(('log', m))) if mode == 'prepare'
++                          else rescue.execute(path, lambda m: events.put(('log', m))))
++                events.put(('done', 'Plan enregistre. Vous pouvez fermer et le recharger plus tard.' if mode == 'prepare'
++                            else 'Restauration terminee. Rapport conserve avec le journal.'))
++            except Exception as exc:
++                events.put(('error', str(exc)))
++        threading.Thread(target=work, daemon=False).start()
++    def load():
++        chosen = filedialog.askopenfilename(filetypes=[('Plan de reprise', '*.json')])
++        if chosen:
++            plan.set(chosen)
++            try:
++                data = rescue.backup.read_json(Path(chosen))
++                if data.get('format') != 'lifeboat-targeted-rescue': raise ValueError('Ce document n’est pas un plan de reprise.')
++                done = sum(t['status'] == 'done' for t in data['tasks'])
++                state.set(f'Plan charge : {done}/{len(data["tasks"])} fichiers restants traites. Statut : {data["status"]}.')
++            except Exception as exc: messagebox.showerror('Plan', str(exc))
++    for title, command in [('Preparer le plan', lambda: launch('prepare')),
++                           ('Charger un plan', load), ('Reprendre', lambda: launch('resume'))]:
++        button = ttk.Button(buttons, text=title, command=command)
++        button.pack(side='left', padx=(0, 10)); controls.append(button)
++    def poll():
++        nonlocal busy
++        try:
++            while True:
++                kind, message = events.get_nowait(); append(message)
++                if kind in ('done', 'error'):
++                    busy = False; bar.stop()
++                    for item in controls: item.configure(state='normal')
++                    state.set(message if kind == 'done' else 'Interruption : ' + message)
++                    if kind == 'error': messagebox.showerror('Reprise interrompue — travail conserve', message)
++        except queue.Empty: pass
++        root.after(100, poll)
++    def close():
++        if busy:
++            messagebox.showinfo('Operation en cours', 'Attendez la fin de la preparation ou un arret propre avant de fermer.')
++        else: root.destroy()
++    root.protocol('WM_DELETE_WINDOW', close)
++    poll(); root.mainloop()
+diff --git a/src/codex_transfer/restore.py b/src/codex_transfer/restore.py
+index 7055280..4149157 100644
+--- a/src/codex_transfer/restore.py
++++ b/src/codex_transfer/restore.py
+@@ -1510,6 +1510,8 @@ def verify_restored(
+     target_profile: Path,
+     translator: PathTranslator | None = None,
+     comparison_plan: dict[str, Any] | None = None,
++    *,
++    reuse_project_evidence: list[dict[str, Any]] | None = None,
+ ) -> dict[str, Any]:
+     package_root = Path(package_root).resolve()
+     target_profile = Path(target_profile).resolve(strict=False)
+@@ -1589,11 +1591,27 @@ def verify_restored(
+             if not path.is_file():
+                 errors.append(f"Rollout ontbreekt voor {thread_id}: {path}")
+                 continue
+-            rollout_id, rollout_error = backup.parse_session_meta(path)
++            if reuse_project_evidence is None:
++                rollout_id, rollout_error = backup.parse_session_meta(path)
++            else:
++                try:
++                    with rollout_io.open_text(path, errors="strict") as handle:
++                        meta = json.loads(handle.readline())
++                    rollout_id = str(meta.get("payload", {}).get("id", "")) if meta.get("type") == "session_meta" else ""
++                    rollout_error = "" if rollout_id else "Missing session metadata"
++                except Exception as exc:
++                    rollout_id, rollout_error = "", str(exc)
+             if rollout_error or rollout_id != str(thread_id):
+                 errors.append(f"Invalid rollout ID for {thread_id}: {rollout_error or rollout_id}")
+     except Exception as exc:
+         errors.append(f"Database validation failed: {exc}")
++    if reuse_project_evidence is not None:
++        # Rescue only: project content was validated by the original operation.
++        # Do not invoke the full SHA manifest scan or portability tree audit.
++        checks["projects"] = {"status": "prior-validation-reused", "groups": len(reuse_project_evidence)}
++        checks["pathPortability"] = {"status": "deferred-rescue"}
++        notices.append("Project content and portability audit were not repeated during rescue.")
++        return {"valid": not errors, "errors": errors, "notices": notices, "checks": checks}
+     projects = backup.read_json(package_root / "manifest" / "projects.json")
+     expected_hashes: dict[str, str] = {}
+     with (package_root / "manifest" / "sha256.csv").open(
+diff --git a/src/run_lifeboat_rescue.py b/src/run_lifeboat_rescue.py
+new file mode 100644
+index 0000000..5952a79
+--- /dev/null
++++ b/src/run_lifeboat_rescue.py
+@@ -0,0 +1,4 @@
++from codex_transfer.rescue_gui import main
++
++if __name__ == '__main__':
++    raise SystemExit(main())
+diff --git a/tests/test_rescue.py b/tests/test_rescue.py
+new file mode 100644
+index 0000000..a546dbe
+--- /dev/null
++++ b/tests/test_rescue.py
+@@ -0,0 +1,210 @@
++import contextlib
++import errno
++import json
++import os
++import sqlite3
++import shutil
++import sys
++import tempfile
++import types
++import unittest
++from unittest.mock import patch
++if os.name != 'nt':
++    sys.modules.setdefault('winreg', types.ModuleType('winreg'))
++from codex_transfer import rescue, restore, rollout, backup
++from codex_transfer.fs_paths import Path
++
++
++class RescueTest(unittest.TestCase):
++    def setUp(self):
++        self.tmp = tempfile.TemporaryDirectory(); self.addCleanup(self.tmp.cleanup)
++        self.base = Path(self.tmp.name)
++        self.addCleanup(lambda: shutil.rmtree(self.base) if self.base.exists() else None)
++        self.package = self.base / 'backup'
++        self.profile = self.base / 'target'
++        self.codex = self.profile / '.codex'
++        self.safety = self.profile / 'AppData/Local/Codex Lifeboat/recovery-points/20261031-162112'
++        self.safety.mkdir(parents=True)
++        self.codex.mkdir(parents=True)
++        (self.codex / 'auth.json').write_text('auth-untouched')
++        self.journal = self.safety / 'restore-journal.json'
++        self.plan = self.safety / 'reprise-plan.json'
++        self.log = self.base / 'gui.txt'
++        self.log.write_text('Replacing local portable Codex user data\n_restore_sessions\n_rewrite_copy\nNo space left on device')
++        self.rows = []
++        for name, folder, compressed in [('a', 'sessions', False), ('b', 'sessions', False),
++                                          ('c', 'sessions', True), ('d', 'archived_sessions', False)]:
++            source = self.package / 'codex' / folder / '2026/09/30' / (name + '.jsonl' + ('.zst' if compressed else ''))
++            target = self.codex / source.relative_to(self.package / 'codex')
++            content = json.dumps({'type': 'session_meta', 'payload': {'id': name}}) + '\n' + json.dumps({'text': 'C:/old/path'}) + '\n'
++            with rollout.open_text_writer(source) as handle: handle.write(content)
++            self.rows.append((name, source, target, folder == 'archived_sessions'))
++        self.rows[0][2].parent.mkdir(parents=True)
++        self.rows[0][2].write_bytes(self.rows[0][1].read_bytes())
++        rescue.temporary_for(self.rows[1][2]).write_text('partial')
++        # Portable profile may contain archived sessions not yet rewritten.
++        self.rows[3][2].parent.mkdir(parents=True)
++        self.rows[3][2].write_text('stale archive')
++        self.db = self.safety / 'state_5.restored.tmp.sqlite'
++        with contextlib.closing(sqlite3.connect(self.db)) as db:
++            db.execute('CREATE TABLE threads(id TEXT, rollout_path TEXT, title TEXT, archived INTEGER)')
++            db.executemany('INSERT INTO threads VALUES(?,?,?,?)', [(n, str(t), n, int(a)) for n,s,t,a in self.rows])
++            db.commit()
++        def write(relative, value):
++            path = self.package / relative; path.parent.mkdir(parents=True, exist_ok=True)
++            path.write_text(json.dumps(value))
++        write('manifest/package.json', {'source': {'profilePath': 'C:/old'}})
++        write('manifest/projects.json', [])
++        write('manifest/threads.json', [{'id': n, 'archived': a} for n,s,t,a in self.rows])
++        write('manifest/path-mappings.json', {'projects': [], 'attachments': []})
++        write('codex/portable-global-state.json', {'test-rescue': 'ok'})
++        self.j = {'status': 'restoring', 'targetThreadsBefore': 0, 'targetProjectsBefore': 0,
++                  'approvedExternalRoots': [], 'package': str(self.package), 'targetProfile': str(self.profile),
++                  'safetyRoot': str(self.safety), 'projects': [{'status': 'complete', 'id': 'p', 'existedBefore': False}],
++                  'comparisonPlan': {'items': []}}
++        self.journal.write_text(json.dumps(self.j))
++        for name, value in [('documents_folder', self.profile / 'Documents'), ('desktop_folder', self.profile / 'Desktop'),
++                            ('project_registry_path', self.profile / 'registry.json'), ('lineage_state_path', self.profile / 'lineage.json'),
++                            ('recovery_points_folder', self.safety.parent)]:
++            p = patch('codex_transfer.windows.' + name, return_value=value); p.start(); self.addCleanup(p.stop)
++        p = patch('codex_transfer.windows.known_folders', return_value={}); p.start(); self.addCleanup(p.stop)
++        p = patch('codex_transfer.restore.resolved_external_roots', return_value={}); p.start(); self.addCleanup(p.stop)
++
++    def prepare(self):
++        return rescue.prepare(self.journal, self.log, self.plan)
++
++    def test_prepare_under_threshold_never_walks_projects(self):
++        with patch('codex_transfer.rescue.SpaceGuard.check', side_effect=AssertionError('guard in preparation')):
++            p = self.prepare()
++        self.assertEqual(len(p['reusedSessions']), 1)
++        self.assertEqual(len(p['tasks']), 3)
++        self.assertTrue(any('archived_sessions' in t['target'] for t in p['tasks']))
++        self.assertEqual(backup.read_json(self.journal)['status'], 'restoring')
++
++    def test_complete_real_roundtrip_and_second_launch_noop(self):
++        self.prepare()
++        original = self.rows[0][2].stat().st_mtime_ns
++        # No sha256.csv exists: any accidental full final verification fails.
++        with patch('codex_transfer.restore._restore_projects', side_effect=AssertionError('project recopy')), \
++             patch('codex_transfer.restore._restore_portable_profile', side_effect=AssertionError('profile recopy')), \
++             patch('codex_transfer.restore.rollback_restore', side_effect=AssertionError('rollback')):
++            p = rescue.execute(self.plan)
++        self.assertEqual(p['status'], 'complete')
++        self.assertEqual(original, self.rows[0][2].stat().st_mtime_ns)
++        self.assertTrue(self.db.exists())
++        self.assertFalse(rescue.temporary_for(self.rows[1][2]).exists())
++        for name,source,target,archived in self.rows:
++            with rollout.open_text(target) as handle:
++                self.assertEqual(json.loads(handle.readline())['payload']['id'], name)
++        self.assertEqual(backup.read_json(self.journal)['status'], 'complete')
++        self.assertTrue(Path(p['reportPath']).is_file())
++        with patch('codex_transfer.rescue.SpaceGuard.check', side_effect=AssertionError('already complete')):
++            self.assertEqual(rescue.execute(self.plan)['status'], 'complete')
++
++    def test_low_space_blocks_execution_not_preparation(self):
++        self.prepare()
++        with patch('codex_transfer.rescue.shutil.disk_usage', return_value=types.SimpleNamespace(free=500_000_000)):
++            with self.assertRaises(rescue.SpacePause): rescue.execute(self.plan)
++        p = backup.read_json(self.plan)
++        self.assertEqual(p['status'], 'paused-space')
++        self.assertTrue(all(t['status'] == 'pending' for t in p['tasks']))
++        self.assertEqual(rescue.execute(self.plan)['status'], 'complete')
++
++    def test_mid_file_pause_retains_completed_and_restarts_only_partial(self):
++        self.prepare()
++        first = self.rows[1][2]
++        real = rescue.SpaceGuard.check
++        def check(guard, path, pending=0):
++            if first.exists() and str(path).endswith('c.jsonl.zst') and pending:
++                raise rescue.SpacePause('simulated mid-file pause')
++            return real(guard, path, pending)
++        with patch.object(rescue.SpaceGuard, 'check', check):
++            with self.assertRaises(rescue.SpacePause): rescue.execute(self.plan)
++        self.assertTrue(first.exists())
++        stamp = first.stat().st_mtime_ns
++        rescue.execute(self.plan)
++        self.assertEqual(stamp, first.stat().st_mtime_ns)
++
++    def test_enospc_during_checkpoint_does_not_mask_original(self):
++        self.prepare()
++        real_save = rescue._save
++        def save(path, plan):
++            if plan.get('lastError'): raise OSError(errno.ENOSPC, 'journal full')
++            return real_save(path, plan)
++        with patch('codex_transfer.rescue._save', side_effect=save), \
++             patch('codex_transfer.rescue._write_task', side_effect=OSError(errno.ENOSPC, 'original copy failure')):
++            with self.assertRaisesRegex(OSError, 'original copy failure'): rescue.execute(self.plan)
++        self.assertEqual(backup.read_json(self.journal)['status'], 'restoring')
++        self.assertEqual(rescue.execute(self.plan)['status'], 'complete')
++
++    def test_crash_after_commit_before_checkpoint_is_idempotent(self):
++        self.prepare()
++        real_save = rescue._save
++        crashed = False
++        def save(path, plan):
++            nonlocal crashed
++            if not crashed and plan['tasks'][0]['status'] == 'done':
++                crashed = True
++                raise KeyboardInterrupt()
++            return real_save(path, plan)
++        with patch('codex_transfer.rescue._save', side_effect=save):
++            with self.assertRaises(KeyboardInterrupt): rescue.execute(self.plan)
++        self.assertEqual(backup.read_json(self.plan)['tasks'][0]['status'], 'pending')
++        self.assertEqual(rescue.execute(self.plan)['status'], 'complete')
++
++    def test_base_install_retry_does_not_lose_prepared_database(self):
++        self.prepare()
++        real_save = rescue._save
++        def save(path, plan):
++            if 'Installation de la base preparee' in plan['completedSteps']: raise KeyboardInterrupt()
++            return real_save(path, plan)
++        with patch('codex_transfer.rescue._save', side_effect=save):
++            with self.assertRaises(KeyboardInterrupt): rescue.execute(self.plan)
++        self.assertTrue(self.db.exists())
++        self.assertEqual(rescue.execute(self.plan)['status'], 'complete')
++
++    def test_prepare_refuses_unfinished_project_or_multiple_partials(self):
++        self.j['projects'][0]['status'] = 'staged'; self.journal.write_text(json.dumps(self.j))
++        with self.assertRaises(restore.RestoreError): self.prepare()
++        self.j['projects'][0]['status'] = 'complete'; self.journal.write_text(json.dumps(self.j))
++        rescue.temporary_for(self.rows[2][2]).write_text('another')
++        with self.assertRaises(restore.RestoreError): self.prepare()
++
++    def test_execution_does_not_reprepare_or_resolve_mappings(self):
++        self.prepare()
++        with patch('codex_transfer.rescue.prepare', side_effect=AssertionError('prepare repeated')), \
++             patch.object(restore.PathTranslator, '__init__', side_effect=AssertionError('mapping scan')):
++            self.assertEqual(rescue.execute(self.plan)['status'], 'complete')
++
++    def test_auth_change_blocks_final_success_and_retention(self):
++        self.prepare(); (self.codex / 'auth.json').write_text('changed')
++        with patch('codex_transfer.recovery.enforce_retention', side_effect=AssertionError('premature cleanup')):
++            with self.assertRaisesRegex(restore.RestoreError, 'authentification'): rescue.execute(self.plan)
++        self.assertEqual(backup.read_json(self.journal)['status'], 'restoring')
++
++    def test_binary_attachment_copied_once_and_reported(self):
++        source = self.package / 'attachments/payload.bin'
++        source.parent.mkdir(parents=True)
++        source.write_bytes(bytes(range(256)) * 10000)
++        mapping = self.package / 'manifest/path-mappings.json'
++        mapping.write_text(json.dumps({'projects': [], 'attachments': [
++            {'id': 'attach', 'originalPath': 'C:/old/payload.bin', 'sourcePresent': True,
++             'backupRelativePath': 'attachments/payload.bin'}]}))
++        plan = self.prepare()
++        task = next(t for t in plan['tasks'] if t['kind'] == 'copy')
++        rescue.execute(self.plan)
++        target = Path(task['target'])
++        self.assertEqual(source.read_bytes(), target.read_bytes())
++        self.assertEqual(backup.read_json(self.journal)['rescue']['copiedAttachments'], 1)
++
++    def test_long_path_and_large_line_stream_guard(self):
++        target = self.codex / ('a' * 90) / ('b' * 90) / ('c' * 90) / 'long.jsonl'
++        source = self.base / 'large.jsonl'; source.write_text('x' * (rescue.CHUNK * 3))
++        guard = rescue.SpaceGuard()
++        with patch.object(guard, 'check', wraps=guard.check) as check:
++            rescue._write_task({'kind': 'rewrite', 'source': str(source), 'target': str(target)},
++                               types.SimpleNamespace(text=lambda s: s), guard, lambda _: None)
++        self.assertGreaterEqual(check.call_count, 6)
++        self.assertEqual(target.stat().st_size, rescue.CHUNK * 3 + 1)
++
++if __name__ == '__main__': unittest.main()

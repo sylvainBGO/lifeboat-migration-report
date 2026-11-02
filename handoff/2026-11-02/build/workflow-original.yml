@@ -1,0 +1,67 @@
+name: Build Lifeboat Recovery (isolated Windows)
+on:
+  push:
+    branches: [build/lifeboat-rescue-20261102]
+    paths: ['lifeboat-rescue-build/**', '.github/workflows/build-lifeboat-rescue.yml']
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pinned source and rescue patch
+        shell: pwsh
+        run: |
+          git -c core.autocrlf=false clone --quiet --depth 1 --branch v3.4.7 https://github.com/dkwolf1/Codex-Lifeboat.git lifeboat
+          if ($LASTEXITCODE -ne 0) { throw 'Clone failed' }
+          if ((git -C lifeboat rev-parse HEAD) -ne '32ae7df2c5c56b5c5974138b4f6f2e383fbe6c5d') { throw 'Source changed' }
+          python -c "from pathlib import Path; p=Path('lifeboat-rescue-build/rescue.patch'); p.write_bytes(p.read_bytes().replace(bytes([13,10]), bytes([10])))"
+          git -C lifeboat apply --check ../lifeboat-rescue-build/rescue.patch
+          if ($LASTEXITCODE -ne 0) { throw 'Patch invalid' }
+          git -C lifeboat apply ../lifeboat-rescue-build/rescue.patch
+          if ($LASTEXITCODE -ne 0) { throw 'Patch failed' }
+          python -m pip install --disable-pip-version-check ./lifeboat pyinstaller==6.22.3
+          if ($LASTEXITCODE -ne 0) { throw 'Dependencies failed' }
+      - name: Windows recovery and regression tests
+        shell: pwsh
+        run: |
+          Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem' -Name LongPathsEnabled -Value 0
+          $env:PYTHONPATH="$PWD\lifeboat\src"
+          python -m unittest discover -s lifeboat/tests -v 2>&1 | Tee-Object -FilePath rescue-tests.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Regression tests failed' }
+          python lifeboat/src/run_codex_transfer.py --self-test --work "$env:RUNNER_TEMP\rescue-official-tests"
+          if ($LASTEXITCODE -ne 0) { throw 'Official tests failed' }
+          $r=Get-Content "$env:RUNNER_TEMP\rescue-official-tests\self-test-result.json" -Raw | ConvertFrom-Json
+          if (!$r.passed -or $r.phase11Matrix.automatedPassed -ne $r.phase11Matrix.automatedTotal) { throw 'Compatibility matrix failed' }
+      - name: Build dedicated executable and smoke test
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --name Codex-Lifeboat-Recovery --paths lifeboat/src lifeboat/src/run_lifeboat_rescue.py
+          if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
+          $exe=Join-Path $PWD 'dist\Codex-Lifeboat-Recovery.exe'
+          $report=Join-Path $PWD 'dist\packaged-smoke-test.json'
+          $p=Start-Process -FilePath $exe -ArgumentList @('--smoke-test', ('"{0}"' -f $report)) -PassThru -Wait
+          if ($p.ExitCode -ne 0 -or !(Test-Path $report)) { throw 'Packaged startup failed' }
+          $r=Get-Content $report -Raw | ConvertFrom-Json
+          if (!$r.passed) { throw 'Packaged report failed' }
+          Copy-Item lifeboat/docs/RESCUE-20261102.md dist/LISEZMOI.md
+          Copy-Item rescue-tests.txt dist/rescue-tests.txt
+          Copy-Item "$env:RUNNER_TEMP\rescue-official-tests\self-test-result.json" dist/official-self-test-result.json
+          Copy-Item lifeboat-rescue-build/rescue.patch dist/rescue.patch
+          Copy-Item lifeboat/LICENSE dist/LICENSE
+          Copy-Item lifeboat/THIRD-PARTY-NOTICES.txt dist/THIRD-PARTY-NOTICES.txt
+          $hash=(Get-FileHash $exe -Algorithm SHA256).Hash
+          Set-Content dist/SHA256.txt "$hash  Codex-Lifeboat-Recovery.exe"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Codex-Lifeboat-Recovery-Windows-x64
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 90

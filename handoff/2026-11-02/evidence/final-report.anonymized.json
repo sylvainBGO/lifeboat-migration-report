@@ -1,0 +1,54 @@
+{
+  "status": "complete",
+  "preparedAtUtc": "2026-10-31T15:21:13.429101Z",
+  "startedAtUtc": "2026-10-31T17:52:31.452105Z",
+  "completedAtUtc": "2026-11-02T11:25:23.820656Z",
+  "targetThreadsBefore": 0,
+  "targetProjectsBefore": 0,
+  "databaseCounts": {
+    "finalThreads": 713
+  },
+  "recentIndexEntries": 712,
+  "projectIdentitiesRegistered": 40,
+  "lineageRegistered": true,
+  "verification": {
+    "valid": true,
+    "errors": [],
+    "notices": [
+      "Project content and portability audit were not repeated during rescue."
+    ],
+    "checks": {
+      "sqliteQuickCheck": "ok",
+      "threads": 713,
+      "expectedThreadIds": 713,
+      "recentIndexEntries": 712,
+      "projects": {
+        "status": "prior-validation-reused",
+        "groups": 37
+      },
+      "pathPortability": {
+        "status": "deferred-rescue"
+      }
+    }
+  },
+  "rescue": {
+    "preparedAtUtc": "2026-11-02T09:05:40.535778Z",
+    "reusedSessions": 146,
+    "copiedSessions": 567,
+    "copiedAttachments": 42,
+    "reusedProjectGroups": 37,
+    "verificationScope": "Prior project validation reused; no repeated tree/hash/portability audit."
+  },
+  "recoveryRetention": {
+    "recoveryIndexVersion": 1,
+    "keep": 2,
+    "removedProjectPayloads": 0,
+    "stagingDirectoriesRemoved": 0,
+    "bytesFreed": 0,
+    "validPointsAfter": 1,
+    "invalidPointsRetained": 0,
+    "totalBytesAfter": 15540086,
+    "retainedPointCount": 1
+  },
+  "extractionNote": "Whitelisted excerpt of original final report, not the full report."
+}

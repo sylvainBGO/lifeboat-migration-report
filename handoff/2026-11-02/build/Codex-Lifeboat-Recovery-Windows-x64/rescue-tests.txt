@@ -1,0 +1,83 @@
+test_closed_details_does_not_scroll (test_details_layout.DetailsLayoutTest.test_closed_details_does_not_scroll) ... ok
+test_content_keeps_requested_height_on_small_screen (test_details_layout.DetailsLayoutTest.test_content_keeps_requested_height_on_small_screen) ... ok
+test_open_details_scrolls_after_layout (test_details_layout.DetailsLayoutTest.test_open_details_scrolls_after_layout) ... ok
+test_real_tk_small_window (test_details_layout.DetailsLayoutTest.test_real_tk_small_window) ... ok
+test_drive_and_dot_segments (test_fs_paths.PathSyntaxTests.test_drive_and_dot_segments) ... ok
+test_existing_prefix (test_fs_paths.PathSyntaxTests.test_existing_prefix) ... ok
+test_round_trip (test_fs_paths.PathSyntaxTests.test_round_trip) ... ok
+test_unc (test_fs_paths.PathSyntaxTests.test_unc) ... ok
+test_deep_read_copy_walk_and_missing_file (test_fs_paths.WindowsFilesystemTests.test_deep_read_copy_walk_and_missing_file) ... ok
+test_arbitrary_manifest_order (test_nested_projects.NestedProjectsTest.test_arbitrary_manifest_order) ... ok
+test_child_extra_file_blocks (test_nested_projects.NestedProjectsTest.test_child_extra_file_blocks) ... ok
+test_compatible_review_creates_group (test_nested_projects.NestedProjectsTest.test_compatible_review_creates_group) ... ok
+test_corrupt_parent_payload_rejected_before_activation (test_nested_projects.NestedProjectsTest.test_corrupt_parent_payload_rejected_before_activation) ... ok
+test_divergent_snapshots_block_before_writes (test_nested_projects.NestedProjectsTest.test_divergent_snapshots_block_before_writes) ... ok
+test_equal_destinations_still_block (test_nested_projects.NestedProjectsTest.test_equal_destinations_still_block) ... ok
+test_four_collisions_become_one_group (test_nested_projects.NestedProjectsTest.test_four_collisions_become_one_group) ... ok
+test_missing_manifest_fails_closed (test_nested_projects.NestedProjectsTest.test_missing_manifest_fails_closed) ... ok
+test_review_cannot_keep_child_while_replacing_parent (test_nested_projects.NestedProjectsTest.test_review_cannot_keep_child_while_replacing_parent) ... ok
+test_rollback_after_activation_restores_original_group (test_nested_projects.NestedProjectsTest.test_rollback_after_activation_restores_original_group) ... ok
+test_rollback_after_quarantine_restores_original_group (test_nested_projects.NestedProjectsTest.test_rollback_after_quarantine_restores_original_group) ... ok
+test_single_transaction_and_exact_child_verification (test_nested_projects.NestedProjectsTest.test_single_transaction_and_exact_child_verification) ... ok
+test_unrelated_sources_mapped_inside_parent_still_block (test_nested_projects.NestedProjectsTest.test_unrelated_sources_mapped_inside_parent_still_block) ... ok
+Temporary package: C:\Users\runneradmin\AppData\Local\Temp\tmp3qkl50zy\usb\.clb-62d718e14452
+SQLite snapshot is consistent; found 3 conversations.
+Preflight: inventorying conversation rollouts before copying payload data...
+Copying project: C:\Users\runneradmin\AppData\Local\Temp\tmp3qkl50zy\source-user\Documents\DemoProject
+Copying project: C:\Users\runneradmin\AppData\Local\Temp\tmp3qkl50zy\source-user\Documents\DemoProject\Legal
+Copying project: C:\Users\runneradmin\AppData\Local\Temp\tmp3qkl50zy\source-user\Documents\DemoProject\Social
+Copying project: C:\Users\runneradmin\AppData\Local\Temp\tmp3qkl50zy\source-user\Documents\DemoProject\Social\Studio
+Inventorying local conversation attachments...
+Creating SHA-256 manifest...
+  ... hashed 28/28 files (0.00 GiB)
+Analyzing backup change history with bounded memory...
+Backup change-history analysis completed.
+Hash manifest finalized; preparing fast structural checks...
+Running fast structural preflight validation...
+Independent package validation passed.
+Running final structural validation...
+Independent package validation passed.
+
+PASSED
+Backup: C:\Users\runneradmin\AppData\Local\Temp\tmp3qkl50zy\usb\Codex-PortableBackup-20261102-085053
+Conversations: 3 | Projects: 4 | Hashed files: 29 | Warnings: 2
+test_backup_restore_verify_with_nested_database_roots (test_nested_projects.WindowsRoundTripTest.test_backup_restore_verify_with_nested_database_roots) ... ok
+Temporary package: C:\Users\runneradmin\AppData\Local\Temp\tmp7_1pdq04\long-directory-long-directory-long-directory-long-directory-long-directory-long-directory-long-directory-long-directory-\nested-directory-nested-directory-nested-directory-nested-directory-nested-directory-nested-directory-nested-directory-nested-directory-\usb\.clb-36ff51c6950d
+SQLite snapshot is consistent; found 3 conversations.
+Preflight: inventorying conversation rollouts before copying payload data...
+Copying project: C:\Users\runneradmin\AppData\Local\Temp\tmp7_1pdq04\long-directory-long-directory-long-directory-long-directory-long-directory-long-directory-long-directory-long-directory-\nested-directory-nested-directory-nested-directory-nested-directory-nested-directory-nested-directory-nested-directory-nested-directory-\source-user\Documents\DemoProject
+Copying project: C:\Users\runneradmin\AppData\Local\Temp\tmp7_1pdq04\long-directory-long-directory-long-directory-long-directory-long-directory-long-directory-long-directory-long-directory-\nested-directory-nested-directory-nested-directory-nested-directory-nested-directory-nested-directory-nested-directory-nested-directory-\source-user\Documents\DemoProject\Legal
+Copying project: C:\Users\runneradmin\AppData\Local\Temp\tmp7_1pdq04\long-directory-long-directory-long-directory-long-directory-long-directory-long-directory-long-directory-long-directory-\nested-directory-nested-directory-nested-directory-nested-directory-nested-directory-nested-directory-nested-directory-nested-directory-\source-user\Documents\DemoProject\Social
+Copying project: C:\Users\runneradmin\AppData\Local\Temp\tmp7_1pdq04\long-directory-long-directory-long-directory-long-directory-long-directory-long-directory-long-directory-long-directory-\nested-directory-nested-directory-nested-directory-nested-directory-nested-directory-nested-directory-nested-directory-nested-directory-\source-user\Documents\DemoProject\Social\Studio
+Inventorying local conversation attachments...
+Creating SHA-256 manifest...
+  ... hashed 28/28 files (0.00 GiB)
+Analyzing backup change history with bounded memory...
+Backup change-history analysis completed.
+Hash manifest finalized; preparing fast structural checks...
+Running fast structural preflight validation...
+Independent package validation passed.
+Running final structural validation...
+Independent package validation passed.
+
+PASSED
+Backup: C:\Users\runneradmin\AppData\Local\Temp\tmp7_1pdq04\long-directory-long-directory-long-directory-long-directory-long-directory-long-directory-long-directory-long-directory-\nested-directory-nested-directory-nested-directory-nested-directory-nested-directory-nested-directory-nested-directory-nested-directory-\usb\Codex-PortableBackup-20261102-085055
+Conversations: 3 | Projects: 4 | Hashed files: 29 | Warnings: 2
+test_long_paths_backup_restore_verify_and_rollback (test_nested_projects.WindowsRoundTripTest.test_long_paths_backup_restore_verify_and_rollback) ... ok
+test_auth_change_blocks_final_success_and_retention (test_rescue.RescueTest.test_auth_change_blocks_final_success_and_retention) ... ok
+test_base_install_retry_does_not_lose_prepared_database (test_rescue.RescueTest.test_base_install_retry_does_not_lose_prepared_database) ... ok
+test_binary_attachment_copied_once_and_reported (test_rescue.RescueTest.test_binary_attachment_copied_once_and_reported) ... ok
+test_complete_real_roundtrip_and_second_launch_noop (test_rescue.RescueTest.test_complete_real_roundtrip_and_second_launch_noop) ... ok
+test_crash_after_commit_before_checkpoint_is_idempotent (test_rescue.RescueTest.test_crash_after_commit_before_checkpoint_is_idempotent) ... ok
+test_enospc_during_checkpoint_does_not_mask_original (test_rescue.RescueTest.test_enospc_during_checkpoint_does_not_mask_original) ... ok
+test_execution_does_not_reprepare_or_resolve_mappings (test_rescue.RescueTest.test_execution_does_not_reprepare_or_resolve_mappings) ... ok
+test_long_path_and_large_line_stream_guard (test_rescue.RescueTest.test_long_path_and_large_line_stream_guard) ... ok
+test_low_space_blocks_execution_not_preparation (test_rescue.RescueTest.test_low_space_blocks_execution_not_preparation) ... ok
+test_mid_file_pause_retains_completed_and_restarts_only_partial (test_rescue.RescueTest.test_mid_file_pause_retains_completed_and_restarts_only_partial) ... ok
+test_prepare_refuses_unfinished_project_or_multiple_partials (test_rescue.RescueTest.test_prepare_refuses_unfinished_project_or_multiple_partials) ... ok
+test_prepare_under_threshold_never_walks_projects (test_rescue.RescueTest.test_prepare_under_threshold_never_walks_projects) ... ok
+
+----------------------------------------------------------------------
+Ran 36 tests in 11.141s
+
+OK

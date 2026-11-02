@@ -1,0 +1,12 @@
+{
+  "cumulativePatchAppliesToPinnedBase": true,
+  "appliedPatchMatchesAllExportedSourceFiles": true,
+  "historicalWindowsArchivesCrcValid": true,
+  "privateNameScanFindings": [],
+  "evidenceApproach": "whitelisted extracts; public GitHub attribution retained",
+  "windowsBuildRerunForPackaging": false,
+  "screenshotCount": 34,
+  "screenshotPdfPages": 35,
+  "pdfRenderedForVisualReview": true,
+  "privateScreenshotsExcluded": true
+}

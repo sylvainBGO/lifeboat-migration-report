@@ -1,0 +1,12 @@
+Parametres portables
+Installation de la base preparee
+state_5.sqlite : 1.0 Mo traites
+Index des conversations
+Verification finale ciblee
+Registre des projets
+Historique de sauvegarde
+Journal et rapport de restauration
+Archivage des points de recuperation
+Restauration terminee. Rapport : [REDACTED_REPORT_PATH]
+Restauration terminee. Rapport conserve avec le journal.
+

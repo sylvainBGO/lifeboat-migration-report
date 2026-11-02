@@ -1,0 +1,7 @@
+c84eded4e0c86d4f03070d2221ab4c97a4c3fd7f Batch JSONL writes to avoid per-line disk checks and exercise attachment recovery
+90bc5ca7eab9f6f0abb33199933027a8aead90f5 Add incident-specific persistent rescue plan and direct restore continuation
+5b011eea7ebfe98cf14afb57f6f75e4ea971cd40 Support extended Win32 filesystem paths and report pre-restore validation activity
+00c22a03448f9a228fb61e5d199fdd3b0c0ed442 Keep technical details reachable in short windows with scrollable content
+89b9db3bbe740b47ef8423d761d9ccc46b27558d Preserve collision diagnostic compatibility for equal targets
+1efaa99ce11a490f389147736ad0e08c24b48e75 Canonicalize Windows fixture paths and close SQLite handles
+d04191cd87aa7e49e2ab8313ae72601c8e6e82ef Restore verified nested project snapshots as one transaction

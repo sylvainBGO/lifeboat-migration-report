@@ -1,0 +1,45 @@
+[project]
+name = "codex-lifeboat"
+version = "3.4.7"
+description = "One-click Codex backup, restore and Windows PC migration utility"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+keywords = [
+  "codex",
+  "backup",
+  "restore",
+  "migration",
+  "windows",
+  "usb-backup",
+  "chat-backup",
+  "project-transfer",
+  "sqlite",
+  "disaster-recovery",
+]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Win32 (MS Windows)",
+  "Intended Audience :: End Users/Desktop",
+  "Operating System :: Microsoft :: Windows :: Windows 10",
+  "Operating System :: Microsoft :: Windows :: Windows 11",
+  "Programming Language :: Python :: 3",
+  "Topic :: System :: Archiving :: Backup",
+  "Topic :: System :: Recovery Tools",
+]
+dependencies = [
+  "zstandard==0.23.0",
+]
+
+[project.gui-scripts]
+codex-lifeboat = "codex_transfer.main:main"
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

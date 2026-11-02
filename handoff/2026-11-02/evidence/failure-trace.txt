@@ -1,0 +1,18 @@
+Traceback (most recent call last):
+  File "codex_transfer\restore.py", line 1807, in restore_backup
+  File "codex_transfer\restore.py", line 929, in _restore_sessions
+  File "codex_transfer\restore.py", line 914, in _rewrite_copy
+OSError: [Errno 28] No space left on device
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "codex_transfer\gui.py", line 3193, in worker
+  File "codex_transfer\gui.py", line 3629, in work
+  File "codex_transfer\restore.py", line 1942, in restore_backup
+  File "codex_transfer\backup.py", line 358, in write_json
+  File "codex_transfer\atomic_io.py", line 113, in write_json
+  File "codex_transfer\atomic_io.py", line 81, in write_text
+OSError: [Errno 28] No space left on device
+[Errno 28] No space left on device
+

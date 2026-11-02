@@ -1,0 +1,1085 @@
+diff --git a/src/codex_transfer/atomic_io.py b/src/codex_transfer/atomic_io.py
+index 5913713..6d86632 100644
+--- a/src/codex_transfer/atomic_io.py
++++ b/src/codex_transfer/atomic_io.py
+@@ -6,7 +6,7 @@ import json
+ import os
+ import time
+ import uuid
+-from pathlib import Path
++from .fs_paths import Path
+ from typing import Any, Callable
+ 
+ 
+diff --git a/src/codex_transfer/backup.py b/src/codex_transfer/backup.py
+index 07210f1..878daa5 100644
+--- a/src/codex_transfer/backup.py
++++ b/src/codex_transfer/backup.py
+@@ -20,7 +20,8 @@ import time
+ import traceback
+ import uuid
+ import urllib.parse
+-from pathlib import Path, PurePosixPath
++from pathlib import PurePosixPath
++from .fs_paths import Path, sqlite_uri
+ from typing import Any, Callable, Iterable
+ 
+ from . import atomic_io, lineage, path_model, project_identity, rollout as rollout_io, windows
+@@ -158,7 +159,7 @@ def destination_path_budget(
+ ) -> dict[str, Any]:
+     """Evaluate projected staging/final paths without creating destination data."""
+     destination_root = destination_root.resolve(strict=False)
+-    setting = windows.long_paths_enabled() if long_paths is None else long_paths
++    setting = (os.name == "nt" or windows.long_paths_enabled()) if long_paths is None else long_paths
+     staging_root = destination_root / (
+         STAGING_NAME_PREFIX + ("0" * STAGING_TOKEN_LENGTH)
+     )
+@@ -438,8 +439,7 @@ def check_codex_not_running(source_codex_home: Path, allow_running_test: bool) -
+ 
+ 
+ def connect_read_only(path: Path) -> sqlite3.Connection:
+-    uri_path = urllib.parse.quote(path.resolve().as_posix(), safe="/:")
+-    return sqlite3.connect(f"file:{uri_path}?mode=ro", uri=True)
++    return sqlite3.connect(sqlite_uri(path), uri=True)
+ 
+ 
+ def sqlite_quick_check(connection: sqlite3.Connection) -> str:
+diff --git a/src/codex_transfer/conversation_prefix.py b/src/codex_transfer/conversation_prefix.py
+index 5e7aa6d..6ad1ad8 100644
+--- a/src/codex_transfer/conversation_prefix.py
++++ b/src/codex_transfer/conversation_prefix.py
+@@ -3,7 +3,7 @@
+ from __future__ import annotations
+ 
+ import json
+-from pathlib import Path
++from .fs_paths import Path
+ from typing import Any, Iterator
+ 
+ from . import lineage, rollout as rollout_io
+diff --git a/src/codex_transfer/diagnostics.py b/src/codex_transfer/diagnostics.py
+index f35b115..0b98d89 100644
+--- a/src/codex_transfer/diagnostics.py
++++ b/src/codex_transfer/diagnostics.py
+@@ -9,7 +9,7 @@ import platform
+ import re
+ import shutil
+ import sys
+-from pathlib import Path
++from .fs_paths import Path
+ from typing import Any, Callable, Iterable
+ 
+ from . import __version__, atomic_io, backup, portability_audit, recovery, rollout as rollout_io, windows
+diff --git a/src/codex_transfer/fs_paths.py b/src/codex_transfer/fs_paths.py
+new file mode 100644
+index 0000000..efdbf7f
+--- /dev/null
++++ b/src/codex_transfer/fs_paths.py
+@@ -0,0 +1,48 @@
++"""Filesystem paths with explicit Win32 long-path support.
++
++Keep display/manifest paths ordinary. Only the OS path protocol adds the
++extended prefix, so no registry change or administrator rights are needed.
++"""
++from __future__ import annotations
++import ntpath
++import os
++from pathlib import Path as StandardPath, WindowsPath, PurePath
++
++
++def ordinary_windows_path(value: str) -> str:
++    if value.startswith('\\\\?\\UNC\\'):
++        return '\\\\' + value[8:]
++    if value.startswith('\\\\?\\') and len(value) > 5 and value[5] == ':':
++        return value[4:]
++    return value
++
++
++def extended_windows_path(value: str) -> str:
++    if value.startswith(('\\\\?\\', '\\\\.\\')):
++        return value
++    # Resolve relative paths before using extended syntax (which treats .. literally).
++    absolute = ntpath.abspath(value)
++    if absolute.startswith('\\\\'):
++        return '\\\\?\\UNC\\' + absolute[2:]
++    if ntpath.isabs(absolute) and ntpath.splitdrive(absolute)[0]:
++        return '\\\\?\\' + absolute
++    return absolute
++
++
++class LongWindowsPath(WindowsPath):
++    def __init__(self, *args):
++        super().__init__(*(ordinary_windows_path(str(arg) if isinstance(arg, PurePath) else os.fspath(arg)) for arg in args))
++
++    def __fspath__(self) -> str:
++        value = str(self)
++        return extended_windows_path(value) if self.is_absolute() else value
++
++
++Path = LongWindowsPath if os.name == 'nt' else StandardPath
++
++
++def sqlite_uri(path, immutable=False):
++    import urllib.parse
++    value = os.fspath(Path(path).resolve())
++    encoded = urllib.parse.quote(value, safe="/:")
++    return f"file:{encoded}?mode=ro" + ("&immutable=1" if immutable else "")
+diff --git a/src/codex_transfer/git_insight.py b/src/codex_transfer/git_insight.py
+index 1722455..86bc269 100644
+--- a/src/codex_transfer/git_insight.py
++++ b/src/codex_transfer/git_insight.py
+@@ -5,7 +5,7 @@ from __future__ import annotations
+ import os
+ import shutil
+ import subprocess
+-from pathlib import Path
++from .fs_paths import Path
+ from typing import Any
+ 
+ 
+diff --git a/src/codex_transfer/gui.py b/src/codex_transfer/gui.py
+index 8e5db21..be7bd81 100644
+--- a/src/codex_transfer/gui.py
++++ b/src/codex_transfer/gui.py
+@@ -8,7 +8,7 @@ import tempfile
+ import threading
+ import time
+ import traceback
+-from pathlib import Path
++from .fs_paths import Path
+ import tkinter as tk
+ from tkinter import filedialog, messagebox, ttk
+ 
+@@ -2353,8 +2353,20 @@ class TransferApp(tk.Tk):
+         self.language_box.grid(row=0, column=9, rowspan=2, padx=(0, 22))
+         self.language_box.bind("<<ComboboxSelected>>", self._change_language)
+ 
+-        self.main_panel = ttk.Frame(self, style="App.TFrame", padding=(28, 20, 28, 20))
+-        self.main_panel.grid(row=1, column=0, sticky="nsew")
++        # Keep the expandable log reachable on small screens and at high DPI.
++        body = ttk.Frame(self, style="App.TFrame")
++        body.grid(row=1, column=0, sticky="nsew")
++        body.columnconfigure(0, weight=1)
++        body.rowconfigure(0, weight=1)
++        self.body_canvas = tk.Canvas(body, background=self.BG, highlightthickness=0)
++        self.body_canvas.grid(row=0, column=0, sticky="nsew")
++        body_scroll = ttk.Scrollbar(body, orient="vertical", command=self.body_canvas.yview)
++        body_scroll.grid(row=0, column=1, sticky="ns")
++        self.body_canvas.configure(yscrollcommand=body_scroll.set)
++        self.main_panel = ttk.Frame(self.body_canvas, style="App.TFrame", padding=(28, 20, 28, 20))
++        self.body_window = self.body_canvas.create_window(0, 0, window=self.main_panel, anchor="nw")
++        self.main_panel.bind("<Configure>", self._resize_body)
++        self.body_canvas.bind("<Configure>", self._resize_body)
+         self.main_panel.columnconfigure(0, weight=1)
+         self.main_panel.rowconfigure(7, weight=1)
+ 
+@@ -2797,10 +2809,25 @@ class TransferApp(tk.Tk):
+             self.restore_button.configure(text=self.t("restore"))
+             self.verify_restore_button.configure(text=self.t("verify_restore"))
+ 
++    def _resize_body(self, _event=None) -> None:
++        self.body_canvas.itemconfigure(
++            self.body_window,
++            width=self.body_canvas.winfo_width(),
++            height=max(self.main_panel.winfo_reqheight(), self.body_canvas.winfo_height()),
++        )
++        self.body_canvas.configure(scrollregion=self.body_canvas.bbox("all"))
++
++    def _reveal_details(self) -> None:
++        if self.details_visible:
++            self.update_idletasks()
++            self._resize_body()
++            self.body_canvas.yview_moveto(1.0)
++
+     def _toggle_details(self) -> None:
+         self.details_visible = not self.details_visible
+         if self.details_visible:
+             self.log_frame.grid()
++            self.after_idle(self._reveal_details)
+         else:
+             self.log_frame.grid_remove()
+         self.details_button.configure(
+diff --git a/src/codex_transfer/lineage.py b/src/codex_transfer/lineage.py
+index 21a9b12..ba7c61f 100644
+--- a/src/codex_transfer/lineage.py
++++ b/src/codex_transfer/lineage.py
+@@ -7,7 +7,7 @@ import hashlib
+ import json
+ import re
+ import uuid
+-from pathlib import Path
++from .fs_paths import Path
+ from typing import Any, Callable, Iterable
+ 
+ from . import atomic_io, rollout as rollout_io
+diff --git a/src/codex_transfer/location_mapper.py b/src/codex_transfer/location_mapper.py
+index 8af5f9d..5217db5 100644
+--- a/src/codex_transfer/location_mapper.py
++++ b/src/codex_transfer/location_mapper.py
+@@ -4,10 +4,10 @@ from __future__ import annotations
+ 
+ import json
+ import os
+-from pathlib import Path
++from .fs_paths import Path
+ from typing import Any, Mapping
+ 
+-from . import atomic_io, path_model, windows
++from . import atomic_io, nested_projects, path_model, windows
+ 
+ 
+ MAPPING_REGISTRY_VERSION = 1
+@@ -204,17 +204,11 @@ def build_plan(
+             or bool(getattr(os.path, "isjunction", lambda _path: False)(target))
+         ):
+             issues.append({"id": item["id"], "error": "project target is a link or junction"})
+-        for other in resolved_items[index + 1 :]:
+-            other_target = Path(str(other["targetPath"]))
+-            if _contains(target, other_target) or _contains(other_target, target):
+-                issues.append(
+-                    {
+-                        "id": item["id"],
+-                        "error": f"target collides or overlaps with project {other['id']}",
+-                    }
+-                )
++    nesting = nested_projects.analyze(resolved_items, package_root)
++    issues.extend(nesting["issues"])
+     return {
+         "planVersion": 1,
++        "nestedProjects": nesting,
+         "ready": not issues and not required,
+         "items": items,
+         "requiredExternalRoots": list(required.values()),
+diff --git a/src/codex_transfer/main.py b/src/codex_transfer/main.py
+index 3027c08..7e19e5b 100644
+--- a/src/codex_transfer/main.py
++++ b/src/codex_transfer/main.py
+@@ -3,7 +3,7 @@ from __future__ import annotations
+ import argparse
+ import json
+ import sys
+-from pathlib import Path
++from .fs_paths import Path
+ 
+ from . import backup, restore
+ from .gui import run_gui
+diff --git a/src/codex_transfer/nested_projects.py b/src/codex_transfer/nested_projects.py
+new file mode 100644
+index 0000000..e0e6e50
+--- /dev/null
++++ b/src/codex_transfer/nested_projects.py
+@@ -0,0 +1,118 @@
++"""Restore byte-identical nested snapshots as one transactional tree.
++
++No project names are special. Old packages remain immutable. Divergent snapshots
++are deliberately rejected: timestamps are not evidence of which copy is right.
++"""
++from __future__ import annotations
++
++import csv
++import json
++from pathlib import PureWindowsPath
++from .fs_paths import Path
++from typing import Any
++
++
++def source_relative(parent: str, child: str) -> str | None:
++    """Compare source paths using Windows semantics, including on Linux tests."""
++    try:
++        relative = PureWindowsPath(child).relative_to(PureWindowsPath(parent))
++    except ValueError:
++        return None
++    return relative.as_posix() if relative.parts else None
++
++
++def analyze(items: list[dict[str, Any]], package_root: Path | None) -> dict[str, Any]:
++    parents: dict[str, str] = {}
++    errors: list[dict[str, str]] = []
++    by_id = {str(item['id']): item for item in items}
++    offsets: dict[str, str] = {}
++    for child in items:
++        candidates = []
++        target = PureWindowsPath(str(child['targetPath']))
++        for parent in items:
++            if parent is child:
++                continue
++            parent_target = PureWindowsPath(str(parent['targetPath']))
++            if target == parent_target:
++                errors.append({'id': child['id'], 'error': f"target collides with project {parent['id']} (equal destination: {target})"})
++                continue
++            try:
++                relative = target.relative_to(parent_target).as_posix()
++            except ValueError:
++                continue
++            original_relative = source_relative(str(parent['sourcePath']), str(child['sourcePath']))
++            if original_relative is None or original_relative.casefold() != relative.casefold():
++                errors.append({'id': child['id'], 'error': f"Unrelated source projects overlap at destination: {parent_target} / {target}"})
++                continue
++            candidates.append((len(parent_target.parts), str(parent['id']), relative))
++        if candidates:
++            _, parent_id, relative = min(candidates)
++            parents[str(child['id'])] = parent_id
++            offsets[str(child['id'])] = relative
++    if not parents or errors:
++        return {'parents': parents, 'offsets': offsets, 'issues': errors}
++    if package_root is None:
++        errors.append({'id': '', 'error': 'Nested project snapshots require package manifest verification.'})
++        return {'parents': parents, 'offsets': offsets, 'issues': errors}
++    try:
++        projects = json.loads((package_root / 'manifest/projects.json').read_text(encoding='utf-8-sig'))
++        project_by_id = {str(p['id']): p for p in projects}
++        involved = set(parents) | set(parents.values())
++        prefixes = {str(project_by_id[k]['backupRelativePath']).rstrip('/') + '/': k for k in involved}
++        rows: dict[str, dict[str, tuple[int, str]]] = {k: {} for k in involved}
++        # One CSV pass, only keeping hashes belonging to the nested group.
++        with (package_root / 'manifest/sha256.csv').open(encoding='utf-8-sig', newline='') as handle:
++            for row in csv.DictReader(handle):
++                name = row['relative_path']
++                for prefix, key in prefixes.items():
++                    if name.startswith(prefix):
++                        relative = name[len(prefix):]
++                        if relative in rows[key]:
++                            raise ValueError('Duplicate project hash row: ' + name)
++                        rows[key][relative] = (int(row['size']), row['sha256'].lower())
++                        break
++        for key, entries in rows.items():
++            project = project_by_id[key]
++            if len(entries) != int(project['fileCount']) or sum(v[0] for v in entries.values()) != int(project['totalBytes']):
++                raise ValueError('Incomplete hash inventory for project ' + key)
++        for child_id, parent_id in parents.items():
++            prefix = offsets[child_id] + '/'
++            parent_rows = {k[len(prefix):]: v for k, v in rows[parent_id].items() if k.startswith(prefix)}
++            child_rows = rows[child_id]
++            different = sorted(k for k in parent_rows.keys() | child_rows.keys() if parent_rows.get(k) != child_rows.get(k))
++            if different:
++                errors.append({'id': child_id, 'error': (
++                    f"Nested snapshots differ: {by_id[parent_id]['sourcePath']} / {by_id[child_id]['sourcePath']}; "
++                    f"{len(different)} differing or missing files (examples: {', '.join(different[:3])}). "
++                    'Both copies remain in the backup; no version was selected or overwritten.'
++                )})
++    except (OSError, ValueError, KeyError, TypeError) as exc:
++        errors.append({'id': '', 'error': 'Cannot verify nested project snapshots: ' + str(exc)})
++    return {'parents': parents, 'offsets': offsets, 'issues': errors}
++
++
++def decision_errors(plan: dict[str, Any]) -> list[str]:
++    """A parent replacement must not override a reviewed child retention."""
++    parents = (plan.get('locationPlan') or {}).get('nestedProjects', {}).get('parents', {})
++    items = {str(i.get('key')): i for i in plan.get('items', []) if i.get('kind') == 'project'}
++    errors = []
++    for child_id, parent_id in parents.items():
++        parent = items.get('project/' + parent_id, {})
++        child = items.get('project/' + child_id, {})
++        pa, ca = parent.get('proposedAction'), child.get('proposedAction')
++        if pa in {'none', 'retain'} and ca in {'none', 'retain'}:
++            continue
++        if pa in {'create', 'replace'} and ca in {'create', 'replace', 'none'}:
++            continue
++        errors.append(f"Nested projects require compatible decisions: {parent.get('target')} ({pa}) / {child.get('target')} ({ca}). Keep both targets or restore both sources; per-child archives are not supported.")
++    # Protect registered destination-only roots from replacement of an ancestor.
++    for parent_id in set(parents.values()):
++        parent = items.get('project/' + parent_id, {})
++        if parent.get('proposedAction') not in {'create', 'replace'}:
++            continue
++        for item in items.values():
++            if item.get('source') is None and item.get('target') and parent.get('target'):
++                a, b = str(parent['target']), str(item['target'])
++                if a.casefold() == b.casefold() or source_relative(a, b) or source_relative(b, a):
++                    errors.append('Destination-only project overlaps nested group: ' + b)
++    return errors
+diff --git a/src/codex_transfer/portability_audit.py b/src/codex_transfer/portability_audit.py
+index 1c6dba9..81d10b4 100644
+--- a/src/codex_transfer/portability_audit.py
++++ b/src/codex_transfer/portability_audit.py
+@@ -7,7 +7,7 @@ import json
+ import ntpath
+ import re
+ from collections import defaultdict
+-from pathlib import Path
++from .fs_paths import Path
+ from typing import Any, Iterable
+ 
+ from . import backup
+diff --git a/src/codex_transfer/project_identity.py b/src/codex_transfer/project_identity.py
+index 317e45d..4fffa18 100644
+--- a/src/codex_transfer/project_identity.py
++++ b/src/codex_transfer/project_identity.py
+@@ -8,7 +8,7 @@ import json
+ import ntpath
+ import re
+ import uuid
+-from pathlib import Path
++from .fs_paths import Path
+ from typing import Any, Iterable
+ 
+ from . import atomic_io
+diff --git a/src/codex_transfer/recovery.py b/src/codex_transfer/recovery.py
+index 8bc6d6d..b8007e6 100644
+--- a/src/codex_transfer/recovery.py
++++ b/src/codex_transfer/recovery.py
+@@ -4,7 +4,7 @@ from __future__ import annotations
+ 
+ import datetime as dt
+ import shutil
+-from pathlib import Path
++from .fs_paths import Path
+ from typing import Any, Callable
+ 
+ from . import backup, windows
+diff --git a/src/codex_transfer/restore.py b/src/codex_transfer/restore.py
+index fcc6238..7055280 100644
+--- a/src/codex_transfer/restore.py
++++ b/src/codex_transfer/restore.py
+@@ -8,16 +8,18 @@ import shutil
+ import sqlite3
+ import traceback
+ import uuid
+-from pathlib import Path, PurePosixPath
++from pathlib import PurePosixPath
++from .fs_paths import Path
+ from typing import Any, Callable
+ 
+ try:
+-    from . import backup, lineage, location_mapper, path_model, portability_audit, project_identity, recovery, restore_plan, rollout as rollout_io, windows
++    from . import backup, lineage, location_mapper, nested_projects, path_model, portability_audit, project_identity, recovery, restore_plan, rollout as rollout_io, windows
+     from .validate import validate
+ except ImportError:
+     import backup
+     import lineage
+     import location_mapper
++    import nested_projects
+     import path_model
+     import portability_audit
+     import project_identity
+@@ -232,10 +234,13 @@ def prepare_restore(
+     external_roots: dict[str, str] | None = None,
+     comparison_plan: dict[str, Any] | None = None,
+ ) -> dict[str, Any]:
+-    package_root = package_root.resolve()
+-    target_profile = target_profile.resolve(strict=False)
++    package_root = Path(package_root).resolve()
++    target_profile = Path(target_profile).resolve(strict=False)
+     target_codex = target_profile / ".codex"
+-    result = validate(package_root, False)
++    result = validate(
++        package_root, False,
++        progress=(lambda current, total, message: progress("Pre-restore check: " + message)) if progress else None,
++    )
+     if not result.get("valid"):
+         raise RestoreError("The selected backup is invalid: " + "; ".join(result["errors"][:5]))
+     if not target_codex.is_dir() or not (target_codex / "state_5.sqlite").is_file():
+@@ -339,7 +344,7 @@ class PathTranslator:
+         external_roots: dict[str, str] | None = None,
+     ):
+         self.package_root = package_root
+-        self.target_profile = target_profile.resolve(strict=False)
++        self.target_profile = Path(target_profile).resolve(strict=False)
+         self.package = backup.read_json(package_root / "manifest/package.json")
+         self.mappings = backup.read_json(package_root / "manifest/path-mappings.json")
+         self.source_profile = Path(self.package["source"]["profilePath"])
+@@ -652,7 +657,7 @@ def _build_restored_database(
+         if backup.sqlite_quick_check(connection) != "ok":
+             raise RestoreError("Lokale database-template is beschadigd.")
+         connection.execute("PRAGMA foreign_keys=OFF")
+-        connection.execute("ATTACH DATABASE ? AS src", (str(source_database),))
++        connection.execute("ATTACH DATABASE ? AS src", (os.fspath(source_database),))
+         decisions = _conversation_decisions(comparison_plan)
+         project_decisions = _project_decisions(comparison_plan)
+         target_thread_ids_before = {
+@@ -1161,6 +1166,18 @@ def _restore_projects(
+     fail_after_activation_for_test: bool = False,
+ ) -> int:
+     projects = backup.read_json(package_root / "manifest" / "projects.json")
++    location_plan = plan_restore_locations(package_root, translator.target_profile, translator.external_roots)
++    if not location_plan["ready"]:
++        raise RestoreError("Unsafe project locations: " + "; ".join(i["error"] for i in location_plan["issues"]))
++    nesting = location_plan.get("nestedProjects", {})
++    parents = nesting.get("parents", {})
++    # Recheck the freshly computed relationships, not only the saved UI plan.
++    if comparison_plan is not None:
++        review = dict(comparison_plan, locationPlan=location_plan)
++        errors = nested_projects.decision_errors(review)
++        if errors:
++            raise RestoreError("; ".join(errors))
++    project_by_id = {str(p["id"]): p for p in projects}
+     copied = 0
+     project_journal: list[dict[str, Any]] = journal.setdefault("projects", [])
+     planned_items = {
+@@ -1170,6 +1187,9 @@ def _restore_projects(
+     }
+     for item in projects:
+         project_id = str(item["id"])
++        if project_id in parents:
++            # The outermost parent's verified transaction restores this subtree.
++            continue
+         planned_item = planned_items.get(f"project/{project_id}") or {}
+         planned_action = str(planned_item.get("proposedAction") or "")
+         if planned_action in {"none", "retain"}:
+@@ -1238,6 +1258,12 @@ def _restore_projects(
+         verified = _verify_staged_project(package_root, item, staging)
+         if files != verified["files"]:
+             raise RestoreError("Staged copy count differs from verified project count.")
++        nested_ids = [key for key, parent in parents.items() if parent == project_id]
++        for child_id in nested_ids:
++            child_stage = staging / nesting["offsets"][child_id]
++            child_stage.mkdir(parents=True, exist_ok=True)
++            _verify_staged_project(package_root, project_by_id[child_id], child_stage)
++        record["nestedProjectIds"] = nested_ids
+         record["stagedVerification"] = verified
+         record["status"] = "staged-verified"
+         record["verifiedAtUtc"] = backup.utc_now()
+@@ -1485,8 +1511,8 @@ def verify_restored(
+     translator: PathTranslator | None = None,
+     comparison_plan: dict[str, Any] | None = None,
+ ) -> dict[str, Any]:
+-    package_root = package_root.resolve()
+-    target_profile = target_profile.resolve(strict=False)
++    package_root = Path(package_root).resolve()
++    target_profile = Path(target_profile).resolve(strict=False)
+     target_codex = target_profile / ".codex"
+     translator = translator or PathTranslator(package_root, target_profile)
+     comparison_plan = comparison_plan or _reported_comparison_plan(
+@@ -1722,10 +1748,10 @@ def restore_backup(
+     fail_after_destination_project_move_for_test: bool = False,
+     external_roots: dict[str, str] | None = None,
+ ) -> dict[str, Any]:
+-    package_root = package_root.resolve()
+-    target_profile = target_profile.resolve(strict=False)
++    package_root = Path(package_root).resolve()
++    target_profile = Path(target_profile).resolve(strict=False)
+     target_codex = target_profile / ".codex"
+-    safety_root = safety_root.resolve()
++    safety_root = Path(safety_root).resolve()
+     journal_path = safety_root / "restore-journal.json"
+     journal = backup.read_json(journal_path)
+     if journal.get("status") != "prepared":
+diff --git a/src/codex_transfer/restore_plan.py b/src/codex_transfer/restore_plan.py
+index 0896822..fafcd1e 100644
+--- a/src/codex_transfer/restore_plan.py
++++ b/src/codex_transfer/restore_plan.py
+@@ -8,7 +8,8 @@ import os
+ import shutil
+ import sqlite3
+ import uuid
+-from pathlib import Path, PurePosixPath
++from pathlib import PurePosixPath
++from .fs_paths import Path, sqlite_uri
+ from typing import Any, Callable
+ 
+ from . import (
+@@ -17,6 +18,7 @@ from . import (
+     git_insight,
+     lineage,
+     location_mapper,
++    nested_projects,
+     project_identity,
+     windows,
+ )
+@@ -345,7 +347,7 @@ def _target_conversations(
+     database = target_profile / ".codex" / "state_5.sqlite"
+     if not database.is_file():
+         return {}
+-    connection = sqlite3.connect(f"file:{database.as_posix()}?mode=ro", uri=True)
++    connection = sqlite3.connect(sqlite_uri(database), uri=True)
+     connection.row_factory = sqlite3.Row
+     try:
+         columns = {
+@@ -436,6 +438,10 @@ def _refresh_plan(plan: dict[str, Any]) -> dict[str, Any]:
+         state = str(item.get("state"))
+         if state in counts:
+             counts[state] += 1
++    nested_parents = (plan.get("locationPlan") or {}).get("nestedProjects", {}).get("parents", {})
++    for item in items:
++        if item.get("kind") == "project" and str(item.get("key", "")).removeprefix("project/") in nested_parents:
++            item["requiredBytes"] = 0  # Included in the outermost transaction.
+     disks = _free_space(items)
+     blocking_reasons = [
+         str(item.get("reason") or "Unresolved restore-plan item.")
+@@ -448,6 +454,7 @@ def _refresh_plan(plan: dict[str, Any]) -> dict[str, Any]:
+     )
+     if location_plan.get("requiredExternalRoots"):
+         blocking_reasons.append("One or more external project roots are unresolved.")
++    blocking_reasons.extend(nested_projects.decision_errors(plan))
+     for disk in disks:
+         if not disk["sufficient"]:
+             blocking_reasons.append(f"Insufficient free space on {disk['volume']}.")
+@@ -466,6 +473,7 @@ def _refresh_plan(plan: dict[str, Any]) -> dict[str, Any]:
+         if (
+             item.get("kind") in {"project", "codex"}
+             and item.get("proposedAction") not in {"none", "retain", "resolve"}
++            and str(item.get("key", "")).removeprefix("project/") not in nested_parents
+         )
+         or (
+             item.get("kind") == "conversation"
+@@ -594,7 +602,7 @@ def resolve_project_decision(
+ 
+ 
+ def validate_plan_decisions(plan: dict[str, Any]) -> list[str]:
+-    errors: list[str] = []
++    errors: list[str] = nested_projects.decision_errors(plan)
+     if plan.get("planVersion") != PLAN_VERSION:
+         errors.append("unsupported restore-plan version")
+     if plan.get("cancelled"):
+diff --git a/src/codex_transfer/rollout.py b/src/codex_transfer/rollout.py
+index 432e56f..a9bb7e9 100644
+--- a/src/codex_transfer/rollout.py
++++ b/src/codex_transfer/rollout.py
+@@ -5,7 +5,7 @@ from __future__ import annotations
+ import contextlib
+ import codecs
+ import io
+-from pathlib import Path
++from .fs_paths import Path
+ from typing import Iterator, TextIO
+ 
+ import zstandard
+diff --git a/src/codex_transfer/selftest.py b/src/codex_transfer/selftest.py
+index ea9b378..01dfd4d 100644
+--- a/src/codex_transfer/selftest.py
++++ b/src/codex_transfer/selftest.py
+@@ -10,7 +10,7 @@ import sys
+ import tempfile
+ import uuid
+ from unittest import mock
+-from pathlib import Path
++from .fs_paths import Path
+ from typing import Any
+ 
+ from . import (
+diff --git a/src/codex_transfer/validate.py b/src/codex_transfer/validate.py
+index 63efc6c..a590262 100644
+--- a/src/codex_transfer/validate.py
++++ b/src/codex_transfer/validate.py
+@@ -12,7 +12,8 @@ import sqlite3
+ import sys
+ import time
+ import urllib.parse
+-from pathlib import Path, PurePosixPath
++from pathlib import PurePosixPath
++from .fs_paths import Path, sqlite_uri
+ from typing import Any, Callable
+ 
+ from . import lineage, path_model, project_identity, rollout as rollout_io
+@@ -105,7 +106,7 @@ def validate(
+     checks: dict[str, Any] = {}
+     if progress:
+         progress(0, 0, "Reading package structure and manifests...")
+-    package_root = package_root.resolve()
++    package_root = Path(package_root).resolve()
+     required = [
+         "manifest/package.json",
+         "manifest/package.json.sha256",
+@@ -224,7 +225,14 @@ def validate(
+     for value in sorted(actual_files - listed_files):
+         errors.append(f"Unexpected/unhashed file: {value}")
+     for value in sorted(listed_files - actual_files):
+-        errors.append(f"Hashed file is missing: {value}")
++        try:
++            (package_root / value).stat()
++        except FileNotFoundError:
++            errors.append(f"Hashed file is missing: {value}")
++        except OSError as exc:
++            errors.append(f"Hashed file is inaccessible: {value}: {exc}")
++        else:
++            errors.append(f"Hashed file was not enumerated as a regular file: {value}")
+     checked_hashes = 0
+     processed_bytes = 0
+     total_hash_bytes = sum(size for size, _digest in hash_rows.values())
+@@ -370,12 +378,11 @@ def validate(
+     database_dynamic_tools: set[tuple[str, int, str, bool]] = set()
+     database_sections: set[tuple[str, str, str | None]] = set()
+     try:
+-        uri_path = urllib.parse.quote(database_path.as_posix(), safe="/:")
+         # A plain read-only connection to a WAL-mode database can still create
+         # sibling -wal/-shm files. A validator must never mutate the package it
+         # is checking, so treat the completed snapshot as immutable.
+         connection = sqlite3.connect(
+-            f"file:{uri_path}?mode=ro&immutable=1", uri=True
++            sqlite_uri(database_path, immutable=True), uri=True
+         )
+         try:
+             quick_check_row = connection.execute("PRAGMA quick_check").fetchone()
+diff --git a/src/codex_transfer/windows.py b/src/codex_transfer/windows.py
+index e58c6c5..9f85664 100644
+--- a/src/codex_transfer/windows.py
++++ b/src/codex_transfer/windows.py
+@@ -8,7 +8,7 @@ import subprocess
+ import sys
+ import tempfile
+ import winreg
+-from pathlib import Path
++from .fs_paths import Path
+ from typing import Any
+ 
+ 
+diff --git a/tests/test_details_layout.py b/tests/test_details_layout.py
+new file mode 100644
+index 0000000..00eaa78
+--- /dev/null
++++ b/tests/test_details_layout.py
+@@ -0,0 +1,62 @@
++"""Layout regressions; real Tk checks run when a graphical display is available."""
++import os
++import sys
++import types
++import unittest
++from unittest.mock import Mock, patch
++import tkinter as tk
++
++if os.name != 'nt':
++    sys.modules.setdefault('winreg', types.ModuleType('winreg'))
++from codex_transfer.gui import TransferApp
++
++
++class DetailsLayoutTest(unittest.TestCase):
++    def test_content_keeps_requested_height_on_small_screen(self):
++        canvas = Mock()
++        canvas.winfo_width.return_value = 1060
++        canvas.winfo_height.return_value = 600
++        panel = Mock()
++        panel.winfo_reqheight.return_value = 850
++        app = types.SimpleNamespace(body_canvas=canvas, main_panel=panel, body_window=1)
++        TransferApp._resize_body(app)
++        canvas.itemconfigure.assert_called_once_with(1, width=1060, height=850)
++        canvas.configure.assert_called_once_with(scrollregion=canvas.bbox.return_value)
++
++    def test_closed_details_does_not_scroll(self):
++        app = Mock(details_visible=False)
++        TransferApp._reveal_details(app)
++        app.body_canvas.yview_moveto.assert_not_called()
++
++    def test_open_details_scrolls_after_layout(self):
++        app = Mock(details_visible=True)
++        TransferApp._reveal_details(app)
++        self.assertEqual(app.mock_calls, [
++            unittest.mock.call.update_idletasks(), unittest.mock.call._resize_body(),
++            unittest.mock.call.body_canvas.yview_moveto(1.0)])
++
++    def test_real_tk_small_window(self):
++        try:
++            probe = tk.Tk()
++        except tk.TclError as exc:
++            self.skipTest(str(exc))
++        probe.destroy()
++        with patch('codex_transfer.gui.windows.launched_from_compressed_folder', return_value=False), patch('codex_transfer.gui.windows.removable_drives', return_value=[]):
++            app = TransferApp()
++            try:
++                app.geometry('1080x720')
++                app._show_tab('restore')
++                app._append_log('Diagnostic test entry')
++                app.update()
++                app.details_button.invoke()
++                app.update()
++                self.assertTrue(app.details_visible)
++                self.assertGreater(app.log.winfo_height(), 40)
++                self.assertIn('Diagnostic test entry', app.log.get('1.0', 'end'))
++                self.assertLess(app.log.winfo_rooty(), app.body_canvas.winfo_rooty()+app.body_canvas.winfo_height())
++                self.assertGreaterEqual(app.log.winfo_rooty(), app.body_canvas.winfo_rooty())
++                app.details_button.invoke()
++                app.update()
++                self.assertFalse(app.log_frame.winfo_ismapped())
++            finally:
++                app.destroy()
+diff --git a/tests/test_fs_paths.py b/tests/test_fs_paths.py
+new file mode 100644
+index 0000000..fd2c82c
+--- /dev/null
++++ b/tests/test_fs_paths.py
+@@ -0,0 +1,53 @@
++import os
++import shutil
++import tempfile
++import unittest
++from codex_transfer.fs_paths import Path, extended_windows_path, ordinary_windows_path
++
++class PathSyntaxTests(unittest.TestCase):
++    def test_drive_and_dot_segments(self):
++        self.assertEqual(extended_windows_path(r'C:\a\..\b'), '\\\\?\\C:\\b')
++    def test_unc(self):
++        self.assertEqual(extended_windows_path(r'\\server\share\folder'), '\\\\?\\UNC\\server\\share\\folder')
++    def test_round_trip(self):
++        for value in [r'C:\a\b', r'\\server\share\folder']:
++            self.assertEqual(ordinary_windows_path(extended_windows_path(value)), value)
++    def test_existing_prefix(self):
++        value = '\\\\?\\C:\\a'
++        self.assertEqual(extended_windows_path(value), value)
++
++@unittest.skipUnless(os.name == 'nt', 'Win32 filesystem test')
++class WindowsFilesystemTests(unittest.TestCase):
++    @__import__("contextlib").contextmanager
++    def cleanup_deep(self, directory):
++        try:
++            yield
++        finally:
++            shutil.rmtree(Path(directory))
++
++    def test_deep_read_copy_walk_and_missing_file(self):
++        with tempfile.TemporaryDirectory() as temporary, self.cleanup_deep(temporary):
++            root=Path(temporary).resolve()
++            deep=root / ('directory-' * 12) / ('directory-' * 12)
++            deep.mkdir(parents=True)
++            source=deep / 'database.sqlite'
++            source.write_bytes(b'not a real database')
++            self.assertGreater(len(str(source)), 260)
++            self.assertTrue(source.is_file())
++            from codex_transfer.windows import long_paths_enabled
++            from pathlib import Path as OrdinaryPath
++            if long_paths_enabled() is False:
++                with self.assertRaises(OSError):
++                    OrdinaryPath(str(source)).stat()
++            self.assertFalse(str(source).startswith('\\\\?\\'))
++            self.assertTrue(os.fspath(source).startswith('\\\\?\\'))
++            self.assertEqual(Path(os.fspath(source)), source)
++            self.assertEqual(source.resolve(), source)
++            self.assertIn(source, list(root.rglob('*')))
++            files=[Path(folder)/name for folder, _, names in os.walk(root) for name in names]
++            self.assertIn(source, files)
++            target=root/'copy'
++            shutil.copytree(deep, target)
++            self.assertEqual((target/source.name).read_bytes(), source.read_bytes())
++            source.unlink()
++            self.assertFalse(source.exists())
+diff --git a/tests/test_nested_projects.py b/tests/test_nested_projects.py
+new file mode 100644
+index 0000000..6e28f47
+--- /dev/null
++++ b/tests/test_nested_projects.py
+@@ -0,0 +1,238 @@
++import csv
++from contextlib import closing
++import argparse
++import hashlib
++import json
++import os
++from codex_transfer.fs_paths import Path
++import shutil
++import sqlite3
++import sys
++import tempfile
++import types
++import unittest
++from unittest.mock import patch
++
++# Windows APIs are not invoked by these isolated filesystem tests on Linux.
++if os.name != 'nt':
++    sys.modules.setdefault('winreg', types.ModuleType('winreg'))
++from codex_transfer import location_mapper, nested_projects, restore
++
++
++class NestedProjectsTest(unittest.TestCase):
++    def setUp(self):
++        self.tmp = tempfile.TemporaryDirectory()
++        self.addCleanup(self.tmp.cleanup)
++        self.base = Path(self.tmp.name)
++        self.package = self.base / 'backup'
++        self.profile = self.base / 'destination'
++        self.safety = self.profile / 'AppData/Local/Codex Lifeboat/recovery-points/test'
++        (self.package / 'manifest').mkdir(parents=True)
++        (self.safety / 'codex-before-restore').mkdir(parents=True)
++        (self.safety / 'codex-before-restore/auth.json').write_text('untouched')
++        self.paths = ['Workspace', 'Workspace/Legal', 'Workspace/Social', 'Workspace/Social/Studio']
++        tree = {'README': b'root', 'Legal/note': b'law', 'Social/post': b'post', 'Social/Studio/movie': b'video'}
++        self.projects = []
++        self.mappings = []
++        for i, relative in enumerate(self.paths):
++            key = str(i)
++            prefix = 'projects/root-' + key
++            source = self.package / prefix
++            source.mkdir(parents=True)
++            subtree = relative[len('Workspace'):].strip('/')
++            selected = {k[len(subtree)+1:] if subtree else k: v for k, v in tree.items() if not subtree or k.startswith(subtree + '/')}
++            for name, data in selected.items():
++                file = source / name
++                file.parent.mkdir(parents=True, exist_ok=True)
++                file.write_bytes(data)
++            self.projects.append({'id': key, 'backupRelativePath': prefix, 'fileCount': len(selected), 'totalBytes': sum(map(len, selected.values()))})
++            self.mappings.append({'id': key, 'sourcePresent': True, 'originalPath': 'C:/Users/source/Documents/' + relative,
++                'location': {'schemaVersion': 1, 'kind': 'known-folder', 'knownFolder': 'documents', 'relativePath': relative, 'logicalPath': 'known-folder://documents/' + relative, 'originalPath': 'C:/Users/source/Documents/' + relative, 'requiresTargetMapping': False}})
++        self.write_manifests()
++        self.journal = {'projects': []}
++        self.translator = types.SimpleNamespace(target_profile=self.profile, external_roots={}, approved_external_roots=(),
++            project_targets={str(i): self.profile / 'Documents' / p for i, p in enumerate(self.paths)})
++        # Only portable-path resolution needs adapting to a POSIX test host.
++        if os.name != 'nt':
++            adapter = patch('codex_transfer.path_model.resolve_portable_location',
++                side_effect=lambda loc, profile, folders, *args: Path(folders['documents']) / loc['relativePath'])
++            adapter.start()
++            self.addCleanup(adapter.stop)
++
++    def write_manifests(self):
++        (self.package / 'manifest/projects.json').write_text(json.dumps(self.projects))
++        (self.package / 'manifest/path-mappings.json').write_text(json.dumps({'mappingVersion': 2, 'projects': self.mappings}))
++        with (self.package / 'manifest/sha256.csv').open('w', newline='') as f:
++            writer = csv.writer(f)
++            writer.writerow(['relative_path', 'size', 'sha256'])
++            for project in self.projects:
++                for file in sorted((self.package / project['backupRelativePath']).rglob('*')):
++                    if file.is_file():
++                        data = file.read_bytes()
++                        writer.writerow([file.relative_to(self.package).as_posix(), len(data), hashlib.sha256(data).hexdigest()])
++
++    def plan(self):
++        return location_mapper.build_plan(self.mappings, self.profile, {}, self.package)
++
++    def review(self, actions):
++        return {'locationPlan': self.plan(), 'items': [{'key': 'project/' + str(i), 'kind': 'project', 'source': self.mappings[i]['originalPath'],
++            'target': str(self.translator.project_targets[str(i)]), 'proposedAction': action} for i, action in enumerate(actions)]}
++
++    def test_four_collisions_become_one_group(self):
++        plan = self.plan()
++        self.assertTrue(plan['ready'], plan['issues'])
++        self.assertEqual(plan['nestedProjects']['parents'], {'1': '0', '2': '0', '3': '0'})
++
++    def test_arbitrary_manifest_order(self):
++        self.mappings.reverse()
++        self.projects.reverse()
++        self.write_manifests()
++        restore._restore_projects(self.package, self.safety, self.translator, self.journal, None)
++        self.assertEqual(len(self.journal['projects']), 1)
++        self.assertEqual(self.journal['projects'][0]['id'], '0')
++
++    def test_single_transaction_and_exact_child_verification(self):
++        before = {p.relative_to(self.package): p.read_bytes() for p in self.package.rglob('*') if p.is_file()}
++        copied = restore._restore_projects(self.package, self.safety, self.translator, self.journal, None)
++        self.assertEqual(copied, 4)
++        self.assertEqual(len(self.journal['projects']), 1)
++        for project in self.projects:
++            restore._verify_staged_project(self.package, project, self.translator.project_targets[project['id']])
++        self.assertEqual(before, {p.relative_to(self.package): p.read_bytes() for p in self.package.rglob('*') if p.is_file()})
++
++    def test_rollback_after_activation_restores_original_group(self):
++        target = self.translator.project_targets['0']
++        target.mkdir(parents=True)
++        (target / 'old').write_text('original')
++        with self.assertRaisesRegex(restore.RestoreError, 'Intentional failure'):
++            restore._restore_projects(self.package, self.safety, self.translator, self.journal, None, fail_after_activation_for_test=True)
++        restore.rollback_restore(self.safety, self.profile)
++        self.assertEqual([p.name for p in target.iterdir()], ['old'])
++        self.assertEqual((target / 'old').read_text(), 'original')
++
++    def test_rollback_after_quarantine_restores_original_group(self):
++        target = self.translator.project_targets['0']
++        target.mkdir(parents=True)
++        (target / 'old').write_text('original')
++        with self.assertRaisesRegex(restore.RestoreError, 'Intentional failure'):
++            restore._restore_projects(self.package, self.safety, self.translator, self.journal, None, fail_after_quarantine_for_test=True)
++        restore.rollback_restore(self.safety, self.profile)
++        self.assertEqual((target / 'old').read_text(), 'original')
++
++    def test_divergent_snapshots_block_before_writes(self):
++        (self.package / 'projects/root-3/movie').write_bytes(b'other')
++        self.write_manifests()
++        plan = self.plan()
++        self.assertFalse(plan['ready'])
++        self.assertIn('Nested snapshots differ', str(plan['issues']))
++        with self.assertRaises(restore.RestoreError):
++            restore._restore_projects(self.package, self.safety, self.translator, self.journal, None)
++        self.assertFalse(self.translator.project_targets['0'].exists())
++        self.assertEqual(self.journal['projects'], [])
++
++    def test_child_extra_file_blocks(self):
++        (self.package / 'projects/root-3/new').write_bytes(b'extra')
++        self.projects[3]['fileCount'] += 1
++        self.projects[3]['totalBytes'] += 5
++        self.write_manifests()
++        self.assertFalse(self.plan()['ready'])
++
++    def test_equal_destinations_still_block(self):
++        self.mappings[1]['location']['relativePath'] = 'Workspace'
++        self.assertFalse(self.plan()['ready'])
++
++    def test_unrelated_sources_mapped_inside_parent_still_block(self):
++        self.mappings[1]['originalPath'] = 'D:/unrelated'
++        self.assertFalse(self.plan()['ready'])
++
++    def test_missing_manifest_fails_closed(self):
++        (self.package / 'manifest/sha256.csv').unlink()
++        self.assertFalse(self.plan()['ready'])
++
++    def test_review_cannot_keep_child_while_replacing_parent(self):
++        review = self.review(['replace', 'create', 'create', 'retain'])
++        self.assertTrue(nested_projects.decision_errors(review))
++        with self.assertRaisesRegex(restore.RestoreError, 'compatible decisions'):
++            restore._restore_projects(self.package, self.safety, self.translator, self.journal, None, review)
++        self.assertEqual(self.journal['projects'], [])
++
++    def test_compatible_review_creates_group(self):
++        review = self.review(['create'] * 4)
++        self.assertFalse(nested_projects.decision_errors(review))
++        restore._restore_projects(self.package, self.safety, self.translator, self.journal, None, review)
++        self.assertEqual(len(self.journal['projects']), 1)
++
++    def test_corrupt_parent_payload_rejected_before_activation(self):
++        (self.package / 'projects/root-0/README').write_bytes(b'bad!')
++        with self.assertRaisesRegex(restore.RestoreError, 'hash differs'):
++            restore._restore_projects(self.package, self.safety, self.translator, self.journal, None)
++        self.assertFalse(self.translator.project_targets['0'].exists())
++
++
++@unittest.skipUnless(os.name == "nt", "Full Codex backup/restore requires Windows")
++class WindowsRoundTripTest(unittest.TestCase):
++    def test_backup_restore_verify_with_nested_database_roots(self):
++        self.round_trip(False)
++
++    def test_long_paths_backup_restore_verify_and_rollback(self):
++        self.round_trip(True)
++
++    @__import__("contextlib").contextmanager
++    def cleanup_deep(self, directory):
++        try:
++            yield
++        finally:
++            shutil.rmtree(Path(directory))
++
++    def round_trip(self, long_paths):
++        from codex_transfer import backup, selftest, restore_plan
++        from codex_transfer.validate import validate
++        with tempfile.TemporaryDirectory() as td, self.cleanup_deep(td):
++            root = Path(td).resolve()
++            if long_paths:
++                root = root / ("long-directory-" * 8) / ("nested-directory-" * 8)
++                root.mkdir(parents=True)
++                self.assertGreater(len(str(root)), 260)
++            source = root / "source-user"
++            destination = root / "target-user"
++            codex, project = selftest._write_source(source)
++            _, old_project = selftest._write_target(destination, "NESTED")
++            children = [project / "Legal", project / "Social", project / "Social/Studio"]
++            with closing(sqlite3.connect(codex / "state_5.sqlite")) as conn, conn:
++                for i, child in enumerate(children):
++                    child.mkdir(parents=True, exist_ok=True)
++                    (child / (str(i) + ".txt")).write_text("nested-" + str(i))
++                    key = "nested-project-" + str(i)
++                    conn.execute("INSERT INTO projects VALUES(?,?,?,?,?,?)", (key, child.name, "{}", i + 1, 1, 1))
++                    conn.execute("INSERT INTO project_roots VALUES(?,?,?)", (key, 0, str(child)))
++            config = root / "config.json"
++            config.write_text(json.dumps({"configVersion": 1, "destinationRoot": str(root / "usb"),
++                "includeAttachments": True, "projects": [], "additionalPortablePaths": [], "excludeDirectoryNames": [],
++                "projectRegistryPath": str(root / "state/projects.json"), "lineageStatePath": str(root / "state/lineage.json"),
++                "deviceStatePath": str(root / "state/device.json")}))
++            package = backup.build_backup(argparse.Namespace(config=str(config), destination=str(root / "usb"),
++                source_profile=str(source), source_codex_home=str(codex), allow_running_test=True))
++            self.assertTrue(validate(package, True)["valid"])
++            manifest_before = selftest._hash_tree(package)
++            review = restore_plan.build_restore_plan(package, destination, allow_running_test=True)
++            for item in list(review["items"]):
++                if item.get("blocking"):
++                    resolver = restore_plan.resolve_project_decision if item["kind"] == "project" else restore_plan.resolve_conversation_decision
++                    review = resolver(review, item["key"], "keep-source")
++            self.assertTrue(review["ready"], review["blockingReasons"])
++            prepared = restore.prepare_restore(package, destination, allow_running_test=True, comparison_plan=review)
++            safety = Path(prepared["safetyRoot"])
++            result = restore.restore_backup(package, destination, safety)
++            self.assertTrue(result["verification"]["valid"], result["verification"])
++            self.assertEqual(len(result["projects"]), 1)
++            with closing(sqlite3.connect(destination / ".codex/state_5.sqlite")) as conn:
++                roots = dict(conn.execute("SELECT project_id,path FROM project_roots"))
++                for i, child in enumerate(children):
++                    self.assertEqual(Path(roots["nested-project-" + str(i)]), old_project / child.relative_to(project))
++            self.assertEqual(manifest_before, selftest._hash_tree(package))
++            restore.rollback_restore(safety, destination)
++            self.assertEqual((old_project / "OLD.txt").read_text(), "NESTED")
++
++
++if __name__ == '__main__':
++    unittest.main()

@@ -119,8 +119,17 @@ def restore_case(root, profile, smoke):
     extra = []
     count = 20 if smoke else (5000 if profile == 'small' else 200)
     size = 1024 if profile == 'small' else (4096 if smoke else 512*1024)
+    roots = [project]
+    if profile == 'small':
+        for j in range(1, 4 if smoke else 40):
+            other = source / 'Documents' / f'Project{j}'
+            other.mkdir(parents=True)
+            roots.append(other)
+            extra.append({'path':str(other), 'required':True})
+    if profile == 'large' and not smoke:
+        count, size = 8, 16*1024*1024
     for i in range(count):
-        dest = project / 'payload' / f'd{i//100}' / f'f{i}.bin'
+        dest = roots[i % len(roots)] / 'payload' / f'd{i//100}' / f'f{i}.bin'
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(payload(i,size,'mixed'))
     if profile == 'overlap':

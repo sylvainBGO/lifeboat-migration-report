@@ -490,12 +490,13 @@ index 0000000..6a56c5f
 +    unittest.main()
 diff --git a/benchmarks/test_windows_optimization.py b/benchmarks/test_windows_optimization.py
 new file mode 100644
-index 0000000..ece84cd
+index 0000000..bb77029
 --- /dev/null
 +++ b/benchmarks/test_windows_optimization.py
-@@ -0,0 +1,147 @@
+@@ -0,0 +1,148 @@
 +"""Failure injection against the actual Windows restore transaction."""
 +import argparse
++from contextlib import closing
 +import importlib
 +import json
 +import os
@@ -548,7 +549,7 @@ index 0000000..ece84cd
 +        codex = self.fixture._hash_tree(self.target/'.codex')
 +        for name in ('state_5.sqlite', 'state_5.sqlite-wal', 'state_5.sqlite-shm'):
 +            codex.pop(name, None)
-+        with sqlite3.connect(self.target/'.codex/state_5.sqlite') as connection:
++        with closing(sqlite3.connect(self.target/'.codex/state_5.sqlite')) as connection:
 +            database = tuple(connection.iterdump())
 +        project = self.fixture._hash_tree(self.target/'Documents/DemoProject')
 +        return codex, database, project

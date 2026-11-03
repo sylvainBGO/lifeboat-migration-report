@@ -25,3 +25,14 @@ Scope: source inspection, not a trace of the user's interrupted 88.48 GiB restor
 4. Count reads, copied bytes, hashes and repeated destination writes with a representative integration fixture; only then choose which verified results can safely be reused.
 
 No production restore behavior is changed in this branch yet. Synthetic tests do not establish a two-hour restore target or real backup completeness.
+
+## Confirmed space-check frequency (2026-11-03)
+
+The `_copy_all` callback increments `files_since_check`, checks when it equals 1,
+and resets it to zero after each check. Therefore the next file increments it to
+1 again. An isolated execution of the exact AST-extracted upstream function with
+100 synthetic `before_copy` callbacks produced 100 `_ensure_restore_space` calls.
+The nominal 1024-file / 256 MiB thresholds do not reduce this frequency. Campaign
+instrumentation records call count and inclusive duration; no space checks have
+been removed. Any correction must preserve an appropriate reserve for the bytes
+written between checks, including allocation overhead and concurrent consumers.

@@ -1,9 +1,9 @@
 diff --git a/benchmarks/test_checkpoint_optimization.py b/benchmarks/test_checkpoint_optimization.py
 new file mode 100644
-index 0000000..0d9e449
+index 0000000..477d67d
 --- /dev/null
 +++ b/benchmarks/test_checkpoint_optimization.py
-@@ -0,0 +1,138 @@
+@@ -0,0 +1,150 @@
 +"""Recovery primitives: real copies, interruption, lock and restart boundaries."""
 +from pathlib import Path
 +import os
@@ -89,6 +89,18 @@ index 0000000..0d9e449
 +            self.assertEqual(probe(self.target, 123, 2), (8315, 4096))
 +            with self.assertRaises(RestorePaused):
 +                probe(self.target, 124, 2)
++
++    def test_low_space_drains_and_records_already_admitted_file(self):
++        with self.ledger() as checkpoint:
++            # Enough for any one fixture file, never enough for two reservations.
++            probe = checkpoint.space_probe(
++                lambda _: (PAUSE_RESERVE_BYTES + 4096 + 40, 4096))
++            with self.assertRaises(RestorePaused):
++                copy_staging_tree(self.source, self.target, probe, checkpoint=checkpoint)
++            self.assertEqual(checkpoint.summary()['files'], 1)
++        with self.ledger() as checkpoint:
++            self.assertEqual(checkpoint.summary()['files'], 1)
++            self.assertEqual(len(list(self.target.iterdir())), 1)
 +
 +    def test_disk_error_while_pausing_is_not_hidden(self):
 +        with self.ledger() as checkpoint:

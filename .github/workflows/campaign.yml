@@ -36,15 +36,26 @@ jobs:
           $code = $LASTEXITCODE
           Get-Content C:/lb-ci/campagne-*.json
           if ($code -ne 0) { throw 'Campaign smoke failed' }
+      - name: Full-size packaged campaign
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory C:/lb-full -Force | Out-Null
+          & ./dist/Lifeboat-Campagne.exe --directory C:/lb-full
+          $code = $LASTEXITCODE
+          Get-Content C:/lb-full/campagne-*.json
+          if ($code -ne 0) { throw 'Full campaign failed' }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: Campaign-CI-diagnostics
-          path: C:/lb-ci/campagne-*.json
+          path: |
+            C:/lb-ci/campagne-*.json
+            C:/lb-full/campagne-*.json
       - name: Package user executable
         shell: pwsh
         run: |
           Copy-Item upstream/LICENSE dist/LICENSE-Lifeboat.txt
+          Copy-Item performance/benchmarks/CAMPAIGN.md dist/CAMPAIGN.md
           '@echo off' + [Environment]::NewLine + 'cd /d "%~dp0"' + [Environment]::NewLine + 'Lifeboat-Campagne.exe --directory results' + [Environment]::NewLine + 'pause' | Set-Content dist/Lancer-Campagne.cmd -Encoding ascii
           'Lancer Lancer-Campagne.cmd. Les 10 scenarios se suivent automatiquement. Envoyer uniquement results/campagne-lifeboat-*.json. Donnees synthetiques uniquement. 3 Go libres requis. Aucun changement Defender. Les dossiers temporaires crees par la campagne sont nettoyes. Ne pas utiliser une copie de ce programme nommee Codex-Lifeboat.exe comme outil de restauration reel: il sagit uniquement du banc de tests. Source Lifeboat v3.4.11, MIT dkwolf1.' | Set-Content dist/LIRE-MOI.txt -Encoding utf8
           Compress-Archive -Path dist/* -DestinationPath Lifeboat-Campagne-v4.zip

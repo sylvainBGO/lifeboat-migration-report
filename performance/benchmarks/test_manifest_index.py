@@ -4,6 +4,8 @@ from pathlib import Path
 import tempfile
 from typing import Any
 import unittest
+from unittest.mock import patch
+from manifest_benchmark import run_suite
 from manifest_index import ManifestIndex
 from manifest_benchmark import baseline, run
 
@@ -50,6 +52,23 @@ class IndexTests(unittest.TestCase):
             self.assertEqual(len(result['results']), 4)
             self.assertTrue(all(r['identical_results'] for r in result['results']))
             self.assertEqual(list(Path(tmp).iterdir()), [])
+
+    def test_suite_retains_completed_scenario_on_failure(self):
+        snapshots = []
+        import copy
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch('manifest_benchmark.run', side_effect=[{'completed': True}, OSError('full')]):
+                with self.assertRaises(OSError):
+                    run_suite(Path(tmp), lambda r: snapshots.append(copy.deepcopy(r)))
+        self.assertEqual(len(snapshots[-1]['scenarios']), 1)
+        self.assertFalse(snapshots[-1]['completed'])
+        self.assertEqual(snapshots[-1]['error_type'], 'OSError')
+
+    def test_suite_success(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            report = run_suite(Path(tmp), lambda r: None, ((12, 3, 1), (24, 3, 1)))
+        self.assertTrue(report['completed'])
+        self.assertEqual(len(report['scenarios']), 2)
 
     def test_creation_failure_cleans_up(self):
         with tempfile.TemporaryDirectory() as tmp:

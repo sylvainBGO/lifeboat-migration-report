@@ -56,6 +56,15 @@ jobs:
           $p = Start-Process -FilePath $exe -ArgumentList '--recovery-self-test --work C:/lb-resume' -Wait -PassThru
           $r = Get-Content C:/lb-resume/recovery-self-test-result.json -Raw | ConvertFrom-Json
           if ($p.ExitCode -ne 0 -or -not $r.passed) { throw 'Packaged recovery failed' }
+      - name: Launch and close packaged GUI
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "$pwd/delivery/Codex-Lifeboat-Community.exe" -PassThru
+          $until = (Get-Date).AddSeconds(30)
+          do { Start-Sleep -Milliseconds 500; $p.Refresh() } while (-not $p.HasExited -and $p.MainWindowHandle -eq 0 -and (Get-Date) -lt $until)
+          if ($p.HasExited -or $p.MainWindowHandle -eq 0) { if (-not $p.HasExited) { $p.Kill() }; throw 'Packaged GUI did not open' }
+          $p.CloseMainWindow() | Out-Null
+          if (-not $p.WaitForExit(10000)) { $p.Kill(); throw 'Packaged GUI did not close normally' }
       - name: Package tested binaries and sources
         shell: pwsh
         run: |

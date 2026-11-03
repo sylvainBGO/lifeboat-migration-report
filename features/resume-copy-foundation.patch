@@ -168,10 +168,10 @@ index 0000000..ac6f035
 +app.destroy()
 diff --git a/benchmarks/test_checkpoint_optimization.py b/benchmarks/test_checkpoint_optimization.py
 new file mode 100644
-index 0000000..04fbfea
+index 0000000..cd6a910
 --- /dev/null
 +++ b/benchmarks/test_checkpoint_optimization.py
-@@ -0,0 +1,160 @@
+@@ -0,0 +1,184 @@
 +"""Recovery primitives: real copies, interruption, lock and restart boundaries."""
 +from pathlib import Path
 +import os
@@ -181,6 +181,7 @@ index 0000000..04fbfea
 +import tempfile
 +import threading
 +import unittest
++from unittest.mock import patch
 +
 +sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 +from codex_transfer.parallel_copy import copy_staging_tree
@@ -307,6 +308,29 @@ index 0000000..04fbfea
 +            first.close()
 +        second = ExclusiveTargetLock(self.root)
 +        second.close()
++
++    @unittest.skipUnless(os.name == 'nt', 'Windows restore writer')
++    def test_expanded_conversation_pauses_before_oversized_output(self):
++        from types import SimpleNamespace
++        from codex_transfer import restore, restore_operation
++        source = self.source / 'conversation.jsonl'
++        source.write_text('short\n', encoding='utf-8')
++        safety = self.root / 'safety'
++        safety.mkdir()
++        self.target.mkdir()
++        target = self.target / 'conversation.jsonl'
++        target.write_text('keep existing\n', encoding='utf-8')
++        translator = SimpleNamespace(text=lambda _: 'expanded' * 10000)
++        # Input fits, but transformed output exceeds the available write budget.
++        with restore_operation.RestoreOperation(safety, self.source, self.target), \
++             patch.object(restore.shutil, 'disk_usage', return_value=SimpleNamespace(
++                 free=PAUSE_RESERVE_BYTES + 100000)), \
++             patch.object(restore.restore_plan, 'allocation_unit', return_value=4096):
++            with self.assertRaises(RestorePaused):
++                restore._rewrite_copy(source, target, translator)
++        self.assertEqual(target.read_text(encoding='utf-8'), 'keep existing\n')
++        temporary = target.with_name('.conversation.jsonl.restore.tmp.jsonl')
++        self.assertEqual(temporary.stat().st_size, 0)
 +
 +    def test_abrupt_process_exit_keeps_only_committed_batch(self):
 +        # Exit without close/finally: SQLite must roll back the unfinished batch,
@@ -1460,7 +1484,7 @@ index 0000000..5416d1a
 +            return False
 +        return True
 diff --git a/src/codex_transfer/restore.py b/src/codex_transfer/restore.py
-index 1eae044..aaf0353 100644
+index 1eae044..f122bb4 100644
 --- a/src/codex_transfer/restore.py
 +++ b/src/codex_transfer/restore.py
 @@ -13,6 +13,8 @@ from typing import Any, Callable
@@ -1580,15 +1604,18 @@ index 1eae044..aaf0353 100644
  def _rewrite_copy(source: Path, destination: Path, translator: PathTranslator) -> None:
      _ensure_restore_space(destination, source.stat().st_size, 1)
      destination.parent.mkdir(parents=True, exist_ok=True)
-@@ -973,18 +1005,25 @@ def _rewrite_copy(source: Path, destination: Path, translator: PathTranslator) -
+@@ -973,18 +1005,27 @@ def _rewrite_copy(source: Path, destination: Path, translator: PathTranslator) -
      )
      with rollout_io.open_text(source, errors="replace", newline="") as reader:
          with rollout_io.open_text_writer(temporary) as writer:
 -            for line in reader:
+-                writer.write(translator.text(line.rstrip("\r\n")) + "\n")
 +            for number, line in enumerate(reader):
 +                if number % 256 == 0:
 +                    restore_operation.check_stream_space(destination)
-                 writer.write(translator.text(line.rstrip("\r\n")) + "\n")
++                text = translator.text(line.rstrip("\r\n")) + "\n"
++                restore_operation.allow_text_write(destination, text)
++                writer.write(text)
      os.replace(temporary, destination)
  
  
@@ -1609,7 +1636,7 @@ index 1eae044..aaf0353 100644
          if not source_root.exists():
              continue
          for source in rollout_io.iter_files(source_root):
-@@ -997,6 +1036,7 @@ def _restore_sessions(package_root: Path, target_codex: Path, translator: PathTr
+@@ -997,6 +1038,7 @@ def _restore_sessions(package_root: Path, target_codex: Path, translator: PathTr
      return count
  
  
@@ -1617,7 +1644,7 @@ index 1eae044..aaf0353 100644
  def _rewrite_cloned_rollout(
      source: Path,
      destination: Path,
-@@ -1004,6 +1044,8 @@ def _rewrite_cloned_rollout(
+@@ -1004,6 +1046,8 @@ def _rewrite_cloned_rollout(
      original_id: str,
      clone_id: str,
  ) -> None:
@@ -1626,7 +1653,7 @@ index 1eae044..aaf0353 100644
      destination.parent.mkdir(parents=True, exist_ok=True)
      temporary = destination.with_name(
          f".{destination.name}.restore.tmp"
-@@ -1012,6 +1054,8 @@ def _rewrite_cloned_rollout(
+@@ -1012,6 +1056,8 @@ def _rewrite_cloned_rollout(
      with rollout_io.open_text(source, errors="strict") as reader:
          with rollout_io.open_text_writer(temporary) as writer:
              for number, line in enumerate(reader, 1):
@@ -1635,7 +1662,14 @@ index 1eae044..aaf0353 100644
                  if not line.strip():
                      continue
                  try:
-@@ -1032,6 +1076,7 @@ def _rewrite_cloned_rollout(
+@@ -1028,10 +1074,13 @@ def _rewrite_cloned_rollout(
+                     and str(value["payload"].get("id")) == original_id
+                 ):
+                     value["payload"]["id"] = clone_id
+-                writer.write(json.dumps(value, ensure_ascii=False, separators=(",", ":")) + "\n")
++                text = json.dumps(value, ensure_ascii=False, separators=(",", ":")) + "\n"
++                restore_operation.allow_text_write(destination, text)
++                writer.write(text)
      os.replace(temporary, destination)
  
  
@@ -1643,7 +1677,7 @@ index 1eae044..aaf0353 100644
  def _restore_preserved_conversations(
      safety_root: Path,
      target_codex: Path,
-@@ -1040,6 +1085,10 @@ def _restore_preserved_conversations(
+@@ -1040,6 +1089,10 @@ def _restore_preserved_conversations(
  ) -> dict[str, int]:
      retained = 0
      cloned = 0
@@ -1654,7 +1688,7 @@ index 1eae044..aaf0353 100644
      safety_codex = safety_root / "codex-before-restore"
      target_codex_resolved = target_codex.resolve(strict=False)
      for thread_id, item in _conversation_decisions(comparison_plan).items():
-@@ -1071,6 +1120,7 @@ def _restore_preserved_conversations(
+@@ -1071,6 +1124,7 @@ def _restore_preserved_conversations(
      return {"retained": retained, "cloned": cloned}
  
  
@@ -1662,7 +1696,7 @@ index 1eae044..aaf0353 100644
  def _rebuild_session_index(database: Path, target_codex: Path) -> int:
      connection = sqlite3.connect(database)
      try:
-@@ -1108,6 +1158,7 @@ def _rebuild_session_index(database: Path, target_codex: Path) -> int:
+@@ -1108,6 +1162,7 @@ def _rebuild_session_index(database: Path, target_codex: Path) -> int:
      return len(active)
  
  
@@ -1670,7 +1704,7 @@ index 1eae044..aaf0353 100644
  def _restore_global_state(
      package_root: Path,
      target_codex: Path,
-@@ -1161,6 +1212,7 @@ def _restore_global_state(
+@@ -1161,6 +1216,7 @@ def _restore_global_state(
      backup.write_json(target_path, current)
  
  
@@ -1678,7 +1712,7 @@ index 1eae044..aaf0353 100644
  def _restore_portable_profile(
      package_root: Path, target_codex: Path, translator: PathTranslator
  ) -> int:
-@@ -1168,6 +1220,9 @@ def _restore_portable_profile(
+@@ -1168,6 +1224,9 @@ def _restore_portable_profile(
      count = 0
      if not source_root.is_dir():
          return count
@@ -1688,7 +1722,7 @@ index 1eae044..aaf0353 100644
      for entry in source_root.iterdir():
          destination = target_codex / entry.name
          # This database is a projection of rollout bytes. Older Lifeboat
-@@ -1179,8 +1234,7 @@ def _restore_portable_profile(
+@@ -1179,8 +1238,7 @@ def _restore_portable_profile(
              continue
          if backup.is_codex_provisioning_guard_name(entry.name):
              continue
@@ -1698,7 +1732,7 @@ index 1eae044..aaf0353 100644
          if entry.is_dir():
              destination.mkdir(parents=True, exist_ok=True)
              for source in entry.rglob("*"):
-@@ -1195,7 +1249,7 @@ def _restore_portable_profile(
+@@ -1195,7 +1253,7 @@ def _restore_portable_profile(
                  }:
                      _rewrite_copy(source, target, translator)
                  else:
@@ -1707,7 +1741,7 @@ index 1eae044..aaf0353 100644
                  count += 1
          elif entry.is_file():
              if entry.suffix.lower() in {
-@@ -1203,11 +1257,12 @@ def _restore_portable_profile(
+@@ -1203,11 +1261,12 @@ def _restore_portable_profile(
              }:
                  _rewrite_copy(entry, destination, translator)
              else:
@@ -1721,7 +1755,7 @@ index 1eae044..aaf0353 100644
  def _reset_paginated_history_projection(target_codex: Path) -> int:
      """Remove derived paginated history so Codex rematerializes rewritten rollouts."""
      removed = 0
-@@ -1219,8 +1274,13 @@ def _reset_paginated_history_projection(target_codex: Path) -> int:
+@@ -1219,8 +1278,13 @@ def _reset_paginated_history_projection(target_codex: Path) -> int:
      return removed
  
  
@@ -1735,7 +1769,7 @@ index 1eae044..aaf0353 100644
      for item in translator.mappings.get("attachments", []):
          if not item.get("sourcePresent"):
              continue
-@@ -1231,11 +1291,12 @@ def _restore_attachments(package_root: Path, translator: PathTranslator) -> int:
+@@ -1231,11 +1295,12 @@ def _restore_attachments(package_root: Path, translator: PathTranslator) -> int:
              translator.target_profile,
              translator.approved_external_roots,
          )
@@ -1749,7 +1783,7 @@ index 1eae044..aaf0353 100644
  def _restore_projects(
      package_root: Path,
      safety_root: Path,
-@@ -1265,6 +1326,13 @@ def _restore_projects(
+@@ -1265,6 +1330,13 @@ def _restore_projects(
              continue
          source = package_root / Path(*PurePosixPath(item["backupRelativePath"]).parts)
          target = translator.project_targets[project_id]
@@ -1763,7 +1797,7 @@ index 1eae044..aaf0353 100644
          _safe_target(
              target,
              translator.target_profile,
-@@ -1364,6 +1432,82 @@ def _restore_projects(
+@@ -1364,6 +1436,82 @@ def _restore_projects(
      return copied
  
  
@@ -1846,7 +1880,7 @@ index 1eae044..aaf0353 100644
  def _apply_destination_project_decisions(
      safety_root: Path,
      translator: PathTranslator,
-@@ -1380,6 +1524,14 @@ def _apply_destination_project_decisions(
+@@ -1380,6 +1528,14 @@ def _apply_destination_project_decisions(
          action = item.get("proposedAction")
          if item.get("source") or action not in {"archive", "delete-project"}:
              continue
@@ -1861,7 +1895,7 @@ index 1eae044..aaf0353 100644
          target = Path(str(item.get("target") or ""))
          target_errors = location_mapper.validate_external_root(
              target, translator.target_profile
-@@ -1454,6 +1606,44 @@ def _apply_destination_project_decisions(
+@@ -1454,6 +1610,44 @@ def _apply_destination_project_decisions(
      return {"archived": archived, "removed": removed, "paths": paths}
  
  
@@ -1906,7 +1940,7 @@ index 1eae044..aaf0353 100644
  def rollback_restore(safety_root: Path, target_profile: Path) -> None:
      journal_path = safety_root / "restore-journal.json"
      journal = backup.read_json(journal_path)
-@@ -1571,6 +1761,7 @@ def _reported_comparison_plan(
+@@ -1571,6 +1765,7 @@ def _reported_comparison_plan(
      return None
  
  
@@ -1914,7 +1948,7 @@ index 1eae044..aaf0353 100644
  def verify_restored(
      package_root: Path,
      target_profile: Path,
-@@ -1714,7 +1905,14 @@ def _verify_restored(
+@@ -1714,7 +1909,14 @@ def _verify_restored(
          if not target.is_dir():
              errors.append(f"Project directory missing: {target}")
              continue
@@ -1930,7 +1964,7 @@ index 1eae044..aaf0353 100644
          size = sum(path.stat().st_size for path in files)
          if len(files) != int(item["fileCount"]):
              errors.append(f"File count differs for project {target}")
-@@ -1730,9 +1928,16 @@ def _verify_restored(
+@@ -1730,9 +1932,16 @@ def _verify_restored(
                  return f"Projecthash wijkt af: {target_file}"
              return None
  
@@ -1950,7 +1984,7 @@ index 1eae044..aaf0353 100644
          checked_projects += 1
          if action == "archive-and-replace":
              disposition_value = plan_item.get("dispositionPath")
-@@ -1833,15 +2038,20 @@ def restore_backup(
+@@ -1833,15 +2042,20 @@ def restore_backup(
      safety_root = safety_root.resolve()
      journal_path = safety_root / "restore-journal.json"
      journal = backup.read_json(journal_path)
@@ -1975,7 +2009,7 @@ index 1eae044..aaf0353 100644
          nonlocal manifest_index
          if manifest_index is not None:
              try:
-@@ -1853,13 +2063,31 @@ def restore_backup(
+@@ -1853,13 +2067,31 @@ def restore_backup(
                  )
              finally:
                  manifest_index = None
@@ -2009,7 +2043,7 @@ index 1eae044..aaf0353 100644
          backup.write_json(journal_path, journal)
          project_files = _restore_projects(
              package_root,
-@@ -1928,7 +2156,10 @@ def restore_backup(
+@@ -1928,7 +2160,10 @@ def restore_backup(
              path = target_codex / f"state_5.sqlite{suffix}"
              if path.exists():
                  path.unlink()
@@ -2021,7 +2055,7 @@ index 1eae044..aaf0353 100644
          current_index = backup.read_session_index(
              target_codex / "session_index.jsonl"
          )
-@@ -1968,7 +2199,13 @@ def restore_backup(
+@@ -1968,7 +2203,13 @@ def restore_backup(
          )
          if not verification["valid"]:
              raise RestoreError("Final verification failed: " + "; ".join(verification["errors"][:5]))
@@ -2036,7 +2070,7 @@ index 1eae044..aaf0353 100644
          identities_registered = 0
          project_identity_roots_removed = 0
          identity_manifest_path = package_root / "manifest" / "project-identities.json"
-@@ -2029,6 +2266,8 @@ def restore_backup(
+@@ -2029,6 +2270,8 @@ def restore_backup(
          )
          backup.write_json(journal_path, journal)
          try:
@@ -2045,7 +2079,7 @@ index 1eae044..aaf0353 100644
              retention = recovery.enforce_retention(
                  target_profile,
                  keep=recovery.DEFAULT_KEEP,
-@@ -2040,17 +2279,58 @@ def restore_backup(
+@@ -2040,17 +2283,58 @@ def restore_backup(
              # prove that an older recovery point is safe to remove.
              journal["recoveryRetentionError"] = f"{type(exc).__name__}: {exc}"
          backup.write_json(journal_path, journal)
@@ -2105,7 +2139,7 @@ index 1eae044..aaf0353 100644
          journal_write_error: Exception | None = None
          try:
              backup.write_json(journal_path, journal)
-@@ -2061,7 +2341,11 @@ def restore_backup(
+@@ -2061,7 +2345,11 @@ def restore_backup(
          if progress:
              progress("Restore failed; running automatic rollback...")
          try:
@@ -2309,10 +2343,10 @@ index 0000000..7a8581a
 +        self.close()
 diff --git a/src/codex_transfer/restore_operation.py b/src/codex_transfer/restore_operation.py
 new file mode 100644
-index 0000000..4dddd12
+index 0000000..01cb991
 --- /dev/null
 +++ b/src/codex_transfer/restore_operation.py
-@@ -0,0 +1,235 @@
+@@ -0,0 +1,248 @@
 +"""Operation-level durable checkpoints. No source-wide preflight on resume."""
 +from contextvars import ContextVar
 +from functools import wraps
@@ -2324,6 +2358,7 @@ index 0000000..4dddd12
 +import time
 +
 +from .restore_checkpoint import CopyCheckpoint, RestorePaused, PAUSE_RESERVE_BYTES, ExclusiveTargetLock
++from .space_budget import CopySpaceBudget
 +
 +CURRENT = ContextVar('lifeboat_restore_operation', default=None)
 +
@@ -2358,7 +2393,7 @@ index 0000000..4dddd12
 +        self.token = None
 +        self.current_task = None
 +        self.last_space = {}
-+        self.last_stream_probe = 0
++        self.sequential_budget = None
 +
 +    def __enter__(self):
 +        self.token = CURRENT.set(self)
@@ -2420,6 +2455,13 @@ index 0000000..4dddd12
 +        self.save('current-operation', {'phase': self.phase, 'task': self.current_task,
 +                                       'space': self.last_space})
 +
++    def allow_write(self, target, size):
++        self.check()
++        if self.sequential_budget is None:
++            from . import restore
++            self.sequential_budget = CopySpaceBudget(restore._ensure_restore_space)
++        self.sequential_budget(None, target, size)
++
 +    def install(self, source, destination):
 +        key = 'database-installed'
 +        if self.saved(key)[0]:
@@ -2443,6 +2485,7 @@ index 0000000..4dddd12
 +        operation.phase = function.__name__.removeprefix('_').replace('_', ' ')
 +        operation.phase_count = 0
 +        operation.phase_total = 0
++        operation.sequential_budget = None
 +        operation.phase_start = time.monotonic()
 +        operation.emit(0, 0, operation.phase, True)
 +        started = time.monotonic()
@@ -2487,7 +2530,7 @@ index 0000000..4dddd12
 +    if CURRENT.get() is None:
 +        from . import backup
 +        return backup.copy_file(source, target)
-+    restore._ensure_restore_space(target, source.stat().st_size, 1)
++    CURRENT.get().allow_write(target, source.stat().st_size)
 +    target.parent.mkdir(parents=True, exist_ok=True)
 +    temporary = target.with_name('.' + target.name + '.lifeboat-copy.tmp')
 +    shutil.copy2(source, temporary)
@@ -2498,11 +2541,15 @@ index 0000000..4dddd12
 +    operation = CURRENT.get()
 +    if operation is not None:
 +        operation.check()
-+        now = time.monotonic()
-+        if now - operation.last_stream_probe >= 1:
-+            from . import restore
-+            restore._ensure_restore_space(target, 16 * 1024 * 1024, 1)
-+            operation.last_stream_probe = now
++
++
++def allow_text_write(target, text):
++    operation = CURRENT.get()
++    if operation:
++        # Bound UTF-8 expansion without allocating/encoding a second large line.
++        # The budget resamples actual free space if this conservative credit runs
++        # out. Compressed sources cannot hide the size of the expanded output.
++        operation.allow_write(target, len(text) * 4 + 256)
 +
 +
 +def resume_from_document(document, pause=None, progress=None, log=None):

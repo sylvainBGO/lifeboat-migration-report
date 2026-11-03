@@ -805,7 +805,7 @@ index 3027c08..3f6c96a 100644
          result = run_self_test(Path(args.work) if args.work else None)
          if sys.stdout is not None:
 diff --git a/src/codex_transfer/manifest_index.py b/src/codex_transfer/manifest_index.py
-index 23ca7dd..ebf65c3 100644
+index 23ca7dd..33ed267 100644
 --- a/src/codex_transfer/manifest_index.py
 +++ b/src/codex_transfer/manifest_index.py
 @@ -2,16 +2,29 @@
@@ -841,7 +841,7 @@ index 23ca7dd..ebf65c3 100644
              self.connection.execute('PRAGMA cache_size=-8192')
              # Disposable derived data, never a restore journal or a source database.
              self.connection.execute('PRAGMA journal_mode=OFF')
-@@ -23,10 +36,23 @@ class ManifestIndex:
+@@ -23,10 +36,24 @@ class ManifestIndex:
                      batch.append((str(row['relative_path']), row['size'], str(row['sha256'])))
                      self.rows_read += 1
                      if len(batch) == 4096:
@@ -856,7 +856,8 @@ index 23ca7dd..ebf65c3 100644
 +            if self.persistent_path:
 +                self.connection.close()
 +                self.connection = None
-+                with self._building.open('rb') as handle:
++                # Windows _commit/FlushFileBuffers requires a writable handle.
++                with self._building.open('r+b') as handle:
 +                    os.fsync(handle.fileno())
 +                os.replace(self._building, self.persistent_path)
 +                self._building = None
@@ -865,7 +866,7 @@ index 23ca7dd..ebf65c3 100644
          except BaseException:
              self.close()
              raise
-@@ -49,15 +75,25 @@ class ManifestIndex:
+@@ -49,15 +76,25 @@ class ManifestIndex:
                  (prefix, upper)):
              yield path[len(prefix):], digest.lower()
  

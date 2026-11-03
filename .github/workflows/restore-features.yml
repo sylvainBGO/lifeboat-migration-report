@@ -53,6 +53,7 @@ jobs:
           $p = Start-Process -FilePath $exe -ArgumentList '--self-test --work C:/lb-exe' -Wait -PassThru
           $r = Get-Content C:/lb-exe/self-test-result.json -Raw | ConvertFrom-Json
           if ($p.ExitCode -ne 0 -or -not $r.passed) { throw 'Packaged regression failed' }
+          if (-not $r.phase11Matrix -or $r.phase11Matrix.automatedPassed -ne $r.phase11Matrix.automatedTotal) { throw 'Packaged compatibility matrix failed' }
           $p = Start-Process -FilePath $exe -ArgumentList '--recovery-self-test --work C:/lb-resume' -Wait -PassThru
           $r = Get-Content C:/lb-resume/recovery-self-test-result.json -Raw | ConvertFrom-Json
           if ($p.ExitCode -ne 0 -or -not $r.passed) { throw 'Packaged recovery failed' }

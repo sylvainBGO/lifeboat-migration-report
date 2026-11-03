@@ -1,0 +1,483 @@
+{
+  "run": "https://github.com/sylvainBGO/lifeboat-migration-report/actions/runs/41713076881",
+  "testedCommit": "5d90e04c973b8725af73141df813a5e05c8114a6",
+  "targetedTestsPassed": 52,
+  "targetedTestsTotal": 52,
+  "packagedGuiOpenClose": true,
+  "source": {
+    "passed": true,
+    "checks": {
+      "packageValid": true,
+      "visualBackupSummaryComplete": true,
+      "backupSelectionPreviewComplete": true,
+      "rolloutPreflightHasExactDiagnostics": true,
+      "destinationPathBudgetPreflight": true,
+      "singleUsbStillPromptsForDestination": true,
+      "paginatedHistoryProjectionOffsetsReset": true,
+      "unreadablePythonCacheWarnsAndContinues": true,
+      "unreadableNormalFileStillFailsClosed": true,
+      "dependencyPreflightFindsFullScope": true,
+      "dependencyExclusionsRequireExplicitApproval": true,
+      "dependencyExclusionReportRoundTrips": true,
+      "otherUnreadableDirectoriesFailClosed": true,
+      "identicalDuplicateRolloutResolved": true,
+      "differentDuplicateRolloutResolved": true,
+      "compressedDatabaseRolloutPathResolved": true,
+      "compressedRolloutBackupIsExactAndFailClosed": true,
+      "selectiveProjectExclusionComplete": true,
+      "snapshotUsesSingleFileJournal": true,
+      "validatorIsReadOnly": true,
+      "hashingProgressComplete": true,
+      "validationProgressComplete": true,
+      "progressTransitionsClear": true,
+      "unknownStoreVersionDoesNotWarn": true,
+      "usbDriveClassification": true,
+      "compressedFolderLaunchBlocked": true,
+      "diagnosticCenterReadOnlyAndAnonymous": true,
+      "pathPortabilityAudit": true,
+      "backupContainsAnonymousPortabilityAudit": true,
+      "gitAwareConflictExplanation": true,
+      "gitInsightNeverChangesRestoreAction": true,
+      "atomicMetadataSurvivesInterruptedWrite": true,
+      "strictConversationPrefixClassifier": true,
+      "conversationPrefixRejectsUnsafeCases": true,
+      "prefixOnlyConversationSyncIsAutomaticAndIdempotent": true,
+      "portablePathModel": true,
+      "longUnicodePathModel": true,
+      "lowDiskSpaceRejected": true,
+      "restorePeakSpaceIncludesAllocationOverhead": true,
+      "restoreRuntimeSpaceReserveEnforced": true,
+      "portableLocationsRecorded": true,
+      "legacyFormat20Supported": true,
+      "legacyFormat21Supported": true,
+      "legacyFormat22Supported": true,
+      "legacyFormat23Supported": true,
+      "completePhase3Inventory": true,
+      "attachmentDetectionAndAccessResilience": true,
+      "pluginRuntimeExcludedAndTargetPreserved": true,
+      "provisioningGuardRuntimeExcluded": true,
+      "projectRootInventoryAnalysis": true,
+      "lineageChangeModel": true,
+      "streamingLineageDigest": true,
+      "lineageSurvivesRoundTrip": true,
+      "projectLocationMapper": true,
+      "comparisonPlanPreviewComplete": true,
+      "comparisonPlanPerformsNoWrites": true,
+      "comparisonPlanConflictsBlockRestore": true,
+      "comparisonPlanMatchesRestoreExecution": true,
+      "legacyPackageComparisonSupported": true,
+      "conversationConflictChoicesComplete": true,
+      "conversationMirrorExact": true,
+      "repeatedConversationRestoreIsIdempotent": true,
+      "explicitConversationDelete": true,
+      "conversationRollbackPreserved": true,
+      "rollbackSurvivesFailureJournalENOSPC": true,
+      "destinationProjectRetainedByDefault": true,
+      "destinationProjectArchiveComplete": true,
+      "destinationProjectDeleteRecoverable": true,
+      "projectConflictChoicesComplete": true,
+      "destinationProjectRollbackPreserved": true,
+      "managedRecoveryPointRetention": true,
+      "restoreUsesManagedRecoveryLocation": true,
+      "transactionalProjectMirror": true,
+      "repeatedRestoreIsIdempotent": true,
+      "rollbackAfterProjectQuarantine": true,
+      "rollbackAfterProjectActivation": true,
+      "projectIdentityModel": true,
+      "projectIdentitiesInstalled": true,
+      "projectIdentitiesSurviveRoundTrip": true,
+      "sourceUnchanged": true,
+      "sourceAuthExcluded": true,
+      "portableExecutableIncluded": true,
+      "restoreValid": true,
+      "compressedRolloutRestoreVerified": true,
+      "targetAuthPreserved": true,
+      "projectExact": true,
+      "portableProfileRestored": true,
+      "emptyTreeLineageValidated": true,
+      "missingEmptyTreeRejected": true,
+      "tamperRejected": true,
+      "rollbackTriggeredAndPreserved": true,
+      "lineageRollbackPreserved": true,
+      "safetyCopyKept": true,
+      "newerSourceToOlderTarget": true,
+      "stableOperationProgress": true,
+      "operationFailureStatusPersists": true,
+      "dutchEnglishGui": true
+    },
+    "automatedCompatibility": [
+      {
+        "id": "different-usernames-and-known-folders",
+        "description": "Different Windows usernames and redirected known folders",
+        "status": "passed",
+        "checks": [
+          "portablePathModel",
+          "portableLocationsRecorded",
+          "projectIdentitiesSurviveRoundTrip"
+        ],
+        "failedChecks": []
+      },
+      {
+        "id": "external-usb-and-unc-roots",
+        "description": "External, USB, changed-drive and UNC project roots",
+        "status": "passed",
+        "checks": [
+          "projectLocationMapper",
+          "usbDriveClassification"
+        ],
+        "failedChecks": []
+      },
+      {
+        "id": "long-and-unicode-paths",
+        "description": "Long and Unicode portable path handling",
+        "status": "passed",
+        "checks": [
+          "longUnicodePathModel"
+        ],
+        "failedChecks": []
+      },
+      {
+        "id": "nested-missing-and-reparse-roots",
+        "description": "Nested, missing and reparse-point project roots",
+        "status": "passed",
+        "checks": [
+          "projectRootInventoryAnalysis"
+        ],
+        "failedChecks": []
+      },
+      {
+        "id": "low-disk-space",
+        "description": "Low destination disk space is rejected before copying",
+        "status": "passed",
+        "checks": [
+          "lowDiskSpaceRejected",
+          "restorePeakSpaceIncludesAllocationOverhead",
+          "restoreRuntimeSpaceReserveEnforced"
+        ],
+        "failedChecks": []
+      },
+      {
+        "id": "interruption-and-rollback",
+        "description": "Interrupted project and conversation restore rolls back",
+        "status": "passed",
+        "checks": [
+          "rollbackAfterProjectQuarantine",
+          "rollbackAfterProjectActivation",
+          "conversationRollbackPreserved",
+          "rollbackSurvivesFailureJournalENOSPC"
+        ],
+        "failedChecks": []
+      },
+      {
+        "id": "corrupt-backup",
+        "description": "Corrupt or incomplete package is rejected",
+        "status": "passed",
+        "checks": [
+          "tamperRejected",
+          "missingEmptyTreeRejected"
+        ],
+        "failedChecks": []
+      },
+      {
+        "id": "schema-compatibility",
+        "description": "Newer source schema restores to an older destination schema",
+        "status": "passed",
+        "checks": [
+          "newerSourceToOlderTarget"
+        ],
+        "failedChecks": []
+      },
+      {
+        "id": "conversation-variants",
+        "description": "Recent, projectless, pinned and archived conversations",
+        "status": "passed",
+        "checks": [
+          "completePhase3Inventory",
+          "conversationMirrorExact",
+          "paginatedHistoryProjectionOffsetsReset",
+          "dependencyPreflightFindsFullScope",
+          "dependencyExclusionsRequireExplicitApproval",
+          "dependencyExclusionReportRoundTrips",
+          "otherUnreadableDirectoriesFailClosed",
+          "provisioningGuardRuntimeExcluded"
+        ],
+        "failedChecks": []
+      },
+      {
+        "id": "independent-edits",
+        "description": "Independent changes on both computers require explicit decisions",
+        "status": "passed",
+        "checks": [
+          "conversationConflictChoicesComplete",
+          "projectConflictChoicesComplete"
+        ],
+        "failedChecks": []
+      },
+      {
+        "id": "legacy-and-round-trip",
+        "description": "Format 2.0 compatibility and repeated A-to-B-to-A round trips",
+        "status": "passed",
+        "checks": [
+          "legacyFormat20Supported",
+          "repeatedRestoreIsIdempotent",
+          "lineageSurvivesRoundTrip"
+        ],
+        "failedChecks": []
+      },
+      {
+        "id": "progress-state-transitions",
+        "description": "Measured and non-measurable work have unambiguous progress states",
+        "status": "passed",
+        "checks": [
+          "progressTransitionsClear",
+          "operationFailureStatusPersists"
+        ],
+        "failedChecks": []
+      }
+    ],
+    "automatedPassed": 12,
+    "automatedTotal": 12
+  },
+  "packaged": {
+    "passed": true,
+    "checks": {
+      "packageValid": true,
+      "visualBackupSummaryComplete": true,
+      "backupSelectionPreviewComplete": true,
+      "rolloutPreflightHasExactDiagnostics": true,
+      "destinationPathBudgetPreflight": true,
+      "singleUsbStillPromptsForDestination": true,
+      "paginatedHistoryProjectionOffsetsReset": true,
+      "unreadablePythonCacheWarnsAndContinues": true,
+      "unreadableNormalFileStillFailsClosed": true,
+      "dependencyPreflightFindsFullScope": true,
+      "dependencyExclusionsRequireExplicitApproval": true,
+      "dependencyExclusionReportRoundTrips": true,
+      "otherUnreadableDirectoriesFailClosed": true,
+      "identicalDuplicateRolloutResolved": true,
+      "differentDuplicateRolloutResolved": true,
+      "compressedDatabaseRolloutPathResolved": true,
+      "compressedRolloutBackupIsExactAndFailClosed": true,
+      "selectiveProjectExclusionComplete": true,
+      "snapshotUsesSingleFileJournal": true,
+      "validatorIsReadOnly": true,
+      "hashingProgressComplete": true,
+      "validationProgressComplete": true,
+      "progressTransitionsClear": true,
+      "unknownStoreVersionDoesNotWarn": true,
+      "usbDriveClassification": true,
+      "compressedFolderLaunchBlocked": true,
+      "diagnosticCenterReadOnlyAndAnonymous": true,
+      "pathPortabilityAudit": true,
+      "backupContainsAnonymousPortabilityAudit": true,
+      "gitAwareConflictExplanation": true,
+      "gitInsightNeverChangesRestoreAction": true,
+      "atomicMetadataSurvivesInterruptedWrite": true,
+      "strictConversationPrefixClassifier": true,
+      "conversationPrefixRejectsUnsafeCases": true,
+      "prefixOnlyConversationSyncIsAutomaticAndIdempotent": true,
+      "portablePathModel": true,
+      "longUnicodePathModel": true,
+      "lowDiskSpaceRejected": true,
+      "restorePeakSpaceIncludesAllocationOverhead": true,
+      "restoreRuntimeSpaceReserveEnforced": true,
+      "portableLocationsRecorded": true,
+      "legacyFormat20Supported": true,
+      "legacyFormat21Supported": true,
+      "legacyFormat22Supported": true,
+      "legacyFormat23Supported": true,
+      "completePhase3Inventory": true,
+      "attachmentDetectionAndAccessResilience": true,
+      "pluginRuntimeExcludedAndTargetPreserved": true,
+      "provisioningGuardRuntimeExcluded": true,
+      "projectRootInventoryAnalysis": true,
+      "lineageChangeModel": true,
+      "streamingLineageDigest": true,
+      "lineageSurvivesRoundTrip": true,
+      "projectLocationMapper": true,
+      "comparisonPlanPreviewComplete": true,
+      "comparisonPlanPerformsNoWrites": true,
+      "comparisonPlanConflictsBlockRestore": true,
+      "comparisonPlanMatchesRestoreExecution": true,
+      "legacyPackageComparisonSupported": true,
+      "conversationConflictChoicesComplete": true,
+      "conversationMirrorExact": true,
+      "repeatedConversationRestoreIsIdempotent": true,
+      "explicitConversationDelete": true,
+      "conversationRollbackPreserved": true,
+      "rollbackSurvivesFailureJournalENOSPC": true,
+      "destinationProjectRetainedByDefault": true,
+      "destinationProjectArchiveComplete": true,
+      "destinationProjectDeleteRecoverable": true,
+      "projectConflictChoicesComplete": true,
+      "destinationProjectRollbackPreserved": true,
+      "managedRecoveryPointRetention": true,
+      "restoreUsesManagedRecoveryLocation": true,
+      "transactionalProjectMirror": true,
+      "repeatedRestoreIsIdempotent": true,
+      "rollbackAfterProjectQuarantine": true,
+      "rollbackAfterProjectActivation": true,
+      "projectIdentityModel": true,
+      "projectIdentitiesInstalled": true,
+      "projectIdentitiesSurviveRoundTrip": true,
+      "sourceUnchanged": true,
+      "sourceAuthExcluded": true,
+      "portableExecutableIncluded": true,
+      "restoreValid": true,
+      "compressedRolloutRestoreVerified": true,
+      "targetAuthPreserved": true,
+      "projectExact": true,
+      "portableProfileRestored": true,
+      "emptyTreeLineageValidated": true,
+      "missingEmptyTreeRejected": true,
+      "tamperRejected": true,
+      "rollbackTriggeredAndPreserved": true,
+      "lineageRollbackPreserved": true,
+      "safetyCopyKept": true,
+      "newerSourceToOlderTarget": true,
+      "stableOperationProgress": true,
+      "operationFailureStatusPersists": true,
+      "dutchEnglishGui": true
+    },
+    "automatedCompatibility": [
+      {
+        "id": "different-usernames-and-known-folders",
+        "description": "Different Windows usernames and redirected known folders",
+        "status": "passed",
+        "checks": [
+          "portablePathModel",
+          "portableLocationsRecorded",
+          "projectIdentitiesSurviveRoundTrip"
+        ],
+        "failedChecks": []
+      },
+      {
+        "id": "external-usb-and-unc-roots",
+        "description": "External, USB, changed-drive and UNC project roots",
+        "status": "passed",
+        "checks": [
+          "projectLocationMapper",
+          "usbDriveClassification"
+        ],
+        "failedChecks": []
+      },
+      {
+        "id": "long-and-unicode-paths",
+        "description": "Long and Unicode portable path handling",
+        "status": "passed",
+        "checks": [
+          "longUnicodePathModel"
+        ],
+        "failedChecks": []
+      },
+      {
+        "id": "nested-missing-and-reparse-roots",
+        "description": "Nested, missing and reparse-point project roots",
+        "status": "passed",
+        "checks": [
+          "projectRootInventoryAnalysis"
+        ],
+        "failedChecks": []
+      },
+      {
+        "id": "low-disk-space",
+        "description": "Low destination disk space is rejected before copying",
+        "status": "passed",
+        "checks": [
+          "lowDiskSpaceRejected",
+          "restorePeakSpaceIncludesAllocationOverhead",
+          "restoreRuntimeSpaceReserveEnforced"
+        ],
+        "failedChecks": []
+      },
+      {
+        "id": "interruption-and-rollback",
+        "description": "Interrupted project and conversation restore rolls back",
+        "status": "passed",
+        "checks": [
+          "rollbackAfterProjectQuarantine",
+          "rollbackAfterProjectActivation",
+          "conversationRollbackPreserved",
+          "rollbackSurvivesFailureJournalENOSPC"
+        ],
+        "failedChecks": []
+      },
+      {
+        "id": "corrupt-backup",
+        "description": "Corrupt or incomplete package is rejected",
+        "status": "passed",
+        "checks": [
+          "tamperRejected",
+          "missingEmptyTreeRejected"
+        ],
+        "failedChecks": []
+      },
+      {
+        "id": "schema-compatibility",
+        "description": "Newer source schema restores to an older destination schema",
+        "status": "passed",
+        "checks": [
+          "newerSourceToOlderTarget"
+        ],
+        "failedChecks": []
+      },
+      {
+        "id": "conversation-variants",
+        "description": "Recent, projectless, pinned and archived conversations",
+        "status": "passed",
+        "checks": [
+          "completePhase3Inventory",
+          "conversationMirrorExact",
+          "paginatedHistoryProjectionOffsetsReset",
+          "dependencyPreflightFindsFullScope",
+          "dependencyExclusionsRequireExplicitApproval",
+          "dependencyExclusionReportRoundTrips",
+          "otherUnreadableDirectoriesFailClosed",
+          "provisioningGuardRuntimeExcluded"
+        ],
+        "failedChecks": []
+      },
+      {
+        "id": "independent-edits",
+        "description": "Independent changes on both computers require explicit decisions",
+        "status": "passed",
+        "checks": [
+          "conversationConflictChoicesComplete",
+          "projectConflictChoicesComplete"
+        ],
+        "failedChecks": []
+      },
+      {
+        "id": "legacy-and-round-trip",
+        "description": "Format 2.0 compatibility and repeated A-to-B-to-A round trips",
+        "status": "passed",
+        "checks": [
+          "legacyFormat20Supported",
+          "repeatedRestoreIsIdempotent",
+          "lineageSurvivesRoundTrip"
+        ],
+        "failedChecks": []
+      },
+      {
+        "id": "progress-state-transitions",
+        "description": "Measured and non-measurable work have unambiguous progress states",
+        "status": "passed",
+        "checks": [
+          "progressTransitionsClear",
+          "operationFailureStatusPersists"
+        ],
+        "failedChecks": []
+      }
+    ],
+    "automatedPassed": 12,
+    "automatedTotal": 12
+  },
+  "recovery": {
+    "passed": true,
+    "pausedAndReopened": true,
+    "completedProjectsNotRecopied": true,
+    "finalVerification": true,
+    "reportsAndRetention": true,
+    "migrationGuide": true
+  }
+}

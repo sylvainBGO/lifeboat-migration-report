@@ -1,0 +1,38 @@
+name: Windows microbenchmark prototype
+on:
+  push:
+    paths: ['performance/benchmarks/**', '.github/workflows/microbench.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test synthetic strategies
+        run: python -m unittest discover -s performance/benchmarks -v
+      - name: Install packager
+        run: python -m pip install pyinstaller==6.16.0
+      - name: Build executable
+        run: python -m PyInstaller --clean --onefile --name Lifeboat-Microbench performance/benchmarks/microbench.py
+      - name: Exercise packaged executable
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path smoke | Out-Null
+          & ./dist/Lifeboat-Microbench.exe --directory smoke --files 100 --bytes 4096 --repeats 1
+          if ($LASTEXITCODE -ne 0) { throw 'Packaged smoke failed' }
+      - name: Package
+        shell: pwsh
+        run: |
+          Copy-Item performance/benchmarks/README.md dist/
+          Copy-Item smoke/*.json dist/
+          '@echo off' + [Environment]::NewLine + 'cd /d "%~dp0"' + [Environment]::NewLine + 'Lifeboat-Microbench.exe --directory results --files 3000 --bytes 4096 --repeats 3' + [Environment]::NewLine + 'pause' | Set-Content dist/Run-Benchmark.cmd -Encoding ascii
+          Compress-Archive -Path dist/* -DestinationPath Lifeboat-Microbench-prototype.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Lifeboat-Microbench-prototype
+          path: Lifeboat-Microbench-prototype.zip

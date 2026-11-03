@@ -1,9 +1,161 @@
+diff --git a/COMMUNITY-RECOVERY.md b/COMMUNITY-RECOVERY.md
+new file mode 100644
+index 0000000..1f33005
+--- /dev/null
++++ b/COMMUNITY-RECOVERY.md
+@@ -0,0 +1,111 @@
++# Codex Lifeboat — Community Recovery
++
++Version communautaire dérivée de dkwolf1/Codex-Lifeboat 3.4.11 (MIT), avec
++optimisations et reprise persistante. Ce paquet n'est pas une publication officielle
++de l'auteur original. Les formats de sauvegarde existants sont conservés.
++
++## Utilisation
++
++1. Extraire tout le ZIP dans un dossier local puis ouvrir
++   `Codex-Lifeboat-Community.exe`. L'exécutable n'est pas signé numériquement.
++2. Fermer Codex/ChatGPT avant de restaurer. Choisir la sauvegarde et examiner le
++   plan de comparaison habituel. La préparation et la copie de sécurité restent
++   les étapes initiales ; la copie des projets n'est pas cochée pendant le contrôle.
++3. Confirmer la restauration. Le chemin de `resume-plan.json` est inscrit dans
++   le journal d'activité, dans le point de récupération de cette opération.
++4. Pour arrêter proprement, cliquer sur **Pause**. Les écritures natives déjà
++   admises finissent avant l'arrêt. Pour continuer, même après redémarrage,
++   cliquer sur **Load resume plan** et sélectionner ce document.
++5. Après réussite, lire le rapport normal dans **Documents / Codex Restore Reports**.
++   `MIGRATION-PATHS.md` fournit les chemins de la machine actuelle et les
++   instructions à ajouter dans Codex. Ne recréez pas l'ancien profil Windows.
++
++Ne réutilisez pas les anciens plans de secours spécifiques 3.4.7 : ils n'ont pas
++le schéma de cette version. Le nouveau document est lié au journal et aux fichiers
++de contrôle de son point de récupération ; conservez ce dossier complet.
++
++## Ce que garantit la reprise
++
++- Les copies enregistrées et les étapes terminées sont réutilisées. La validation
++  initiale complète de la sauvegarde n'est pas relancée en chargeant le plan.
++- Les chemins de staging, de quarantaine et d'activation restent ceux de la
++  transaction originale. Deux plans ne peuvent pas restaurer simultanément vers
++  le même profil.
++- Un arrêt normal conserve toutes les copies en cours qui ont réussi. Une coupure
++  brutale peut rejouer un petit lot non enregistré : 255 copies plus la file
++  parallèle pour les projets, 63 tâches pour les fichiers séquentiels.
++- La vérification finale demeure obligatoire. Une vérification interrompue peut
++  devoir relire les fichiers de cette étape ; on ne considère jamais une simple
++  copie comme une preuve d'intégrité.
++- Une pause n'effectue pas de retour arrière. Une vraie erreur de copie ou de
++  vérification conserve le mécanisme de retour arrière. Une erreur d'espace
++  conserve l'état de reprise au lieu de tenter un retour arrière coûteux en écritures.
++- Le programme s'arrête entre unités sûres. Une copie native, une opération SQLite,
++  une suppression de dossier ou un déplacement déjà engagé n'est pas interrompu
++  arbitrairement. Le bouton affiche alors une demande de pause en attente.
++
++Conservez la sauvegarde, le point de récupération et les dossiers restaurés sans
++modification externe pendant l'opération et les pauses. Le document de reprise
++n'est pas une sauvegarde autonome de ces données.
++
++## Espace disque
++
++La réserve de restauration est **500 000 000 octets**. Les écritures en attente,
++leur allocation et les copies parallèles sont prises en compte avant d'admettre
++du travail. Un fichier de 2 Go peut donc provoquer une pause lorsqu'il reste
++encore plus de 500 Mo. La préparation/analyse ne dépend pas de ce seuil ; ses
++propres écritures, dont la copie de sécurité, nécessitent néanmoins de la place.
++
++L'index temporaire du manifeste est conservé pendant une pause et réutilisé à la
++reprise ; il est supprimé à la fin ou avant un retour arrière. Un autre programme
++peut consommer le disque entre deux mesures : la réserve n'est pas une réservation
++du système de fichiers. Le rapport distingue espace libre mesuré, données à écrire,
++allocation et réserve. Ne supprimez pas des morceaux de la sauvegarde pour reprendre.
++
++## Progression et diagnostics
++
++La barre principale décrit le déroulement des étapes, **pas une estimation de la
++part du temps déjà écoulée**. La sous-barre décrit le travail de l'étape courante.
++Lorsque le total est inconnu, elle reste indéterminée et affiche le compteur connu.
++Débit et temps restant concernent uniquement l'étape mesurée et restent indicatifs.
++Les indicateurs n'allongent plus les textes par une animation de points.
++
++Dans le point de récupération :
++
++- `restore-journal.json` : transaction et rapport standard ;
++- `resume-plan.json` : document à charger pour reprendre ;
++- `operation-report.json` : temps par étape et dernière opération, avec chemins ;
++- `shareable-operation-summary.json` : résumé partageable sans chemins, noms de
++  projets, messages de conversations ni identifiants.
++
++Les rapports, identités restaurées et règles normales de rétention sont conservés.
++Une erreur de rapport après validation finale ne provoque pas la destruction d'une
++restauration terminée ; elle est signalée comme avertissement.
++
++## Defender
++
++Le bouton **Defender…** propose une désactivation temporaire explicite avec la
++validation administrateur Windows. Lifeboat vérifie l'état réel après la commande.
++Il ne contourne ni la protection antialtération ni les règles d'entreprise.
++
++Pendant le travail, l'état est contrôlé une fois par heure. Si Windows réactive
++la protection après l'avoir signalée désactivée, une fenêtre non modale propose
++une nouvelle demande. Le travail continue pendant votre décision. Aucune
++désactivation répétée automatique et aucune réactivation automatique : un rappel
++demande de **réactiver manuellement la protection à la fin**.
++
++## Conversations et performances
++
++Les chemins stockés dans les données sont adaptés, mais les anciennes phrases des
++conversations peuvent encore citer l'ancien PC. Le guide généré explique comment
++centraliser cette information. L'ouverture successive de conversations récentes
++reste une piste expérimentale, documentée : aucun préchargement garanti de 50
++conversations et aucun envoi automatique de messages ne sont annoncés.
++
++Les optimisations ont été mesurées sur scénarios synthétiques Windows : environ
++24–32 % de réduction sur les scénarios de petits fichiers et 20–38 % sur le scénario
++court de gros fichiers, avant ajout des checkpoints. **Un délai de deux heures
++pour 88 Go et 5,15 millions de fichiers n'est pas démontré.** Ce paquet conserve
++les contrôles d'intégrité ; il ne les supprime pas pour afficher un meilleur temps.
++
++Sources, tests et résultats : https://github.com/sylvainBGO/lifeboat-migration-report
+diff --git a/benchmarks/capture_recovery_ui.py b/benchmarks/capture_recovery_ui.py
+new file mode 100644
+index 0000000..ac6f035
+--- /dev/null
++++ b/benchmarks/capture_recovery_ui.py
+@@ -0,0 +1,29 @@
++"""Synthetic UI evidence only; never starts a restore or changes Defender."""
++from pathlib import Path
++import sys
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
++from PIL import ImageGrab
++from codex_transfer.gui import TransferApp
++
++output = Path(sys.argv[1])
++output.mkdir(parents=True, exist_ok=True)
++app = TransferApp()
++app.minsize(900, 650)
++app.geometry('1000x700+0+0')
++app._show_tab('restore')
++app._begin_operation('restore')
++app._set_busy(True)
++
++def capture(name):
++    app.update()
++    app.update_idletasks()
++    x, y = app.winfo_rootx(), app.winfo_rooty()
++    ImageGrab.grab(bbox=(x, y, x+app.winfo_width(), y+app.winfo_height())).save(output/name)
++
++app._apply_progress(50, 100, 'Pre-restore check: Validating backup — synthetic fixture')
++capture('preflight.png')
++app._structured_progress(dict(phase='restore sessions', current=146, total=713,
++                              message='Restoring conversations — synthetic fixture',
++                              phaseSeconds=10, unit='files'))
++capture('conversations.png')
++app.destroy()
 diff --git a/benchmarks/test_checkpoint_optimization.py b/benchmarks/test_checkpoint_optimization.py
 new file mode 100644
-index 0000000..477d67d
+index 0000000..04fbfea
 --- /dev/null
 +++ b/benchmarks/test_checkpoint_optimization.py
-@@ -0,0 +1,150 @@
+@@ -0,0 +1,160 @@
 +"""Recovery primitives: real copies, interruption, lock and restart boundaries."""
 +from pathlib import Path
 +import os
@@ -17,7 +169,7 @@ index 0000000..477d67d
 +sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 +from codex_transfer.parallel_copy import copy_staging_tree
 +from codex_transfer.restore_checkpoint import (
-+    CopyCheckpoint, RestorePaused, CheckpointBusy, PAUSE_RESERVE_BYTES,
++    CopyCheckpoint, RestorePaused, CheckpointBusy, PAUSE_RESERVE_BYTES, ExclusiveTargetLock,
 +)
 +
 +
@@ -130,6 +282,16 @@ index 0000000..477d67d
 +        with self.ledger():
 +            pass
 +
++    def test_different_plans_cannot_write_the_same_target(self):
++        first = ExclusiveTargetLock(self.root)
++        try:
++            with self.assertRaises(CheckpointBusy):
++                ExclusiveTargetLock(self.root)
++        finally:
++            first.close()
++        second = ExclusiveTargetLock(self.root)
++        second.close()
++
 +    def test_abrupt_process_exit_keeps_only_committed_batch(self):
 +        # Exit without close/finally: SQLite must roll back the unfinished batch,
 +        # while the OS releases the lock so another process can resume.
@@ -154,12 +316,84 @@ index 0000000..477d67d
 +
 +if __name__ == '__main__':
 +    unittest.main()
+diff --git a/benchmarks/test_feature_ui_optimization.py b/benchmarks/test_feature_ui_optimization.py
+new file mode 100644
+index 0000000..03a7f08
+--- /dev/null
++++ b/benchmarks/test_feature_ui_optimization.py
+@@ -0,0 +1,66 @@
++"""UI state and Defender command contracts, without changing host protection."""
++import os
++from pathlib import Path
++import sys
++import unittest
++from unittest.mock import patch
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
++
++
++@unittest.skipUnless(os.name == 'nt', 'Windows Tk UI')
++class FeatureUITests(unittest.TestCase):
++    def setUp(self):
++        from codex_transfer.gui import TransferApp
++        self.app = TransferApp()
++        self.app.withdraw()
++        self.addCleanup(self.app.destroy)
++
++    def test_preflight_does_not_mark_projects_copied(self):
++        self.app._begin_operation('restore')
++        self.app._set_busy(True)
++        self.app._apply_progress(50, 100, 'Pre-restore check: Validating backup')
++        self.assertLess(float(self.app.progress.cget('value')), 15)
++        self.assertNotEqual(self.app.stage_dots[1].cget('text'), '✓')
++
++    def test_defender_prompt_is_nonmodal_and_does_not_pause_worker(self):
++        self.app.busy = True
++        self.app.defender_last_state = False
++        self.app._recovery_message('defender_hourly', {'RealTimeProtectionEnabled': True})
++        self.assertTrue(self.app.busy)
++        self.assertFalse(self.app.pause_event.is_set())
++        self.assertIsNone(self.app.grab_current())
++        self.assertTrue(self.app.defender_prompt.winfo_exists())
++
++    def test_animation_does_not_change_status_text_or_widget_geometry(self):
++        self.app._begin_operation('restore')
++        self.app._set_busy(True)
++        self.app._apply_progress(0, 0, 'Reading a long stage...')
++        self.app.update_idletasks()
++        text = self.app.status_label.cget('text')
++        widths = [dot.winfo_reqwidth() for dot in self.app.stage_dots]
++        self.app._tick_operation_clock()
++        self.app.update_idletasks()
++        self.assertEqual(text, self.app.status_label.cget('text'))
++        self.assertEqual(widths, [dot.winfo_reqwidth() for dot in self.app.stage_dots])
++
++    def test_hourly_check_reads_status_without_disabling(self):
++        from codex_transfer import defender_control
++        with patch.object(defender_control, 'request_disable', side_effect=AssertionError('automatic disable')):
++            self.app._recovery_message('defender_hourly', {'RealTimeProtectionEnabled': True})
++        self.assertFalse(self.app.pause_event.is_set())
++
++
++class DefenderContractTests(unittest.TestCase):
++    def test_disable_uses_runas_and_then_checks_real_state(self):
++        from codex_transfer import defender_control
++        with patch.object(defender_control.subprocess, 'CREATE_NO_WINDOW', 0, create=True), \
++             patch.object(defender_control.subprocess, 'run') as run, \
++             patch.object(defender_control, 'status', return_value={'RealTimeProtectionEnabled': True}):
++            run.return_value.returncode = 0
++            result = defender_control.request_disable()
++        command = run.call_args.args[0][-1]
++        self.assertIn('-Verb RunAs', command)
++        self.assertIn('Set-MpPreference -DisableRealtimeMonitoring $true', command)
++        self.assertNotIn('DisableTamper', command)
++        self.assertTrue(result['RealTimeProtectionEnabled'])
 diff --git a/benchmarks/test_resume_optimization.py b/benchmarks/test_resume_optimization.py
 new file mode 100644
-index 0000000..29ce13e
+index 0000000..d822c6f
 --- /dev/null
 +++ b/benchmarks/test_resume_optimization.py
-@@ -0,0 +1,101 @@
+@@ -0,0 +1,160 @@
 +"""Actual Windows restore with durable operation checkpoints."""
 +import os
 +from pathlib import Path
@@ -204,6 +438,11 @@ index 0000000..29ce13e
 +        self.assertIn('recoveryRetention', result)
 +        reports = list((self.target/'Documents'/'Codex Restore Reports').glob('*.json'))
 +        self.assertTrue(reports)
++        self.assertTrue((self.target/'Documents/Codex Restore Reports/MIGRATION-PATHS.md').is_file())
++        summary = (self.safety/'shareable-operation-summary.json').read_text(encoding='utf-8')
++        self.assertNotIn(str(self.target), summary)
++        self.assertNotIn(str(self.package), summary)
++        self.assertFalse((self.safety/'resume-manifest.sqlite').exists())
 +
 +    def test_pause_inside_sessions_preserves_already_rewritten_files(self):
 +        operation = self.prepare()
@@ -223,14 +462,35 @@ index 0000000..29ce13e
 +        self.assertEqual(result['status'], 'paused')
 +        self.assertTrue(completed)
 +        before = {path: Path(path).read_bytes() for path in completed}
-+        # Same checkpoint key uses the production function name.
-+        with patch.object(self.restore, '_remove_path', wraps=self.restore._remove_path) as remove:
++        def no_repeat(source, target, translator):
++            self.assertNotIn(str(target), before, 'Completed conversation rewritten')
++            return original(source, target, translator)
++        no_repeat.__name__ = '_rewrite_copy'
++        with patch.object(self.restore, '_rewrite_copy', operation.file_task(no_repeat)), \
++             patch.object(self.restore, '_remove_path', wraps=self.restore._remove_path) as remove:
 +            result = operation.resume_from_document(self.document)
 +            removed = {str(c.args[0]) for c in remove.call_args_list}
 +            self.assertNotIn(str(self.target/'.codex/sessions'), removed)
 +        self.assertEqual(result['status'], 'complete')
 +        for path, content in before.items():
 +            self.assertEqual(Path(path).read_bytes(), content)
++
++    def test_disk_full_write_keeps_resume_state_instead_of_rollback(self):
++        operation = self.prepare()
++        with patch.object(self.restore, 'copy_staging_tree', side_effect=OSError(28, 'injected disk full')), \
++             patch.object(self.restore, 'rollback_restore', side_effect=AssertionError('disk-full rollback')):
++            result = operation.resume_from_document(self.document)
++        self.assertEqual(result['status'], 'paused')
++        self.assertTrue((self.safety/'resume-manifest.sqlite').exists())
++        result = operation.resume_from_document(self.document)
++        self.assertEqual(result['status'], 'complete')
++
++    def test_genuine_copy_failure_still_rolls_back(self):
++        operation = self.prepare()
++        with patch.object(self.restore, 'copy_staging_tree', side_effect=OSError('injected non-space error')):
++            with self.assertRaisesRegex(OSError, 'non-space'):
++                operation.resume_from_document(self.document)
++        self.assertEqual(self.before, self.target_snapshot())
 +
 +    def test_resume_after_unjournaled_project_activation(self):
 +        operation = self.prepare()
@@ -261,6 +521,39 @@ index 0000000..29ce13e
 +        self.assertEqual(result['status'], 'paused')
 +        result = operation.resume_from_document(self.document)
 +        self.assertEqual(result['status'], 'complete')
++
++    def test_resume_after_database_replace_before_checkpoint(self):
++        operation = self.prepare()
++        replace = self.restore.os.replace
++        class ProcessExit(BaseException):
++            pass
++        fired = False
++        def crash(source, target):
++            nonlocal fired
++            replace(source, target)
++            if Path(target) == self.target/'.codex/state_5.sqlite' and not fired:
++                fired = True
++                raise ProcessExit()
++        with patch.object(self.restore.os, 'replace', crash):
++            with self.assertRaises(ProcessExit):
++                operation.resume_from_document(self.document)
++        result = operation.resume_from_document(self.document)
++        self.assertEqual(result['status'], 'complete')
++        self.assertTrue(result['verification']['valid'])
++
++    def test_report_failure_does_not_undo_verified_data(self):
++        operation = self.prepare()
++        write = self.backup.write_json
++        def fail_report(path, value):
++            if Path(path).parent.name == 'Codex Restore Reports':
++                raise OSError(28, 'injected report disk full')
++            return write(path, value)
++        with patch.object(self.backup, 'write_json', fail_report), \
++             patch.object(self.restore, 'rollback_restore', side_effect=AssertionError('report failure rolled back')):
++            result = operation.resume_from_document(self.document)
++        self.assertEqual(result['status'], 'complete')
++        self.assertIn('reportWarning', result)
++        self.assertTrue(self.restore.verify_restored(self.package, self.target)['valid'])
 diff --git a/src/codex_transfer/defender_control.py b/src/codex_transfer/defender_control.py
 new file mode 100644
 index 0000000..e14ddd7
@@ -302,7 +595,7 @@ index 0000000..e14ddd7
 +    current['requestExitCode'] = result.returncode
 +    return current
 diff --git a/src/codex_transfer/gui.py b/src/codex_transfer/gui.py
-index a484dc9..7e67ca9 100644
+index a484dc9..2abe8ce 100644
 --- a/src/codex_transfer/gui.py
 +++ b/src/codex_transfer/gui.py
 @@ -13,6 +13,8 @@ from tkinter import filedialog, messagebox, ttk
@@ -314,6 +607,15 @@ index a484dc9..7e67ca9 100644
  
  
  PROGRESS_STAGE_RANGES = ((0, 15), (15, 48), (48, 62), (62, 94), (94, 100))
+@@ -567,7 +569,7 @@ TEXT = {
+         "valid_backup": "The backup is complete and valid.\n\nThreads: {threads}\nProjects: {projects}\nHashes: {hashes}",
+         "invalid_backup": "The backup is invalid:\n\n{errors}",
+         "restore_intro": "Codex must be installed on this computer. Open it once, sign in, and then close it completely before continuing.",
+-        "restore_confirm": "A safety copy has been created:\n{safety}\n\nCurrent chats: {threads}\nCurrent projects: {projects}\n\nReplace the local Codex data with the complete backup?",
++        "restore_confirm": "A safety copy has been created:\n{safety}\n\nOn THIS destination before restoration:\nLocal chats: {threads}\nLocal projects: {projects}\nThese are not the counts in your backup.\n\nReplace the local Codex data with the complete backup?",
+         "restore_cancelled": "Restore cancelled. The safety copy has been kept.",
+         "restore_done": "Restore and final verification succeeded.\n\nSafety copy:\n{safety}",
+         "restore_done_retention": "Restore and final verification succeeded.\n\nRecovery point:\n{safety}\n\nValid recovery points retained: {retained}\nTotal recovery storage: {size}",
 @@ -2300,7 +2302,7 @@ class DiagnosticsDialog(tk.Toplevel):
          )
  
@@ -414,7 +716,15 @@ index a484dc9..7e67ca9 100644
          self.status_dot.configure(fg=self.BLUE if value else self.SUCCESS)
          for button in self.action_buttons:
              button.configure(
-@@ -3794,6 +3816,8 @@ class TransferApp(tk.Tk):
+@@ -3367,6 +3389,7 @@ class TransferApp(tk.Tk):
+             return
+         self._begin_operation(operation)
+         self._set_busy(True)
++        self._queue_defender_check()
+ 
+         def worker():
+             try:
+@@ -3794,6 +3817,8 @@ class TransferApp(tk.Tk):
          self, package: Path, external_roots: dict[str, str], comparison_plan: dict
      ) -> None:
  
@@ -423,7 +733,7 @@ index a484dc9..7e67ca9 100644
          def work():
              prepared = restore.prepare_restore(
                  package,
-@@ -3803,6 +3827,9 @@ class TransferApp(tk.Tk):
+@@ -3803,6 +3828,9 @@ class TransferApp(tk.Tk):
                  external_roots=external_roots,
                  comparison_plan=comparison_plan,
              )
@@ -433,7 +743,7 @@ index a484dc9..7e67ca9 100644
              confirmation = threading.Event()
              answer: list[bool] = []
  
-@@ -3825,21 +3852,21 @@ class TransferApp(tk.Tk):
+@@ -3825,21 +3853,21 @@ class TransferApp(tk.Tk):
              confirmation.wait()
              if not answer or not answer[0]:
                  return {"cancelled": True, **prepared}
@@ -462,6 +772,127 @@ index a484dc9..7e67ca9 100644
                  retention = result.get("recoveryRetention", {})
                  messagebox.showinfo(
                      self.t("restore"),
+diff --git a/src/codex_transfer/main.py b/src/codex_transfer/main.py
+index 3027c08..3f6c96a 100644
+--- a/src/codex_transfer/main.py
++++ b/src/codex_transfer/main.py
+@@ -14,6 +14,8 @@ from .validate import validate
+ def parse_args() -> argparse.Namespace:
+     parser = argparse.ArgumentParser(description="Codex Lifeboat")
+     parser.add_argument("--self-test", action="store_true")
++    parser.add_argument("--recovery-self-test", action="store_true")
++    parser.add_argument("--resume-plan")
+     parser.add_argument("--work")
+     parser.add_argument("--validate")
+     parser.add_argument("--verify-restored")
+@@ -27,6 +29,18 @@ def main() -> int:
+     # path still exists so a later backup can include the restore application.
+     backup.stage_runtime_executable()
+     args = parse_args()
++    if args.recovery_self_test:
++        from .recovery_selftest import run
++        if not args.work:
++            raise ValueError('--recovery-self-test requires a new --work directory')
++        result = run(Path(args.work))
++        return 0 if result['passed'] else 1
++    if args.resume_plan:
++        from .restore_operation import resume_from_document
++        result = resume_from_document(Path(args.resume_plan))
++        if sys.stdout is not None:
++            print(json.dumps(result, ensure_ascii=False, indent=2))
++        return 0 if result.get('status') == 'complete' else 2
+     if args.self_test:
+         result = run_self_test(Path(args.work) if args.work else None)
+         if sys.stdout is not None:
+diff --git a/src/codex_transfer/manifest_index.py b/src/codex_transfer/manifest_index.py
+index 23ca7dd..ebf65c3 100644
+--- a/src/codex_transfer/manifest_index.py
++++ b/src/codex_transfer/manifest_index.py
+@@ -2,16 +2,29 @@
+ import csv
+ import sqlite3
+ import tempfile
++import os
+ from pathlib import Path
+ 
+ 
+ class ManifestIndex:
+-    def __init__(self, package_root, directory=None):
+-        self._temp = tempfile.TemporaryDirectory(prefix='lifeboat-index-', dir=directory)
++    def __init__(self, package_root, directory=None, persistent_path=None, guard=None, progress=None):
++        self.persistent_path = Path(persistent_path).resolve() if persistent_path else None
++        self._temp = None if self.persistent_path else tempfile.TemporaryDirectory(prefix='lifeboat-index-', dir=directory)
+         self.connection = None
+         self.rows_read = 0
++        self._building = None
+         try:
+-            self.connection = sqlite3.connect(str(Path(self._temp.name) / 'index.sqlite'))
++            if self.persistent_path and self.persistent_path.is_file():
++                self.connection = sqlite3.connect(self.persistent_path.as_uri() + '?mode=ro', uri=True)
++                self.connection.execute('PRAGMA cache_size=-8192')
++                return
++            if guard:
++                guard()
++            self._building = (self.persistent_path.with_suffix('.building') if self.persistent_path else
++                              Path(self._temp.name) / 'index.sqlite')
++            if self._building.exists():
++                self._building.unlink()
++            self.connection = sqlite3.connect(str(self._building))
+             self.connection.execute('PRAGMA cache_size=-8192')
+             # Disposable derived data, never a restore journal or a source database.
+             self.connection.execute('PRAGMA journal_mode=OFF')
+@@ -23,10 +36,23 @@ class ManifestIndex:
+                     batch.append((str(row['relative_path']), row['size'], str(row['sha256'])))
+                     self.rows_read += 1
+                     if len(batch) == 4096:
++                        if guard:
++                            guard()
+                         self.connection.executemany('INSERT OR REPLACE INTO entries VALUES(?,?,?)', batch)
+                         batch.clear()
++                        if progress:
++                            progress(self.rows_read)
+                 self.connection.executemany('INSERT OR REPLACE INTO entries VALUES(?,?,?)', batch)
+             self.connection.commit()
++            if self.persistent_path:
++                self.connection.close()
++                self.connection = None
++                with self._building.open('rb') as handle:
++                    os.fsync(handle.fileno())
++                os.replace(self._building, self.persistent_path)
++                self._building = None
++                self.connection = sqlite3.connect(self.persistent_path.as_uri() + '?mode=ro', uri=True)
++                self.connection.execute('PRAGMA cache_size=-8192')
+         except BaseException:
+             self.close()
+             raise
+@@ -49,15 +75,25 @@ class ManifestIndex:
+                 (prefix, upper)):
+             yield path[len(prefix):], digest.lower()
+ 
++    def count(self, prefix):
++        """Count a manifest subtree without traversing its filesystem again."""
++        prefix = prefix.rstrip('/') + '/'
++        return self.connection.execute(
++            'SELECT count(*) FROM entries WHERE path >= ? AND path < ?',
++            (prefix, prefix[:-1] + '0')).fetchone()[0]
++
+     @property
+     def disk_bytes(self):
+-        return (Path(self._temp.name) / 'index.sqlite').stat().st_size
++        return (self.persistent_path or Path(self._temp.name) / 'index.sqlite').stat().st_size
+ 
+     def close(self):
+         if self.connection is not None:
+             self.connection.close()
+             self.connection = None
+-        self._temp.cleanup()
++        if self._temp:
++            self._temp.cleanup()
++        elif self._building and self._building.exists():
++            self._building.unlink()
+ 
+     def __enter__(self):
+         return self
 diff --git a/src/codex_transfer/parallel_copy.py b/src/codex_transfer/parallel_copy.py
 index 5b4727b..08fbca7 100644
 --- a/src/codex_transfer/parallel_copy.py
@@ -570,24 +1001,88 @@ index 5b4727b..08fbca7 100644
                  future.cancel()
              raise
      return count, total
+diff --git a/src/codex_transfer/recovery_selftest.py b/src/codex_transfer/recovery_selftest.py
+new file mode 100644
+index 0000000..92b5e41
+--- /dev/null
++++ b/src/codex_transfer/recovery_selftest.py
+@@ -0,0 +1,57 @@
++"""Packaged recovery smoke test on newly-created synthetic data only."""
++import argparse
++import json
++import os
++from pathlib import Path
++import threading
++import traceback
++from unittest.mock import patch
++
++from . import backup, restore, restore_operation, selftest
++
++
++def run(root):
++    root = Path(root).resolve()
++    root.mkdir(parents=True, exist_ok=False)
++    result = {'passed': False}
++    try:
++        environment = {name: str(root / name) for name in ('LOCALAPPDATA', 'APPDATA')}
++        for path in environment.values():
++            Path(path).mkdir()
++        with patch.dict(os.environ, environment):
++            source = root / 'source'
++            codex, project = selftest._write_source(source)
++            for number in range(100):
++                (project / f'synthetic-{number}.bin').write_bytes(b'fixture' * 128)
++            config = root / 'config.json'
++            config.write_text(json.dumps(dict(
++                configVersion=1, includeAttachments=True, projects=[], additionalPortablePaths=[],
++                excludeDirectoryNames=[], projectRegistryPath=str(root/'registry.json'),
++                lineageStatePath=str(root/'lineage.json'), deviceStatePath=str(root/'device.json'))))
++            package = backup.build_backup(argparse.Namespace(
++                config=str(config), destination=str(root/'packages'), source_profile=str(source),
++                source_codex_home=str(codex), allow_running_test=True))
++            target = root / 'target'
++            selftest._write_target(target, 'BEFORE')
++            prepared = restore.prepare_restore(package, target, allow_running_test=True)
++            document = restore_operation.create_document(prepared['safetyRoot'], package, target)
++            event = threading.Event()
++            def progress(value):
++                if value['phase'] == 'restore sessions':
++                    event.set()
++            paused = restore_operation.resume_from_document(document, event, progress)
++            assert paused['status'] == 'paused'
++            with patch.object(restore, 'copy_staging_tree', side_effect=AssertionError('project recopied')):
++                completed = restore_operation.resume_from_document(document)
++            assert completed['status'] == 'complete'
++            assert completed['verification']['valid']
++            assert 'recoveryRetention' in completed
++            assert (Path(prepared['safetyRoot'])/'shareable-operation-summary.json').is_file()
++            assert (target/'Documents/Codex Restore Reports/MIGRATION-PATHS.md').is_file()
++            result = {'passed': True, 'pausedAndReopened': True,
++                      'completedProjectsNotRecopied': True, 'finalVerification': True,
++                      'reportsAndRetention': True, 'migrationGuide': True}
++    except Exception:
++        result['error'] = traceback.format_exc()
++    backup.write_json(root/'recovery-self-test-result.json', result)
++    return result
 diff --git a/src/codex_transfer/recovery_ui.py b/src/codex_transfer/recovery_ui.py
 new file mode 100644
-index 0000000..4813390
+index 0000000..f70eb5f
 --- /dev/null
 +++ b/src/codex_transfer/recovery_ui.py
-@@ -0,0 +1,187 @@
+@@ -0,0 +1,208 @@
 +"""Recovery controls and structured progress; Tk calls stay on the UI thread."""
 +from pathlib import Path
 +import threading
++import time
 +import tkinter as tk
 +from tkinter import ttk, filedialog, messagebox
 +
 +from . import defender_control, restore_operation, backup
 +
-+PHASES = ['restore projects', 'apply destination project decisions',
++PHASES = ['index backup manifest', 'restore projects', 'apply destination project decisions',
 +          'build restored database', 'reset paginated history projection',
 +          'restore portable profile', 'restore sessions', 'restore preserved conversations',
-+          'restore attachments', 'restore global state', 'rebuild session index', 'verify restored']
++          'restore attachments', 'restore global state', 'rebuild session index', 'verify restored', 'finish']
 +
 +
 +class RecoveryUI:
@@ -598,6 +1093,8 @@ index 0000000..4813390
 +        self.structured_restore = False
 +        self.defender_prompt = None
 +        self.defender_requested = False
++        self.defender_last_state = None
++        self.last_metric = None
 +        self.close_after_pause = False
 +        self.protocol('WM_DELETE_WINDOW', self._close_recovery_window)
 +        parent = self.restore_button.master
@@ -679,18 +1176,26 @@ index 0000000..4813390
 +        self.phase_progress.stop()
 +        if total:
 +            self.phase_progress.configure(mode='determinate', maximum=100, value=100*fraction)
-+            self.phase_description.configure(text=f'{phase}: {current:,} / {total:,} ({fraction:.1%})')
++            measure = (f'{current/1024**3:.2f} / {total/1024**3:.2f} GiB' if value.get('unit') == 'bytes'
++                       else f'{current:,} / {total:,} {value.get("unit", "items")}')
++            self.phase_description.configure(text=f'{phase}: {measure} ({fraction:.1%})')
 +        else:
 +            self.phase_progress.configure(mode='indeterminate')
 +            self.phase_progress.start(30)
 +            self.phase_description.configure(text=f'{phase}: {current:,} processed — total not yet known')
 +        # Phase metrics are not whole-restore estimates.
-+        elapsed = value.get('phaseSeconds', 0)
-+        rate = current / elapsed if elapsed > 1 and current else 0
++        now = time.monotonic()
++        previous = self.last_metric
++        rate = ((current-previous[1]) / max(now-previous[2], .001)
++                if previous and previous[0] == phase and current >= previous[1] else 0)
++        self.last_metric = (phase, current, now)
 +        remaining = (total-current)/rate if total and rate else None
 +        self.remaining_label.configure(text=f'Stage remaining: {self._format_duration(remaining)}')
-+        self.throughput_label.configure(text=f'Stage units/s: {rate:,.1f}' if rate else 'Stage units/s: —')
-+        stage = 1 if index <= 1 else 2 if index <= 9 else 3
++        rate_text = f'{rate/1024**2:,.1f} MiB/s' if value.get('unit') == 'bytes' else f'{rate:,.1f} {value.get("unit", "items")}/s'
++        self.throughput_label.configure(text=rate_text if rate else 'Stage rate: —')
++        stage = (0 if phase == 'index backup manifest' else
++                 1 if phase in {'restore projects', 'apply destination project decisions'} else
++                 3 if phase == 'verify restored' else 4 if phase == 'finish' else 2)
 +        # Render explicit completed phases, not completion inferred from old weights.
 +        for i, (dot, label) in enumerate(zip(self.stage_dots, self.stage_labels)):
 +            dot.configure(text='✓' if i < stage else str(i+1),
@@ -706,8 +1211,10 @@ index 0000000..4813390
 +            messagebox.showinfo('Paused', 'Completed work is saved. Reload this document to continue:\n'
 +                                + str(self.resume_document), parent=self)
 +        else:
-+            messagebox.showinfo('Restore complete', 'Final verification passed.\nReport and recovery retention completed.\n'
-+                                'If you disabled Defender, reactivate real-time protection now.', parent=self)
++            warnings = [str(result[key]) for key in ('reportWarning', 'recoveryRetentionError') if key in result]
++            messagebox.showinfo('Restore complete', 'Final verification passed.\n'
++                                + ('Warnings: ' + '\n'.join(warnings) + '\n' if warnings else 'Reports and recovery retention completed.\n')
++                                + 'If you disabled Defender, reactivate real-time protection now.', parent=self)
 +
 +    def _defender_dialog(self):
 +        if self.defender_prompt is not None and self.defender_prompt.winfo_exists():
@@ -733,14 +1240,18 @@ index 0000000..4813390
 +        # Deliberately no grab_set / wait_window: this dialog is nonmodal.
 +
 +    def _check_defender_hourly(self):
-+        if self.busy and self.defender_requested:
++        if self.busy:
++            self._queue_defender_check()
++        self.after(3_600_000, self._check_defender_hourly)
++
++    def _queue_defender_check(self):
++        if self.busy:
 +            def check():
 +                try:
 +                    self.messages.put(('defender_hourly', defender_control.status()))
 +                except Exception as exc:
 +                    self.messages.put(('log', 'Defender status unavailable: ' + str(exc)))
 +            threading.Thread(target=check, daemon=True).start()
-+        self.after(3_600_000, self._check_defender_hourly)
 +
 +    def _recovery_message(self, kind, value):
 +        if kind == 'restore_progress':
@@ -750,10 +1261,14 @@ index 0000000..4813390
 +            self.pause_button.configure(state='normal')
 +            self._append_log('Resume document: ' + str(value))
 +        elif kind == 'defender_hourly':
-+            if value.get('RealTimeProtectionEnabled') is True:
++            state = value.get('RealTimeProtectionEnabled')
++            if self.defender_last_state is False and state is True:
 +                self._append_log('Windows reactivated real-time protection.')
 +                self._defender_dialog()
++            if isinstance(state, bool):
++                self.defender_last_state = state
 +        elif kind == 'defender_result':
++            self.defender_last_state = value.get('RealTimeProtectionEnabled')
 +            text = ('Real-time protection is disabled. Reactivate it manually when finished.'
 +                    if value.get('RealTimeProtectionEnabled') is False else
 +                    'Real-time protection remains enabled or its state is unavailable. '
@@ -764,7 +1279,7 @@ index 0000000..4813390
 +            return False
 +        return True
 diff --git a/src/codex_transfer/restore.py b/src/codex_transfer/restore.py
-index 1eae044..d771df2 100644
+index 1eae044..c55da21 100644
 --- a/src/codex_transfer/restore.py
 +++ b/src/codex_transfer/restore.py
 @@ -13,6 +13,8 @@ from typing import Any, Callable
@@ -803,9 +1318,14 @@ index 1eae044..d771df2 100644
      )
      try:
          free = shutil.disk_usage(_existing_space_probe(destination)).free
-@@ -87,14 +95,15 @@ def _ensure_restore_space(
+@@ -86,15 +94,20 @@ def _ensure_restore_space(
+         raise RestoreError(
              f"Could not determine free space for restore destination: {destination}"
          ) from exc
++    if operation:
++        operation.last_space = {'freeBytes': free, 'pendingBytes': pending_bytes,
++                                'pendingFiles': pending_files, 'allocationBytes': allocation_overhead,
++                                'reserveBytes': reserve, 'requiredBytes': required}
      if free < required:
 -        raise RestoreError(
 +        error = RestorePaused if operation else RestoreError
@@ -821,7 +1341,38 @@ index 1eae044..d771df2 100644
  
  
  def _remove_path(path: Path) -> None:
-@@ -703,6 +712,7 @@ def _remove_dispositioned_identity_roots(
+@@ -218,7 +231,11 @@ def _verify_staged_project(
+     expected = (manifest_index.select(project) if manifest_index is not None
+                 else _project_manifest_entries(package_root, project))
+     actual: dict[str, Path] = {}
+-    for path in staging.rglob("*"):
++    operation = restore_operation.CURRENT.get()
++    for number, path in enumerate(staging.rglob("*")):
++        if operation and number % 256 == 0:
++            operation.check()
++            operation.emit(number, 0, 'Inventorying staged project')
+         if path.is_symlink():
+             raise RestoreError(f"Staged project unexpectedly contains a link: {path}")
+         if path.is_file():
+@@ -242,7 +259,16 @@ def _verify_staged_project(
+             raise RestoreError(f"Staged project hash differs: {path}")
+         return size
+ 
+-    total_bytes = sum(ordered_map(check_file, expected.items()))
++    total_bytes = 0
++    results = ordered_map(check_file, expected.items())
++    try:
++        for size in results:
++            total_bytes += size
++            if operation:
++                operation.check()
++                operation.emit(total_bytes, int(project['totalBytes']), 'Verifying staged project bytes')
++    finally:
++        results.close()
+     if len(actual) != int(project["fileCount"]):
+         raise RestoreError("Staged project file count differs from its inventory.")
+     if total_bytes != int(project["totalBytes"]):
+@@ -703,6 +729,7 @@ def _remove_dispositioned_identity_roots(
      return removed
  
  
@@ -829,7 +1380,18 @@ index 1eae044..d771df2 100644
  def _build_restored_database(
      package_root: Path,
      target_database_template: Path,
-@@ -964,6 +974,7 @@ def _build_restored_database(
+@@ -710,6 +737,10 @@ def _build_restored_database(
+     translator: PathTranslator,
+     comparison_plan: dict[str, Any] | None = None,
+ ) -> dict[str, int]:
++    if restore_operation.CURRENT.get():
++        _ensure_restore_space(output_database,
++                              target_database_template.stat().st_size +
++                              2 * (package_root / 'codex' / 'state.snapshot.sqlite').stat().st_size, 2)
+     shutil.copy2(target_database_template, output_database)
+     source_database = package_root / "codex" / "state.snapshot.sqlite"
+     threads_manifest = backup.read_json(package_root / "manifest" / "threads.json")
+@@ -964,6 +995,7 @@ def _build_restored_database(
          connection.close()
  
  
@@ -837,7 +1399,7 @@ index 1eae044..d771df2 100644
  def _rewrite_copy(source: Path, destination: Path, translator: PathTranslator) -> None:
      _ensure_restore_space(destination, source.stat().st_size, 1)
      destination.parent.mkdir(parents=True, exist_ok=True)
-@@ -973,18 +984,20 @@ def _rewrite_copy(source: Path, destination: Path, translator: PathTranslator) -
+@@ -973,18 +1005,25 @@ def _rewrite_copy(source: Path, destination: Path, translator: PathTranslator) -
      )
      with rollout_io.open_text(source, errors="replace", newline="") as reader:
          with rollout_io.open_text_writer(temporary) as writer:
@@ -852,6 +1414,11 @@ index 1eae044..d771df2 100644
 +@restore_operation.phase
  def _restore_sessions(package_root: Path, target_codex: Path, translator: PathTranslator) -> int:
      count = 0
++    operation = restore_operation.CURRENT.get()
++    if operation and operation.manifest_index:
++        operation.phase_total = sum(operation.manifest_index.count('codex/' + name)
++                                    for name in ('sessions', 'archived_sessions'))
++        operation.phase_total += int((package_root / 'codex/session_index.jsonl').is_file())
      for directory_name in ("sessions", "archived_sessions"):
          source_root = package_root / "codex" / directory_name
          target_root = target_codex / directory_name
@@ -861,7 +1428,7 @@ index 1eae044..d771df2 100644
          if not source_root.exists():
              continue
          for source in rollout_io.iter_files(source_root):
-@@ -997,6 +1010,7 @@ def _restore_sessions(package_root: Path, target_codex: Path, translator: PathTr
+@@ -997,6 +1036,7 @@ def _restore_sessions(package_root: Path, target_codex: Path, translator: PathTr
      return count
  
  
@@ -869,7 +1436,16 @@ index 1eae044..d771df2 100644
  def _rewrite_cloned_rollout(
      source: Path,
      destination: Path,
-@@ -1012,6 +1026,8 @@ def _rewrite_cloned_rollout(
+@@ -1004,6 +1044,8 @@ def _rewrite_cloned_rollout(
+     original_id: str,
+     clone_id: str,
+ ) -> None:
++    if restore_operation.CURRENT.get():
++        _ensure_restore_space(destination, source.stat().st_size, 1)
+     destination.parent.mkdir(parents=True, exist_ok=True)
+     temporary = destination.with_name(
+         f".{destination.name}.restore.tmp"
+@@ -1012,6 +1054,8 @@ def _rewrite_cloned_rollout(
      with rollout_io.open_text(source, errors="strict") as reader:
          with rollout_io.open_text_writer(temporary) as writer:
              for number, line in enumerate(reader, 1):
@@ -878,7 +1454,7 @@ index 1eae044..d771df2 100644
                  if not line.strip():
                      continue
                  try:
-@@ -1032,6 +1048,7 @@ def _rewrite_cloned_rollout(
+@@ -1032,6 +1076,7 @@ def _rewrite_cloned_rollout(
      os.replace(temporary, destination)
  
  
@@ -886,7 +1462,18 @@ index 1eae044..d771df2 100644
  def _restore_preserved_conversations(
      safety_root: Path,
      target_codex: Path,
-@@ -1071,6 +1088,7 @@ def _restore_preserved_conversations(
+@@ -1040,6 +1085,10 @@ def _restore_preserved_conversations(
+ ) -> dict[str, int]:
+     retained = 0
+     cloned = 0
++    operation = restore_operation.CURRENT.get()
++    if operation:
++        operation.phase_total = sum(item.get('proposedAction') in {'retain', 'keep-both'}
++                                    for item in _conversation_decisions(comparison_plan).values())
+     safety_codex = safety_root / "codex-before-restore"
+     target_codex_resolved = target_codex.resolve(strict=False)
+     for thread_id, item in _conversation_decisions(comparison_plan).items():
+@@ -1071,6 +1120,7 @@ def _restore_preserved_conversations(
      return {"retained": retained, "cloned": cloned}
  
  
@@ -894,7 +1481,7 @@ index 1eae044..d771df2 100644
  def _rebuild_session_index(database: Path, target_codex: Path) -> int:
      connection = sqlite3.connect(database)
      try:
-@@ -1108,6 +1126,7 @@ def _rebuild_session_index(database: Path, target_codex: Path) -> int:
+@@ -1108,6 +1158,7 @@ def _rebuild_session_index(database: Path, target_codex: Path) -> int:
      return len(active)
  
  
@@ -902,7 +1489,7 @@ index 1eae044..d771df2 100644
  def _restore_global_state(
      package_root: Path,
      target_codex: Path,
-@@ -1161,6 +1180,7 @@ def _restore_global_state(
+@@ -1161,6 +1212,7 @@ def _restore_global_state(
      backup.write_json(target_path, current)
  
  
@@ -910,7 +1497,17 @@ index 1eae044..d771df2 100644
  def _restore_portable_profile(
      package_root: Path, target_codex: Path, translator: PathTranslator
  ) -> int:
-@@ -1179,8 +1199,7 @@ def _restore_portable_profile(
+@@ -1168,6 +1220,9 @@ def _restore_portable_profile(
+     count = 0
+     if not source_root.is_dir():
+         return count
++    operation = restore_operation.CURRENT.get()
++    if operation and operation.manifest_index:
++        operation.phase_total = operation.manifest_index.count('codex/portable-profile')
+     for entry in source_root.iterdir():
+         destination = target_codex / entry.name
+         # This database is a projection of rollout bytes. Older Lifeboat
+@@ -1179,8 +1234,7 @@ def _restore_portable_profile(
              continue
          if backup.is_codex_provisioning_guard_name(entry.name):
              continue
@@ -920,7 +1517,7 @@ index 1eae044..d771df2 100644
          if entry.is_dir():
              destination.mkdir(parents=True, exist_ok=True)
              for source in entry.rglob("*"):
-@@ -1195,7 +1214,7 @@ def _restore_portable_profile(
+@@ -1195,7 +1249,7 @@ def _restore_portable_profile(
                  }:
                      _rewrite_copy(source, target, translator)
                  else:
@@ -929,7 +1526,7 @@ index 1eae044..d771df2 100644
                  count += 1
          elif entry.is_file():
              if entry.suffix.lower() in {
-@@ -1203,11 +1222,12 @@ def _restore_portable_profile(
+@@ -1203,11 +1257,12 @@ def _restore_portable_profile(
              }:
                  _rewrite_copy(entry, destination, translator)
              else:
@@ -943,15 +1540,21 @@ index 1eae044..d771df2 100644
  def _reset_paginated_history_projection(target_codex: Path) -> int:
      """Remove derived paginated history so Codex rematerializes rewritten rollouts."""
      removed = 0
-@@ -1219,6 +1239,7 @@ def _reset_paginated_history_projection(target_codex: Path) -> int:
+@@ -1219,8 +1274,13 @@ def _reset_paginated_history_projection(target_codex: Path) -> int:
      return removed
  
  
 +@restore_operation.phase
  def _restore_attachments(package_root: Path, translator: PathTranslator) -> int:
      count = 0
++    operation = restore_operation.CURRENT.get()
++    if operation:
++        operation.phase_total = sum(bool(item.get('sourcePresent'))
++                                    for item in translator.mappings.get('attachments', []))
      for item in translator.mappings.get("attachments", []):
-@@ -1231,11 +1252,12 @@ def _restore_attachments(package_root: Path, translator: PathTranslator) -> int:
+         if not item.get("sourcePresent"):
+             continue
+@@ -1231,11 +1291,12 @@ def _restore_attachments(package_root: Path, translator: PathTranslator) -> int:
              translator.target_profile,
              translator.approved_external_roots,
          )
@@ -965,7 +1568,7 @@ index 1eae044..d771df2 100644
  def _restore_projects(
      package_root: Path,
      safety_root: Path,
-@@ -1265,6 +1287,13 @@ def _restore_projects(
+@@ -1265,6 +1326,13 @@ def _restore_projects(
              continue
          source = package_root / Path(*PurePosixPath(item["backupRelativePath"]).parts)
          target = translator.project_targets[project_id]
@@ -979,7 +1582,7 @@ index 1eae044..d771df2 100644
          _safe_target(
              target,
              translator.target_profile,
-@@ -1364,6 +1393,82 @@ def _restore_projects(
+@@ -1364,6 +1432,82 @@ def _restore_projects(
      return copied
  
  
@@ -1062,7 +1665,7 @@ index 1eae044..d771df2 100644
  def _apply_destination_project_decisions(
      safety_root: Path,
      translator: PathTranslator,
-@@ -1380,6 +1485,14 @@ def _apply_destination_project_decisions(
+@@ -1380,6 +1524,14 @@ def _apply_destination_project_decisions(
          action = item.get("proposedAction")
          if item.get("source") or action not in {"archive", "delete-project"}:
              continue
@@ -1077,7 +1680,7 @@ index 1eae044..d771df2 100644
          target = Path(str(item.get("target") or ""))
          target_errors = location_mapper.validate_external_root(
              target, translator.target_profile
-@@ -1454,6 +1567,44 @@ def _apply_destination_project_decisions(
+@@ -1454,6 +1606,44 @@ def _apply_destination_project_decisions(
      return {"archived": archived, "removed": removed, "paths": paths}
  
  
@@ -1122,7 +1725,7 @@ index 1eae044..d771df2 100644
  def rollback_restore(safety_root: Path, target_profile: Path) -> None:
      journal_path = safety_root / "restore-journal.json"
      journal = backup.read_json(journal_path)
-@@ -1571,6 +1722,7 @@ def _reported_comparison_plan(
+@@ -1571,6 +1761,7 @@ def _reported_comparison_plan(
      return None
  
  
@@ -1130,7 +1733,43 @@ index 1eae044..d771df2 100644
  def verify_restored(
      package_root: Path,
      target_profile: Path,
-@@ -1833,11 +1985,16 @@ def restore_backup(
+@@ -1714,7 +1905,14 @@ def _verify_restored(
+         if not target.is_dir():
+             errors.append(f"Project directory missing: {target}")
+             continue
+-        files = [path for path in target.rglob("*") if path.is_file()]
++        operation = restore_operation.CURRENT.get()
++        files = []
++        for number, path in enumerate(target.rglob('*')):
++            if operation and number % 256 == 0:
++                operation.check()
++                operation.emit(number, 0, 'Inventorying restored project')
++            if path.is_file():
++                files.append(path)
+         size = sum(path.stat().st_size for path in files)
+         if len(files) != int(item["fileCount"]):
+             errors.append(f"File count differs for project {target}")
+@@ -1730,9 +1928,16 @@ def _verify_restored(
+                 return f"Projecthash wijkt af: {target_file}"
+             return None
+ 
+-        for error in ordered_map(check_hash, manifest_index.hashes(item)):
+-            if error:
+-                errors.append(error)
++        results = ordered_map(check_hash, manifest_index.hashes(item))
++        try:
++            for number, error in enumerate(results, 1):
++                if operation:
++                    operation.check()
++                    operation.emit(number, int(item['fileCount']), 'Verifying restored project files')
++                if error:
++                    errors.append(error)
++        finally:
++            results.close()
+         checked_projects += 1
+         if action == "archive-and-replace":
+             disposition_value = plan_item.get("dispositionPath")
+@@ -1833,15 +2038,20 @@ def restore_backup(
      safety_root = safety_root.resolve()
      journal_path = safety_root / "restore-journal.json"
      journal = backup.read_json(journal_path)
@@ -1150,16 +1789,45 @@ index 1eae044..d771df2 100644
      temporary_database = safety_root / "state_5.restored.tmp.sqlite"
      manifest_index = None
  
-@@ -1859,7 +2016,7 @@ def restore_backup(
+-    def release_manifest_index():
++    def release_manifest_index(remove=False):
+         nonlocal manifest_index
+         if manifest_index is not None:
+             try:
+@@ -1853,13 +2063,30 @@ def restore_backup(
+                 )
+             finally:
+                 manifest_index = None
++        if remove and operation:
++            path = safety_root / 'resume-manifest.sqlite'
++            try:
++                path.unlink(missing_ok=True)
++            except OSError as exc:
++                journal['manifestIndexCleanupError'] = str(exc)
+ 
+     try:
+         if progress:
              progress("Indexing backup manifest for project verification...")
-         manifest_index = ManifestIndex(package_root)
+-        manifest_index = ManifestIndex(package_root)
++        if operation:
++            operation.phase = 'index backup manifest'
++            operation.phase_start = __import__('time').monotonic()
++            operation.emit(0, 0, 'Preparing manifest index', True)
++            manifest_index = ManifestIndex(
++                package_root, persistent_path=safety_root / 'resume-manifest.sqlite',
++                guard=lambda: _ensure_restore_space(safety_root, 8 * 1024 * 1024, 256),
++                progress=lambda count: operation.emit(count, 0, f'Indexed {count:,} manifest entries'))
++            operation.manifest_index = manifest_index
++            operation.emit(1, 1, 'index backup manifest complete', True)
++        else:
++            manifest_index = ManifestIndex(package_root)
          journal["status"] = "restoring"
 -        journal["startedAtUtc"] = backup.utc_now()
 +        journal.setdefault("startedAtUtc", backup.utc_now())
          backup.write_json(journal_path, journal)
          project_files = _restore_projects(
              package_root,
-@@ -1928,7 +2085,10 @@ def restore_backup(
+@@ -1928,7 +2155,10 @@ def restore_backup(
              path = target_codex / f"state_5.sqlite{suffix}"
              if path.exists():
                  path.unlink()
@@ -1171,20 +1839,73 @@ index 1eae044..d771df2 100644
          current_index = backup.read_session_index(
              target_codex / "session_index.jsonl"
          )
-@@ -2047,8 +2207,26 @@ def restore_backup(
+@@ -1968,7 +2198,12 @@ def restore_backup(
+         )
+         if not verification["valid"]:
+             raise RestoreError("Final verification failed: " + "; ".join(verification["errors"][:5]))
+-        release_manifest_index()
++        if operation:
++            operation.phase = 'finish'
++            operation.phase_start = __import__('time').monotonic()
++            operation.emit(0, 3, 'Registering restored projects', True)
++            operation.check()
++        release_manifest_index(remove=True)
+         identities_registered = 0
+         project_identity_roots_removed = 0
+         identity_manifest_path = package_root / "manifest" / "project-identities.json"
+@@ -2029,6 +2264,8 @@ def restore_backup(
+         )
+         backup.write_json(journal_path, journal)
+         try:
++            if operation:
++                operation.emit(1, 3, 'Applying recovery retention', True)
+             retention = recovery.enforce_retention(
+                 target_profile,
+                 keep=recovery.DEFAULT_KEEP,
+@@ -2040,17 +2277,58 @@ def restore_backup(
+             # prove that an older recovery point is safe to remove.
+             journal["recoveryRetentionError"] = f"{type(exc).__name__}: {exc}"
+         backup.write_json(journal_path, journal)
++        if operation:
++            operation.emit(2, 3, 'Writing restore report', True)
+         reports = windows.documents_folder(target_profile) / "Codex Restore Reports"
+         reports.mkdir(parents=True, exist_ok=True)
+         backup.write_json(
+             reports / f"restore-{dt.datetime.now().strftime('%Y%m%d-%H%M%S')}.json",
              journal,
          )
-         return journal
++        if operation:
++            operation.save('timing:phase:finish', __import__('time').monotonic()-operation.phase_start)
++            operation.emit(3, 3, 'finish complete', True)
++        return journal
 +    except RestorePaused as paused:
 +        if operation is None:
 +            raise
 +        release_manifest_index()
-+        operation.flush()
 +        journal.update(status="paused", pauseReason=str(paused), pausedAtUtc=backup.utc_now())
-+        backup.write_json(journal_path, journal)
-+        return journal
++        try:
++            operation.flush()
++            operation.record_stop()
++            backup.write_json(journal_path, journal)
++        except (OSError, sqlite3.Error) as exc:
++            journal['checkpointWarning'] = 'Latest checkpoint could not be committed: ' + str(exc)
+         return journal
      except Exception as original_error:
++        if operation and journal.get('status') == 'complete':
++            # Final data verification and installation have committed. Failure of
++            # a subsequent report must not undo an otherwise complete restore.
++            journal['reportWarning'] = f'{type(original_error).__name__}: {original_error}'
++            try:
++                backup.write_json(journal_path, journal)
++            except OSError:
++                pass
++            return journal
          journal["error"] = traceback.format_exc()
++        if operation:
++            try:
++                operation.record_stop()
++            except Exception:
++                pass
 +        if operation and (getattr(original_error, "errno", None) == 28
 +                          or getattr(original_error, "sqlite_errorcode", None) == sqlite3.SQLITE_FULL):
 +            release_manifest_index()
@@ -1192,13 +1913,16 @@ index 1eae044..d771df2 100644
 +            try:
 +                operation.flush()
 +                backup.write_json(journal_path, journal)
-+            except OSError:
++            except (OSError, sqlite3.Error):
 +                pass  # Earlier durable checkpoints still permit a bounded replay.
 +            return journal
          # Free temporary disk before writing the failure journal or rolling back.
-         release_manifest_index()
+-        release_manifest_index()
++        release_manifest_index(remove=True)
          journal_write_error: Exception | None = None
-@@ -2061,7 +2239,11 @@ def restore_backup(
+         try:
+             backup.write_json(journal_path, journal)
+@@ -2061,7 +2339,11 @@ def restore_backup(
          if progress:
              progress("Restore failed; running automatic rollback...")
          try:
@@ -1213,10 +1937,10 @@ index 1eae044..d771df2 100644
                  f"original failure: {type(original_error).__name__}: {original_error}",
 diff --git a/src/codex_transfer/restore_checkpoint.py b/src/codex_transfer/restore_checkpoint.py
 new file mode 100644
-index 0000000..65f051c
+index 0000000..7a8581a
 --- /dev/null
 +++ b/src/codex_transfer/restore_checkpoint.py
-@@ -0,0 +1,159 @@
+@@ -0,0 +1,183 @@
 +"""Durable checkpoints for resumable staging, independent of GUI state.
 +
 +This is an internal building block, not a replacement for the restore journal.
@@ -1239,6 +1963,30 @@ index 0000000..65f051c
 +
 +class CheckpointBusy(RuntimeError):
 +    pass
++
++
++class ExclusiveTargetLock:
++    """Serialize different resume plans that address the same target profile."""
++    def __init__(self, target):
++        self.handle = open(Path(target) / '.lifeboat-restore.lock', 'a+b')
++        self.handle.seek(0, os.SEEK_END)
++        if self.handle.tell() == 0:
++            self.handle.write(b'0')
++            self.handle.flush()
++        self.handle.seek(0)
++        try:
++            if os.name == 'nt':
++                import msvcrt
++                msvcrt.locking(self.handle.fileno(), msvcrt.LK_NBLCK, 1)
++            else:
++                import fcntl
++                fcntl.flock(self.handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
++        except OSError as exc:
++            self.handle.close()
++            raise CheckpointBusy('Another restore is using this target profile') from exc
++
++    def close(self):
++        self.handle.close()
 +
 +
 +class CopyCheckpoint:
@@ -1378,10 +2126,10 @@ index 0000000..65f051c
 +        self.close()
 diff --git a/src/codex_transfer/restore_operation.py b/src/codex_transfer/restore_operation.py
 new file mode 100644
-index 0000000..91865ad
+index 0000000..cdd473a
 --- /dev/null
 +++ b/src/codex_transfer/restore_operation.py
-@@ -0,0 +1,176 @@
+@@ -0,0 +1,223 @@
 +"""Operation-level durable checkpoints. No source-wide preflight on resume."""
 +from contextvars import ContextVar
 +from functools import wraps
@@ -1392,7 +2140,7 @@ index 0000000..91865ad
 +import threading
 +import time
 +
-+from .restore_checkpoint import CopyCheckpoint, RestorePaused, PAUSE_RESERVE_BYTES
++from .restore_checkpoint import CopyCheckpoint, RestorePaused, PAUSE_RESERVE_BYTES, ExclusiveTargetLock
 +
 +CURRENT = ContextVar('lifeboat_restore_operation', default=None)
 +
@@ -1400,19 +2148,34 @@ index 0000000..91865ad
 +class RestoreOperation:
 +    def __init__(self, safety, package, target, pause=None, progress=None):
 +        self.safety = Path(safety)
-+        self.ledger = CopyCheckpoint(self.safety / 'operation-checkpoints.sqlite', package, target)
++        self.target_lock = ExclusiveTargetLock(target)
++        try:
++            self.ledger = CopyCheckpoint(self.safety / 'operation-checkpoints.sqlite', package, target)
++        except BaseException:
++            self.target_lock.close()
++            raise
 +        self.db = self.ledger._db
-+        self.db.execute('CREATE TABLE IF NOT EXISTS tasks '
-+                        '(key TEXT PRIMARY KEY, result TEXT NOT NULL)')
-+        self.db.commit()
++        try:
++            self.db.execute('CREATE TABLE IF NOT EXISTS tasks '
++                            '(key TEXT PRIMARY KEY, result TEXT NOT NULL)')
++            self.db.commit()
++        except BaseException:
++            self.ledger.close()
++            self.target_lock.close()
++            raise
 +        self.pause = pause or threading.Event()
 +        self.progress = progress
 +        self.phase = ''
 +        self.pending = 0
 +        self.last_emit = 0
 +        self.phase_count = 0
++        self.phase_total = 0
++        self.manifest_index = None
 +        self.phase_start = time.monotonic()
 +        self.token = None
++        self.current_task = None
++        self.last_space = {}
++        self.last_stream_probe = 0
 +
 +    def __enter__(self):
 +        self.token = CURRENT.set(self)
@@ -1420,7 +2183,10 @@ index 0000000..91865ad
 +
 +    def __exit__(self, *_):
 +        CURRENT.reset(self.token)
-+        self.ledger.close()
++        try:
++            self.ledger.close()
++        finally:
++            self.target_lock.close()
 +
 +    def check(self):
 +        if self.pause.is_set():
@@ -1446,6 +2212,7 @@ index 0000000..91865ad
 +        found, value = self.saved(key)
 +        if found:
 +            return value
++        self.current_task = key
 +        self.save('current-operation', {'phase': self.phase, 'task': key}) if durable else None
 +        result = function()
 +        self.save(key, result, durable)
@@ -1455,14 +2222,20 @@ index 0000000..91865ad
 +        now = time.monotonic()
 +        if self.progress and (force or now-self.last_emit >= .2):
 +            self.progress({'phase': self.phase, 'current': current, 'total': total,
-+                           'message': message, 'phaseSeconds': now-self.phase_start})
++                           'message': message, 'phaseSeconds': now-self.phase_start,
++                           'unit': 'bytes' if ('bytes' in message.lower() or message.startswith('Copying project'))
++                           else 'files' if 'files' in message.lower() else 'items'})
 +            self.last_emit = now
 +
 +    def file(self, key, function):
 +        value = self.run('file:' + self.phase + ':' + key, function, durable=False)
 +        self.phase_count += 1
-+        self.emit(self.phase_count, 0, f'{self.phase}: {self.phase_count} files processed')
++        self.emit(self.phase_count, self.phase_total, f'{self.phase}: {self.phase_count} files processed')
 +        return value
++
++    def record_stop(self):
++        self.save('current-operation', {'phase': self.phase, 'task': self.current_task,
++                                       'space': self.last_space})
 +
 +    def install(self, source, destination):
 +        key = 'database-installed'
@@ -1486,11 +2259,21 @@ index 0000000..91865ad
 +        key = 'phase:' + function.__name__
 +        operation.phase = function.__name__.removeprefix('_').replace('_', ' ')
 +        operation.phase_count = 0
++        operation.phase_total = 0
 +        operation.phase_start = time.monotonic()
 +        operation.emit(0, 0, operation.phase, True)
 +        started = time.monotonic()
-+        result = operation.run(key, lambda: function(*args, **kwargs))
-+        operation.save('timing:' + key, time.monotonic()-started)
++        found, result = operation.saved(key)
++        if not found:
++            try:
++                result = operation.run(key, lambda: function(*args, **kwargs))
++            finally:
++                _, previous = operation.saved('timing:' + key)
++                try:
++                    operation.save('timing:' + key, (previous or 0) + time.monotonic()-started)
++                except Exception:
++                    # A reporting write must not mask the original disk error.
++                    pass
 +        operation.emit(1, 1, operation.phase + ' complete', True)
 +        return result
 +    return wrapped
@@ -1532,8 +2315,11 @@ index 0000000..91865ad
 +    operation = CURRENT.get()
 +    if operation is not None:
 +        operation.check()
-+        from . import restore
-+        restore._ensure_restore_space(target, 1024 * 1024, 1)
++        now = time.monotonic()
++        if now - operation.last_stream_probe >= 1:
++            from . import restore
++            restore._ensure_restore_space(target, 16 * 1024 * 1024, 1)
++            operation.last_stream_probe = now
 +
 +
 +def resume_from_document(document, pause=None, progress=None, log=None):
@@ -1546,8 +2332,17 @@ index 0000000..91865ad
 +    package, target = Path(state['package']), Path(state['targetProfile'])
 +    backup.check_codex_not_running(target / '.codex', False)
 +    with RestoreOperation(safety, package, target, pause, progress):
-+        return restore.restore_backup(package, target, safety, log,
-+                                      external_roots=state.get('externalRoots'))
++        try:
++            result = restore.restore_backup(package, target, safety, log,
++                                            external_roots=state.get('externalRoots'))
++        finally:
++            from .restore_reporting import write_operation_report
++            try:
++                write_operation_report(CURRENT.get(), package, target)
++            except Exception as exc:
++                if log:
++                    log('Operation report could not be written: ' + str(exc))
++        return result
 +
 +
 +def create_document(safety, package, target, external_roots=None):
@@ -1558,3 +2353,79 @@ index 0000000..91865ad
 +                            'externalRoots': external_roots or {},
 +                            'reserveBytes': PAUSE_RESERVE_BYTES})
 +    return path
+diff --git a/src/codex_transfer/restore_reporting.py b/src/codex_transfer/restore_reporting.py
+new file mode 100644
+index 0000000..db451bd
+--- /dev/null
++++ b/src/codex_transfer/restore_reporting.py
+@@ -0,0 +1,70 @@
++"""Local detailed report, allowlisted shareable report and migration guidance."""
++from . import backup, windows
++
++
++def write_operation_report(operation, package, target):
++    journal = backup.read_json(operation.safety / 'restore-journal.json')
++    timings = {key.removeprefix('timing:phase:'): value
++               for key, raw in operation.db.execute(
++                   "SELECT key,result FROM tasks WHERE key >= 'timing:' AND key < 'timing;' ")
++               for value in [__import__('json').loads(raw)]}
++    _, current = operation.saved('current-operation')
++    detail = {'status': journal.get('status'), 'phaseSeconds': timings,
++              'currentOperation': current, 'lastSpaceSample': operation.last_space,
++              'pauseReason': journal.get('pauseReason'), 'error': journal.get('error'),
++              'resumeDocument': str(operation.safety / 'resume-plan.json')}
++    backup.write_json(operation.safety / 'operation-report.json', detail)
++    # Allowlisting, rather than replacing some usernames in an otherwise raw log,
++    # prevents project names, file paths, thread content and credentials leaking.
++    summary = {'schemaVersion': 1, 'status': journal.get('status'),
++               'phaseSeconds': timings,
++               'lastSpaceSample': operation.last_space,
++               'counts': {key: journal.get(key) for key in (
++                   'projectFilesCopied', 'portableFilesCopied', 'sessionsCopied',
++                   'attachmentsCopied', 'recentIndexEntries') if key in journal},
++               'verificationValid': journal.get('verification', {}).get('valid')}
++    backup.write_json(operation.safety / 'shareable-operation-summary.json', summary)
++    if journal.get('status') != 'complete':
++        return
++    folder = windows.documents_folder(target) / 'Codex Restore Reports'
++    folder.mkdir(parents=True, exist_ok=True)
++    backup.write_json(folder / ('operation-' + operation.safety.name + '.json'), detail)
++    source = backup.read_json(package / 'manifest' / 'package.json')['source']['profilePath']
++    text = f'''# After restoring Codex on this computer
++
++Old profile: {source}
++Current profile: {target}
++Codex folder: {target / '.codex'}
++
++Instructions to add to your central Codex instructions:
++
++This environment was restored onto a new computer. Replace the old profile
++prefix above with the current profile, preserving the remainder of each path
++(including paths written with /). Use the actual current project directory.
++Do not recreate the old profile or move files to reproduce old paths. If a
++mapped path is missing, report it and search only the relevant project.
++
++The original conversation text may still mention the former computer. Restoring
++files does not make every historical sentence a current environment instruction.
++Git worktree pointers and local remotes may need project-specific repair; review
++them in their project before changing them. Credentials copied from another
++computer may still require signing in again.
++
++## First opening of conversations
++
++Open recent conversations one at a time. Do not start many agent tasks to warm
++the history. Sequentially opening up to 50 recent conversations is an experimental
++usability check, not an implemented or guaranteed persistent preloading API.
++Compare first-open and second-open latency before considering automation. No
++messages are sent to conversations by Lifeboat.
++
++## Resume and reports
++
++Resume plan: {operation.safety / 'resume-plan.json'}
++Detailed local report: {operation.safety / 'operation-report.json'}
++Shareable summary without paths or conversation content:
++{operation.safety / 'shareable-operation-summary.json'}
++
++If you disabled Microsoft Defender real-time protection, reactivate it now.
++'''
++    (folder / 'MIGRATION-PATHS.md').write_text(text, encoding='utf-8')

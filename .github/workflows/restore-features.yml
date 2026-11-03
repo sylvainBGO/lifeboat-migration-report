@@ -7,11 +7,11 @@ concurrency:
   group: restore-features
   cancel-in-progress: true
 permissions:
-  contents: read
+  contents: write
 jobs:
   regression:
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
@@ -22,11 +22,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python -m pip install zstandard==0.25.0
+      - run: python -m pip install -r upstream/requirements-build.txt Pillow==11.3.0
       - name: Apply performance baseline and recovery building blocks
         working-directory: upstream
         run: |
-          python -c "from pathlib import Path; paths=[Path('src/codex_transfer/restore.py'),Path('src/codex_transfer/gui.py'),Path('src/codex_transfer/validate.py'),Path('../performance/optimizations/restore-first-pass.patch'),Path('../features/resume-copy-foundation.patch')]; [p.write_bytes(p.read_bytes().replace(bytes([13,10]),bytes([10]))) for p in paths]"
+          python -c "from pathlib import Path; paths=[Path('src/codex_transfer/restore.py'),Path('src/codex_transfer/gui.py'),Path('src/codex_transfer/main.py'),Path('src/codex_transfer/validate.py'),Path('../performance/optimizations/restore-first-pass.patch'),Path('../features/resume-copy-foundation.patch')]; [p.write_bytes(p.read_bytes().replace(bytes([13,10]),bytes([10]))) for p in paths]"
           git apply ../performance/optimizations/restore-first-pass.patch
           if ($LASTEXITCODE -ne 0) { throw 'Performance patch failed' }
           git apply ../features/resume-copy-foundation.patch
@@ -40,8 +40,48 @@ jobs:
           $env:PYTHONPATH = "$pwd/upstream/src"
           python -c "from pathlib import Path; from codex_transfer.selftest import run_self_test; r=run_self_test(Path('C:/lb-feat')); print(r['checks']); assert r['passed']"
           if ($LASTEXITCODE -ne 0) { throw 'Restore regression failed' }
+      - name: Capture synthetic UI evidence
+        run: python upstream/benchmarks/capture_recovery_ui.py ui-evidence
+      - name: Build community Windows executable
+        run: |
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --name Codex-Lifeboat-Community --paths upstream/src --distpath delivery --workpath build-temp --specpath build-temp upstream/src/run_codex_transfer.py
+          if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
+      - name: Test packaged executable and packaged recovery
+        shell: pwsh
+        run: |
+          $exe = "$pwd/delivery/Codex-Lifeboat-Community.exe"
+          $p = Start-Process -FilePath $exe -ArgumentList '--self-test --work C:/lb-exe' -Wait -PassThru
+          $r = Get-Content C:/lb-exe/self-test-result.json -Raw | ConvertFrom-Json
+          if ($p.ExitCode -ne 0 -or -not $r.passed) { throw 'Packaged regression failed' }
+          $p = Start-Process -FilePath $exe -ArgumentList '--recovery-self-test --work C:/lb-resume' -Wait -PassThru
+          $r = Get-Content C:/lb-resume/recovery-self-test-result.json -Raw | ConvertFrom-Json
+          if ($p.ExitCode -ne 0 -or -not $r.passed) { throw 'Packaged recovery failed' }
+      - name: Package tested binaries and sources
+        shell: pwsh
+        run: |
+          Copy-Item upstream/COMMUNITY-RECOVERY.md,upstream/LICENSE,upstream/THIRD-PARTY-NOTICES.txt delivery/
+          "Tested report commit: $env:GITHUB_SHA`nWorkflow run: $env:GITHUB_RUN_ID`nUpstream: 4fe9724ccb54422455544e56b54399fa2bc94bc3" | Set-Content delivery/BUILD.txt
+          $hash = (Get-FileHash delivery/Codex-Lifeboat-Community.exe -Algorithm SHA256).Hash
+          "$hash  Codex-Lifeboat-Community.exe" | Set-Content delivery/SHA256.txt
+          Compress-Archive delivery/* Codex-Lifeboat-Community-Windows.zip
+          Compress-Archive upstream/src,upstream/benchmarks,upstream/COMMUNITY-RECOVERY.md,upstream/LICENSE,upstream/requirements-build.txt Codex-Lifeboat-Community-Sources.zip
+          Get-FileHash Codex-Lifeboat-Community-*.zip -Algorithm SHA256 | ForEach-Object { "$($_.Hash)  $(Split-Path $_.Path -Leaf)" } | Set-Content SHA256.txt
+      - name: Publish tested community prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $tag = "community-recovery-$env:GITHUB_RUN_NUMBER"
+          $notes = "Community recovery build based on upstream v3.4.11 (MIT). Tested source: $env:GITHUB_SHA. Windows run: https://github.com/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID. Includes durable restore resume, 500 MB reserve, structured progress and explicit Defender controls. Read COMMUNITY-RECOVERY.md. Unsigned executable. No two-hour guarantee for the historical 88 GiB backup."
+          $notes | Set-Content release-notes.txt
+          gh release create $tag Codex-Lifeboat-Community-Windows.zip Codex-Lifeboat-Community-Sources.zip SHA256.txt --prerelease --target $env:GITHUB_SHA --title "Codex Lifeboat Community Recovery (build $env:GITHUB_RUN_NUMBER)" --notes-file release-notes.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Release publication failed' }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: Restore-feature-regression
-          path: C:/lb-feat/self-test-result.json
+          path: |
+            C:/lb-feat/self-test-result.json
+            C:/lb-exe/self-test-result.json
+            C:/lb-resume/recovery-self-test-result.json
+            ui-evidence/*.png

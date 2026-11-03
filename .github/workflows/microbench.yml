@@ -3,6 +3,9 @@ on:
   push:
     paths: ['performance/benchmarks/**', '.github/workflows/microbench.yml']
   workflow_dispatch:
+concurrency:
+  group: microbench-build
+  cancel-in-progress: true
 permissions:
   contents: write
 jobs:
@@ -29,10 +32,9 @@ jobs:
         shell: pwsh
         run: |
           Copy-Item performance/benchmarks/README.md dist/
-          Copy-Item smoke/*.json dist/
           '@echo off' + [Environment]::NewLine + 'cd /d "%~dp0"' + [Environment]::NewLine + 'Lifeboat-Microbench.exe --directory results --files 3000 --bytes 4096 --repeats 3' + [Environment]::NewLine + 'pause' | Set-Content dist/Run-Benchmark.cmd -Encoding ascii
-          Compress-Archive -Path dist/* -DestinationPath Lifeboat-Microbench-prototype.zip
+          Compress-Archive -Path dist/* -DestinationPath Lifeboat-Microbench-v2.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: Lifeboat-Microbench-prototype
-          path: Lifeboat-Microbench-prototype.zip
+          name: Lifeboat-Microbench-v2
+          path: Lifeboat-Microbench-v2.zip

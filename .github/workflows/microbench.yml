@@ -37,10 +37,9 @@ jobs:
         run: |
           Copy-Item performance/benchmarks/README.md dist/
           '@echo off' + [Environment]::NewLine + 'cd /d "%~dp0"' + [Environment]::NewLine + 'Lifeboat-Microbench.exe --directory results --files 3000 --bytes 4096 --repeats 3' + [Environment]::NewLine + 'pause' | Set-Content dist/Run-Benchmark.cmd -Encoding ascii
-          '@echo off' + [Environment]::NewLine + 'cd /d "%~dp0"' + [Environment]::NewLine + 'Lifeboat-Manifest-Benchmark.exe --directory results --rows 100000 --projects 40 --repeats 3' + [Environment]::NewLine + 'pause' | Set-Content dist/Run-Manifest-Test.cmd -Encoding ascii
-          '@echo off' + [Environment]::NewLine + 'cd /d "%~dp0"' + [Environment]::NewLine + 'Lifeboat-Manifest-Benchmark.exe --directory results --rows 1000000 --projects 40 --repeats 1' + [Environment]::NewLine + 'pause' | Set-Content dist/Run-Manifest-Large.cmd -Encoding ascii
-          Compress-Archive -Path dist/* -DestinationPath Lifeboat-Microbench-v3.zip
+          '@echo off' + [Environment]::NewLine + 'cd /d "%~dp0"' + [Environment]::NewLine + 'Lifeboat-Manifest-Benchmark.exe --directory results --suite' + [Environment]::NewLine + 'pause' | Set-Content dist/Lancer-Tests.cmd -Encoding ascii
+          Compress-Archive -Path dist/* -DestinationPath Lifeboat-Microbench-v3.1.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: Lifeboat-Microbench-v3
-          path: Lifeboat-Microbench-v3.zip
+          name: Lifeboat-Microbench-v3.1
+          path: Lifeboat-Microbench-v3.1.zip

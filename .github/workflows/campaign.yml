@@ -1,0 +1,54 @@
+name: Complete Windows campaign
+on:
+  push:
+    paths: ['performance/benchmarks/campaign.py', 'performance/benchmarks/test_campaign.py', '.github/workflows/campaign.yml']
+  workflow_dispatch:
+concurrency:
+  group: campaign-build
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: dkwolf1/Codex-Lifeboat
+          ref: 4fe9724ccb54422455544e56b54399fa2bc94bc3
+          path: upstream
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned runtime
+        run: python -m pip install pyinstaller==6.16.0 zstandard==0.25.0
+      - name: Test campaign components
+        run: python -m unittest discover -s performance/benchmarks -v
+      - name: Build campaign executable
+        run: python -m PyInstaller --clean --onefile --paths upstream/src --name Lifeboat-Campagne performance/benchmarks/campaign.py
+      - name: Packaged end-to-end smoke campaign
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory C:/lb-ci -Force | Out-Null
+          & ./dist/Lifeboat-Campagne.exe --directory C:/lb-ci --smoke
+          $code = $LASTEXITCODE
+          Get-Content C:/lb-ci/campagne-*.json
+          if ($code -ne 0) { throw 'Campaign smoke failed' }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Campaign-CI-diagnostics
+          path: C:/lb-ci/campagne-*.json
+      - name: Package user executable
+        shell: pwsh
+        run: |
+          Copy-Item upstream/LICENSE dist/LICENSE-Lifeboat.txt
+          '@echo off' + [Environment]::NewLine + 'cd /d "%~dp0"' + [Environment]::NewLine + 'Lifeboat-Campagne.exe --directory results' + [Environment]::NewLine + 'pause' | Set-Content dist/Lancer-Campagne.cmd -Encoding ascii
+          'Lancer Lancer-Campagne.cmd. Les 10 scenarios se suivent automatiquement. Envoyer uniquement results/campagne-lifeboat-*.json. Donnees synthetiques uniquement. 3 Go libres requis. Aucun changement Defender. Les dossiers temporaires crees par la campagne sont nettoyes. Ne pas utiliser une copie de ce programme nommee Codex-Lifeboat.exe comme outil de restauration reel: il sagit uniquement du banc de tests. Source Lifeboat v3.4.11, MIT dkwolf1.' | Set-Content dist/LIRE-MOI.txt -Encoding utf8
+          Compress-Archive -Path dist/* -DestinationPath Lifeboat-Campagne-v4.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Lifeboat-Campagne-v4
+          path: Lifeboat-Campagne-v4.zip

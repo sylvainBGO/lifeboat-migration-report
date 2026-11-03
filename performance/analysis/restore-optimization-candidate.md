@@ -13,8 +13,8 @@ Based on dkwolf1/Codex-Lifeboat v3.4.11, commit 4fe9724ccb54422455544e56b54399fa
 ## Verification
 18 local component tests pass, including the 7 new tests. Python source compilation and git whitespace checks pass.
 The deterministic small-file test performs 5 probes for 5003 callbacks at fixed time, rather than 5003. Real copies can trigger additional time/budget probes.
-Windows source regression is tracked at:
-https://github.com/sylvainBGO/lifeboat-migration-report/actions/runs/41686428536
+Windows validation passed: 7 new component tests and all 97 upstream source regression flags, including GUI, tampering rejection, runtime reserve enforcement and rollback after journal ENOSPC. Initial workflow attempt failed before tests because checkout line endings differed; the workflow now normalizes the patch and target source before applying it.
+https://github.com/sylvainBGO/lifeboat-migration-report/actions/runs/41686676753
 
 ## Limits and next work
 The budget is not a filesystem reservation. External consumers can consume space between samples, and filesystem writes still require error handling. Existing rollback remains active.

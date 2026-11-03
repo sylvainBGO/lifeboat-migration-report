@@ -1,14 +1,17 @@
 name: Restore optimization regression
 on:
   push:
-    paths: ['performance/optimizations/**', '.github/workflows/restore-optimization.yml']
+    paths: ['performance/optimizations/**']
   workflow_dispatch:
+concurrency:
+  group: restore-optimization
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
   regression:
     runs-on: windows-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
@@ -20,10 +23,13 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install zstandard==0.25.0
+      - name: Preserve pinned baseline
+        working-directory: upstream
+        run: git worktree add ../baseline HEAD
       - name: Apply candidate
         working-directory: upstream
         run: |
-          python -c "from pathlib import Path; paths=[Path('src/codex_transfer/restore.py'),Path('../performance/optimizations/restore-first-pass.patch')]; [p.write_bytes(p.read_bytes().replace(bytes([13,10]),bytes([10]))) for p in paths]"
+          python -c "from pathlib import Path; paths=[Path('src/codex_transfer/restore.py'),Path('src/codex_transfer/validate.py'),Path('../performance/optimizations/restore-first-pass.patch')]; [p.write_bytes(p.read_bytes().replace(bytes([13,10]),bytes([10]))) for p in paths]"
           git apply ../performance/optimizations/restore-first-pass.patch
       - name: Component tests
         working-directory: upstream
@@ -34,8 +40,16 @@ jobs:
           $env:PYTHONPATH = "$pwd/upstream/src"
           python -c "from pathlib import Path; from codex_transfer.selftest import run_self_test; r=run_self_test(Path('C:/lb-opt')); print(r['checks']); assert r['passed']"
           if ($LASTEXITCODE -ne 0) { throw 'Restore regression failed' }
+      - name: End-to-end ABBA comparison
+        shell: pwsh
+        run: |
+          python upstream/benchmarks/compare_restore.py --baseline "$pwd/baseline/src" --candidate "$pwd/upstream/src" --root C:/lb-perf
+          if ($LASTEXITCODE -ne 0) { throw 'Performance comparison failed' }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: Restore-optimization-regression
-          path: C:/lb-opt/self-test-result.json
+          path: |
+            C:/lb-opt/self-test-result.json
+            C:/lb-perf/comparison.json
+            C:/lb-perf/**/*.log

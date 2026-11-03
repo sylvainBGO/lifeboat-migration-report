@@ -259,10 +259,10 @@ index 5b4727b..282ad74 100644
      return count, total
 diff --git a/src/codex_transfer/restore_checkpoint.py b/src/codex_transfer/restore_checkpoint.py
 new file mode 100644
-index 0000000..f2a6970
+index 0000000..65f051c
 --- /dev/null
 +++ b/src/codex_transfer/restore_checkpoint.py
-@@ -0,0 +1,149 @@
+@@ -0,0 +1,159 @@
 +"""Durable checkpoints for resumable staging, independent of GUI state.
 +
 +This is an internal building block, not a replacement for the restore journal.
@@ -300,6 +300,7 @@ index 0000000..f2a6970
 +        if batch_size < 1:
 +            raise ValueError('batch_size must be positive')
 +        self.path = Path(path)
++        self._source_input = Path(source).absolute()
 +        self.source = Path(source).resolve()
 +        self.destination = Path(destination).resolve()
 +        self.batch_size = batch_size
@@ -374,7 +375,16 @@ index 0000000..f2a6970
 +        return check_space
 +
 +    def _key(self, source):
-+        return Path(source).relative_to(self.source).as_posix()
++        source = Path(source).absolute()
++        try:
++            relative = source.relative_to(self.source)
++        except ValueError:
++            # Windows may supply an 8.3 root while resolve() expands it. Accept
++            # the original root spelling as well, without resolving every file.
++            relative = source.relative_to(self._source_input)
++        if '..' in relative.parts:
++            raise ValueError('Checkpoint item escapes its source root')
++        return relative.as_posix()
 +
 +    def done(self, source):
 +        return self._db.execute('SELECT size FROM completed WHERE path=?',

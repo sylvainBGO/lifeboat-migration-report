@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "kind": "manifest-index",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.39",
+  "python": "3.12.14",
+  "rows": 1000000,
+  "projects": 40,
+  "repeats": 1,
+  "results": [
+    {
+      "strategy": "baseline",
+      "repeat": 0,
+      "build_seconds": 0,
+      "select_seconds": 71.35936340099579,
+      "seconds": 71.35936340099579,
+      "index_bytes": 0,
+      "csv_rows_read": 40000000,
+      "identical_results": true
+    },
+    {
+      "strategy": "sqlite",
+      "repeat": 0,
+      "build_seconds": 3.6833008599987807,
+      "select_seconds": 0.9995964150093641,
+      "seconds": 4.682897275008145,
+      "index_bytes": 105000960,
+      "csv_rows_read": 1000000,
+      "identical_results": true
+    }
+  ],
+  "completed": true,
+  "limitations": "Synthetic warm-cache test. Includes index construction. No file copy or content hashing. Timings exclude comparison signatures. SQLite cache target is not a process memory cap.",
+  "fixture_seconds": 1.79052705399954,
+  "csv_bytes": 91638917
+}

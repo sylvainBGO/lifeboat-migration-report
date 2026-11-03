@@ -14,14 +14,14 @@
       "samples": [
         {
           "variant": "baseline",
-          "seconds": 25.828930100000036,
-          "prepare_seconds": 5.4425738000000194,
-          "restore_seconds": 20.386356300000017,
+          "seconds": 28.742916699999995,
+          "prepare_seconds": 5.6115403999999955,
+          "restore_seconds": 23.1313763,
           "phases": {
-            "_restore_projects": 17.21999180000003,
-            "_restore_portable_profile": 0.005442600000037601,
-            "_restore_sessions": 0.010364200000026358,
-            "verify_restored": 2.9249399999999923
+            "_restore_projects": 20.017355500000008,
+            "_restore_portable_profile": 0.005154699999991408,
+            "_restore_sessions": 0.01019730000001573,
+            "verify_restored": 2.8674060999999824
           },
           "space_probes": 5049,
           "valid": true,
@@ -42,14 +42,14 @@
         },
         {
           "variant": "candidate_serial_hash",
-          "seconds": 20.586885600000016,
-          "prepare_seconds": 4.691308300000003,
-          "restore_seconds": 15.895577300000014,
+          "seconds": 17.64247180000001,
+          "prepare_seconds": 4.583320100000009,
+          "restore_seconds": 13.059151700000001,
           "phases": {
-            "_restore_projects": 12.699912299999994,
-            "_restore_portable_profile": 0.005230199999971319,
-            "_restore_sessions": 0.010142799999982799,
-            "verify_restored": 2.9101320999999984
+            "_restore_projects": 9.8982508,
+            "_restore_portable_profile": 0.005791600000009112,
+            "_restore_sessions": 0.010016100000001416,
+            "verify_restored": 2.8890135000000328
           },
           "space_probes": 86,
           "valid": true,
@@ -70,14 +70,14 @@
         },
         {
           "variant": "candidate",
-          "seconds": 18.712951199999964,
-          "prepare_seconds": 4.476838100000009,
-          "restore_seconds": 14.236113099999955,
+          "seconds": 17.743044800000007,
+          "prepare_seconds": 4.536633600000016,
+          "restore_seconds": 13.206411199999991,
           "phases": {
-            "_restore_projects": 11.123386600000003,
-            "_restore_portable_profile": 0.005164200000024266,
-            "_restore_sessions": 0.010251400000015565,
-            "verify_restored": 2.851899500000002
+            "_restore_projects": 10.0316014,
+            "_restore_portable_profile": 0.006422400000019479,
+            "_restore_sessions": 0.012461700000017117,
+            "verify_restored": 2.902106300000014
           },
           "space_probes": 86,
           "valid": true,
@@ -98,14 +98,14 @@
         },
         {
           "variant": "candidate",
-          "seconds": 20.00082900000001,
-          "prepare_seconds": 4.541903699999978,
-          "restore_seconds": 15.458925300000033,
+          "seconds": 17.445906499999978,
+          "prepare_seconds": 4.550167400000021,
+          "restore_seconds": 12.895739099999957,
           "phases": {
-            "_restore_projects": 12.327309899999989,
-            "_restore_portable_profile": 0.004986000000030799,
-            "_restore_sessions": 0.010106799999960003,
-            "verify_restored": 2.8472950999999966
+            "_restore_projects": 9.766758799999991,
+            "_restore_portable_profile": 0.0050722999999948115,
+            "_restore_sessions": 0.00997410000002219,
+            "verify_restored": 2.864344899999992
           },
           "space_probes": 86,
           "valid": true,
@@ -126,14 +126,14 @@
         },
         {
           "variant": "candidate_serial_hash",
-          "seconds": 20.064664600000015,
-          "prepare_seconds": 4.601364199999978,
-          "restore_seconds": 15.463300400000037,
+          "seconds": 17.674676500000032,
+          "prepare_seconds": 4.6286812999999825,
+          "restore_seconds": 13.04599520000005,
           "phases": {
-            "_restore_projects": 12.315247200000044,
-            "_restore_portable_profile": 0.004925500000013017,
-            "_restore_sessions": 0.010127099999976963,
-            "verify_restored": 2.890590099999997
+            "_restore_projects": 9.728838099999962,
+            "_restore_portable_profile": 0.005084699999997611,
+            "_restore_sessions": 0.010148099999980786,
+            "verify_restored": 2.888980199999992
           },
           "space_probes": 86,
           "valid": true,
@@ -154,14 +154,14 @@
         },
         {
           "variant": "baseline",
-          "seconds": 25.129295000000013,
-          "prepare_seconds": 5.347668999999996,
-          "restore_seconds": 19.781626000000017,
+          "seconds": 23.23495300000002,
+          "prepare_seconds": 5.459407999999996,
+          "restore_seconds": 17.775545000000022,
           "phases": {
-            "_restore_projects": 16.624384299999974,
-            "_restore_portable_profile": 0.005030200000021523,
-            "_restore_sessions": 0.010236500000019078,
-            "verify_restored": 2.927300300000013
+            "_restore_projects": 14.609051799999975,
+            "_restore_portable_profile": 0.005199500000003354,
+            "_restore_sessions": 0.010112999999989825,
+            "verify_restored": 2.9134378999999626
           },
           "space_probes": 5049,
           "valid": true,
@@ -182,24 +182,24 @@
         }
       ],
       "median_seconds": {
-        "baseline": 25.479112550000025,
-        "candidate_serial_hash": 20.325775100000016,
-        "candidate": 19.356890099999987
+        "baseline": 25.988934850000007,
+        "candidate_serial_hash": 17.65857415000002,
+        "candidate": 17.594475649999993
       },
-      "improvement_percent": 24.028397527527044
+      "improvement_percent": 32.30012791386104
     },
     "large": {
       "samples": [
         {
           "variant": "baseline",
-          "seconds": 0.7901598000000263,
-          "prepare_seconds": 0.23189680000001545,
-          "restore_seconds": 0.5582630000000108,
+          "seconds": 0.7875717000000009,
+          "prepare_seconds": 0.24003120000003264,
+          "restore_seconds": 0.5475404999999682,
           "phases": {
-            "_restore_projects": 0.27405190000001767,
-            "_restore_portable_profile": 0.005109699999991335,
-            "_restore_sessions": 0.010123200000009547,
-            "verify_restored": 0.1402112000000102
+            "_restore_projects": 0.2646431999999663,
+            "_restore_portable_profile": 0.005000199999983579,
+            "_restore_sessions": 0.009903699999995297,
+            "verify_restored": 0.13982939999999644
           },
           "space_probes": 18,
           "valid": true,
@@ -220,14 +220,14 @@
         },
         {
           "variant": "candidate_serial_hash",
-          "seconds": 2.5435567000000106,
-          "prepare_seconds": 1.0769281999999976,
-          "restore_seconds": 1.466628500000013,
+          "seconds": 0.8518799000000286,
+          "prepare_seconds": 0.21920770000002676,
+          "restore_seconds": 0.6326722000000018,
           "phases": {
-            "_restore_projects": 0.22801110000000335,
-            "_restore_portable_profile": 0.004960999999980231,
-            "_restore_sessions": 0.010127699999998185,
-            "verify_restored": 0.8144844000000262
+            "_restore_projects": 0.3448705000000132,
+            "_restore_portable_profile": 0.0049836000000027525,
+            "_restore_sessions": 0.009806900000000951,
+            "verify_restored": 0.14061270000001969
           },
           "space_probes": 8,
           "valid": true,
@@ -248,14 +248,14 @@
         },
         {
           "variant": "candidate",
-          "seconds": 0.5705210999999508,
-          "prepare_seconds": 0.22374739999997928,
-          "restore_seconds": 0.34677369999997154,
+          "seconds": 0.5574380999999562,
+          "prepare_seconds": 0.22091989999995576,
+          "restore_seconds": 0.33651820000000043,
           "phases": {
-            "_restore_projects": 0.13664359999995668,
-            "_restore_portable_profile": 0.005038700000000063,
-            "_restore_sessions": 0.010433400000010806,
-            "verify_restored": 0.050670099999990725
+            "_restore_projects": 0.14121290000002773,
+            "_restore_portable_profile": 0.005086899999980687,
+            "_restore_sessions": 0.010007800000039424,
+            "verify_restored": 0.050377999999966505
           },
           "space_probes": 8,
           "valid": true,
@@ -276,14 +276,14 @@
         },
         {
           "variant": "candidate",
-          "seconds": 0.6680870000000141,
-          "prepare_seconds": 0.22776229999999487,
-          "restore_seconds": 0.4403247000000192,
+          "seconds": 0.5652636000000371,
+          "prepare_seconds": 0.2191445999999928,
+          "restore_seconds": 0.34611900000004425,
           "phases": {
-            "_restore_projects": 0.14557550000000674,
-            "_restore_portable_profile": 0.005125799999973424,
-            "_restore_sessions": 0.009953999999993357,
-            "verify_restored": 0.050102700000024925
+            "_restore_projects": 0.15467919999997548,
+            "_restore_portable_profile": 0.004928199999994831,
+            "_restore_sessions": 0.010190700000009656,
+            "verify_restored": 0.05129239999996571
           },
           "space_probes": 8,
           "valid": true,
@@ -304,14 +304,14 @@
         },
         {
           "variant": "candidate_serial_hash",
-          "seconds": 0.7252569999999992,
-          "prepare_seconds": 0.21671179999998458,
-          "restore_seconds": 0.5085452000000146,
+          "seconds": 0.9211447000000135,
+          "prepare_seconds": 0.4047171999999932,
+          "restore_seconds": 0.5164275000000202,
           "phases": {
-            "_restore_projects": 0.22956279999999651,
-            "_restore_portable_profile": 0.005115999999986798,
-            "_restore_sessions": 0.010104099999978189,
-            "verify_restored": 0.13819300000000112
+            "_restore_projects": 0.23424169999998412,
+            "_restore_portable_profile": 0.005066600000020571,
+            "_restore_sessions": 0.01009110000001101,
+            "verify_restored": 0.14002979999997933
           },
           "space_probes": 8,
           "valid": true,
@@ -332,14 +332,14 @@
         },
         {
           "variant": "baseline",
-          "seconds": 0.7639767000000006,
-          "prepare_seconds": 0.2284754000000362,
-          "restore_seconds": 0.5355012999999644,
+          "seconds": 1.012672699999996,
+          "prepare_seconds": 0.4602840999999671,
+          "restore_seconds": 0.5523886000000289,
           "phases": {
-            "_restore_projects": 0.25990730000000895,
-            "_restore_portable_profile": 0.004933300000004692,
-            "_restore_sessions": 0.010361900000020796,
-            "verify_restored": 0.1366042999999877
+            "_restore_projects": 0.2606997999999976,
+            "_restore_portable_profile": 0.005011700000011388,
+            "_restore_sessions": 0.012529099999994742,
+            "verify_restored": 0.14166929999998956
           },
           "space_probes": 18,
           "valid": true,
@@ -360,30 +360,30 @@
         }
       ],
       "median_seconds": {
-        "baseline": 0.7770682500000134,
-        "candidate_serial_hash": 1.6344068500000049,
-        "candidate": 0.6193040499999825
+        "baseline": 0.9001221999999984,
+        "candidate_serial_hash": 0.886512300000021,
+        "candidate": 0.5613508499999966
       },
-      "improvement_percent": 20.302489517494536
+      "improvement_percent": 37.63615095817017
     }
   },
   "text_rewrite": {
     "samples": [
       {
         "variant": "baseline",
-        "seconds": 0.07478500000001986
+        "seconds": 0.07696389999998132
       },
       {
         "variant": "candidate",
-        "seconds": 0.013166799999993373
+        "seconds": 0.01316669999999931
       },
       {
         "variant": "candidate",
-        "seconds": 0.013138099999991937
+        "seconds": 0.012908500000008871
       },
       {
         "variant": "baseline",
-        "seconds": 0.07494140000000016
+        "seconds": 0.07454869999997982
       }
     ],
     "equivalent": true,
@@ -392,14 +392,20 @@
     "note": "CPU-only synthetic rewrite microcase; 90% of lines have no mapped path."
   },
   "validation": {
-    "windows_component_tests": 23,
+    "windows_component_tests": 24,
     "upstream_flags_true": 97,
     "upstream_flags_false": 0,
-    "workflow_url": "https://github.com/sylvainBGO/lifeboat-migration-report/actions/runs/41691504550",
-    "tested_report_repository_commit": "ab4ccfe70a5ad418270a53855243e9845c783573",
-    "production_source_commit": "690a9fb",
-    "local_test_harness_fix_commit": "541777b",
+    "workflow_url": "https://github.com/sylvainBGO/lifeboat-migration-report/actions/runs/41692844819",
+    "tested_report_repository_commit": "ccbebd390e57a0f42d37ba253a34e8b1d3311ed9",
+    "production_source_commit": "1bbdfab",
     "baseline": "4fe9724ccb54422455544e56b54399fa2bc94bc3"
   },
-  "environment_note": "Windows GitHub Actions runner; Defender state was not sampled or changed. Small synthetic fixtures and two observations per variant are not a real-backup completion-time guarantee."
+  "environment_note": "Windows GitHub Actions runner; Defender state was not sampled or changed. Small synthetic fixtures and two observations per variant are not a real-backup completion-time guarantee.",
+  "previous_run": {
+    "workflow_url": "https://github.com/sylvainBGO/lifeboat-migration-report/actions/runs/41691504550",
+    "report_url": "https://github.com/sylvainBGO/lifeboat-migration-report/blob/9cf0a3573c3ee0e1ca12a73aa7475145dee17999/performance/analysis/performance-comparison-windows.json",
+    "small_improvement_percent": 24.028397527527044,
+    "large_improvement_percent": 20.302489517494536,
+    "note": "Before disposable-index release hardening; same copy/hash/translation algorithms. Report both runs to show variability."
+  }
 }

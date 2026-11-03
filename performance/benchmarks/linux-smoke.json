@@ -1,0 +1,207 @@
+{
+  "schema": 1,
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.39",
+  "python": "3.12.14",
+  "file_count": 3000,
+  "file_bytes": 4096,
+  "repeats": 3,
+  "results": [
+    {
+      "strategy": "separate",
+      "repeat": 0,
+      "phases": [
+        {
+          "phase": "source_verify",
+          "seconds": 0.1476092780003455,
+          "cpu_seconds": 0.14760615100000002
+        },
+        {
+          "phase": "copy",
+          "seconds": 0.1313923080006134,
+          "cpu_seconds": 0.130569665
+        },
+        {
+          "phase": "destination_verify",
+          "seconds": 0.13277743500020733,
+          "cpu_seconds": 0.13242346100000002
+        }
+      ],
+      "seconds": 0.41177902100116626,
+      "verified": true
+    },
+    {
+      "strategy": "fused",
+      "repeat": 0,
+      "phases": [
+        {
+          "phase": "copy_and_source_hash",
+          "seconds": 0.21509396100009326,
+          "cpu_seconds": 0.21497831200000006
+        },
+        {
+          "phase": "destination_verify",
+          "seconds": 0.13585541700012982,
+          "cpu_seconds": 0.1359004639999999
+        }
+      ],
+      "seconds": 0.3509493780002231,
+      "verified": true
+    },
+    {
+      "strategy": "zip",
+      "repeat": 0,
+      "phases": [
+        {
+          "phase": "extract_with_crc",
+          "seconds": 0.12994608799999696,
+          "cpu_seconds": 0.12994165299999993
+        },
+        {
+          "phase": "destination_verify",
+          "seconds": 0.14424080700064223,
+          "cpu_seconds": 0.1442387599999999
+        }
+      ],
+      "seconds": 0.2741868950006392,
+      "verified": true
+    },
+    {
+      "strategy": "fused",
+      "repeat": 1,
+      "phases": [
+        {
+          "phase": "copy_and_source_hash",
+          "seconds": 0.24214317099995242,
+          "cpu_seconds": 0.2421352109999999
+        },
+        {
+          "phase": "destination_verify",
+          "seconds": 0.14524143200014805,
+          "cpu_seconds": 0.1451903859999999
+        }
+      ],
+      "seconds": 0.38738460300010047,
+      "verified": true
+    },
+    {
+      "strategy": "zip",
+      "repeat": 1,
+      "phases": [
+        {
+          "phase": "extract_with_crc",
+          "seconds": 0.12844069799939462,
+          "cpu_seconds": 0.1284202390000002
+        },
+        {
+          "phase": "destination_verify",
+          "seconds": 0.12563633999980084,
+          "cpu_seconds": 0.1256349010000002
+        }
+      ],
+      "seconds": 0.25407703799919545,
+      "verified": true
+    },
+    {
+      "strategy": "separate",
+      "repeat": 1,
+      "phases": [
+        {
+          "phase": "source_verify",
+          "seconds": 0.1245730310001818,
+          "cpu_seconds": 0.12457006299999973
+        },
+        {
+          "phase": "copy",
+          "seconds": 0.207937586999833,
+          "cpu_seconds": 0.20700189499999988
+        },
+        {
+          "phase": "destination_verify",
+          "seconds": 0.1353849650004122,
+          "cpu_seconds": 0.13535408399999982
+        }
+      ],
+      "seconds": 0.467895583000427,
+      "verified": true
+    },
+    {
+      "strategy": "zip",
+      "repeat": 2,
+      "phases": [
+        {
+          "phase": "extract_with_crc",
+          "seconds": 0.2254652020001231,
+          "cpu_seconds": 0.22524686400000027
+        },
+        {
+          "phase": "destination_verify",
+          "seconds": 0.14375311700041493,
+          "cpu_seconds": 0.14372344700000017
+        }
+      ],
+      "seconds": 0.36921831900053803,
+      "verified": true
+    },
+    {
+      "strategy": "separate",
+      "repeat": 2,
+      "phases": [
+        {
+          "phase": "source_verify",
+          "seconds": 0.145368684999994,
+          "cpu_seconds": 0.14536485999999993
+        },
+        {
+          "phase": "copy",
+          "seconds": 0.23792750000029628,
+          "cpu_seconds": 0.2369105920000001
+        },
+        {
+          "phase": "destination_verify",
+          "seconds": 0.14042088099995453,
+          "cpu_seconds": 0.14031376399999962
+        }
+      ],
+      "seconds": 0.5237170660002448,
+      "verified": true
+    },
+    {
+      "strategy": "fused",
+      "repeat": 2,
+      "phases": [
+        {
+          "phase": "copy_and_source_hash",
+          "seconds": 0.31780351500037796,
+          "cpu_seconds": 0.31777789700000003
+        },
+        {
+          "phase": "destination_verify",
+          "seconds": 0.1444625880003514,
+          "cpu_seconds": 0.14443449600000013
+        }
+      ],
+      "seconds": 0.46226610300072934,
+      "verified": true
+    }
+  ],
+  "limitations": [
+    "Synthetic strategies, not full restore timings",
+    "Warm OS cache; no cache eviction or physical I/O measurement",
+    "SHA-256 destination readback is not a physical durability guarantee",
+    "ZIP preparation is measured separately; metadata fidelity not equivalent",
+    "No Defender settings changed"
+  ],
+  "setup": [
+    {
+      "phase": "fixture_generation",
+      "seconds": 0.1746124030005376,
+      "cpu_seconds": 0.173929192
+    },
+    {
+      "phase": "archive_preparation",
+      "seconds": 0.14755863600021257,
+      "cpu_seconds": 0.14734733199999997
+    }
+  ],
+  "archive_bytes": 578659
+}

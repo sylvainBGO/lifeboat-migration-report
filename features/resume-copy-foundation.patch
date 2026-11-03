@@ -318,10 +318,10 @@ index 0000000..04fbfea
 +    unittest.main()
 diff --git a/benchmarks/test_feature_ui_optimization.py b/benchmarks/test_feature_ui_optimization.py
 new file mode 100644
-index 0000000..03a7f08
+index 0000000..a30704e
 --- /dev/null
 +++ b/benchmarks/test_feature_ui_optimization.py
-@@ -0,0 +1,66 @@
+@@ -0,0 +1,78 @@
 +"""UI state and Defender command contracts, without changing host protection."""
 +import os
 +from pathlib import Path
@@ -374,6 +374,18 @@ index 0000000..03a7f08
 +            self.app._recovery_message('defender_hourly', {'RealTimeProtectionEnabled': True})
 +        self.assertFalse(self.app.pause_event.is_set())
 +
++    def test_paused_state_survives_ui_refresh(self):
++        self.app._begin_operation('restore')
++        self.app._set_busy(True)
++        self.app._structured_progress(dict(phase='restore sessions', current=3, total=10,
++                                           message='Restoring conversations', phaseSeconds=2))
++        self.app.operation_paused = True
++        self.app._set_busy(False)
++        self.app._translate()
++        self.assertEqual(self.app.operation_title.cget('text'), 'Restoration paused')
++        self.assertIn('Paused', self.app.header_status.cget('text'))
++        self.assertNotEqual(self.app.stage_dots[2].cget('text'), '✓')
++
 +
 +class DefenderContractTests(unittest.TestCase):
 +    def test_disable_uses_runas_and_then_checks_real_state(self):
@@ -390,10 +402,10 @@ index 0000000..03a7f08
 +        self.assertTrue(result['RealTimeProtectionEnabled'])
 diff --git a/benchmarks/test_resume_optimization.py b/benchmarks/test_resume_optimization.py
 new file mode 100644
-index 0000000..d822c6f
+index 0000000..40cc1ae
 --- /dev/null
 +++ b/benchmarks/test_resume_optimization.py
-@@ -0,0 +1,160 @@
+@@ -0,0 +1,197 @@
 +"""Actual Windows restore with durable operation checkpoints."""
 +import os
 +from pathlib import Path
@@ -554,6 +566,43 @@ index 0000000..d822c6f
 +        self.assertEqual(result['status'], 'complete')
 +        self.assertIn('reportWarning', result)
 +        self.assertTrue(self.restore.verify_restored(self.package, self.target)['valid'])
++
++    def test_final_metadata_resume_does_not_rebuild_large_index(self):
++        operation = self.prepare()
++        event = threading.Event()
++        def progress(value):
++            if value['phase'] == 'finish':
++                event.set()
++        result = operation.resume_from_document(self.document, event, progress)
++        self.assertEqual(result['status'], 'paused')
++        with patch.object(self.restore, 'ManifestIndex', side_effect=AssertionError('unnecessary index rebuild')):
++            result = operation.resume_from_document(self.document)
++        self.assertEqual(result['status'], 'complete')
++
++    def test_resume_destination_archive_after_unjournaled_move(self):
++        operation = self.prepare()
++        target = self.target / 'Documents' / 'OnlyOnDestination'
++        target.mkdir()
++        (target/'keep.txt').write_text('preserve this')
++        item = {'target': str(target), 'proposedAction': 'archive'}
++        journal = self.backup.read_json(self.safety/'restore-journal.json')
++        move = self.restore._atomic_directory_move
++        class ProcessExit(BaseException):
++            pass
++        def crash(source, destination):
++            move(source, destination)
++            raise ProcessExit()
++        with operation.RestoreOperation(self.safety, self.package, self.target):
++            with patch.object(self.restore, '_atomic_directory_move', crash):
++                with self.assertRaises(ProcessExit):
++                    self.restore._resume_disposition(self.safety, self.restore.PathTranslator(self.package, self.target),
++                                                     journal, 'destination-only', item)
++        journal = self.backup.read_json(self.safety/'restore-journal.json')
++        with operation.RestoreOperation(self.safety, self.package, self.target):
++            moved = self.restore._resume_disposition(self.safety, self.restore.PathTranslator(self.package, self.target),
++                                                     journal, 'destination-only', item)
++        self.assertFalse(target.exists())
++        self.assertEqual((moved/'keep.txt').read_text(), 'preserve this')
 diff --git a/src/codex_transfer/defender_control.py b/src/codex_transfer/defender_control.py
 new file mode 100644
 index 0000000..e14ddd7
@@ -595,7 +644,7 @@ index 0000000..e14ddd7
 +    current['requestExitCode'] = result.returncode
 +    return current
 diff --git a/src/codex_transfer/gui.py b/src/codex_transfer/gui.py
-index a484dc9..2abe8ce 100644
+index a484dc9..25469ba 100644
 --- a/src/codex_transfer/gui.py
 +++ b/src/codex_transfer/gui.py
 @@ -13,6 +13,8 @@ from tkinter import filedialog, messagebox, ttk
@@ -662,7 +711,40 @@ index a484dc9..2abe8ce 100644
          self.operation_progress = weighted_operation_progress(
              self.operation_progress, stage, current, total
          )
-@@ -3174,13 +3190,6 @@ class TransferApp(tk.Tk):
+@@ -3139,17 +3155,20 @@ class TransferApp(tk.Tk):
+ 
+     def _render_stage_state(self, active: int | None = None, complete: bool = False) -> None:
+         ranges = PROGRESS_STAGE_RANGES
++        structured = getattr(self, 'structured_restore', False)
++        if structured:
++            active = self.structured_stage
+         if active is None:
+             active = next(
+                 (index for index, (_start, end) in enumerate(ranges) if self.operation_progress < end),
+                 4,
+             )
+         for index, (dot, label) in enumerate(zip(self.stage_dots, self.stage_labels)):
+-            done = complete or self.operation_progress >= ranges[index][1]
++            done = complete or (index < active if structured else self.operation_progress >= ranges[index][1])
+             if done:
+                 dot.configure(text="✓", bg=self.SUCCESS, fg="#FFFFFF")
+                 label.configure(fg=self.SUCCESS)
+-            elif self.busy and index == active:
++            elif (self.busy or self.operation_paused) and index == active:
+                 dot.configure(text=str(index + 1), bg="#FFF0D6", fg="#A85B00")
+                 label.configure(fg=self.NAVY)
+             else:
+@@ -3160,6 +3179,9 @@ class TransferApp(tk.Tk):
+         if self.busy:
+             self.operation_title.configure(text=self.t(self._operation_title_key()))
+             self.operation_subtitle.configure(text=self.t("source_unchanged"))
++        elif self.operation_paused:
++            self.operation_title.configure(text='Restoration paused')
++            self.operation_subtitle.configure(text='Completed work is saved in the resume plan.')
+         elif self.operation_failed:
+             self.operation_title.configure(text=self.t("operation_failed_title"))
+             self.operation_subtitle.configure(text=self.t("operation_failed_subtitle"))
+@@ -3174,13 +3196,6 @@ class TransferApp(tk.Tk):
              self.elapsed_label.configure(
                  text=f"{self.t('elapsed')}: {self._format_duration(elapsed)}"
              )
@@ -676,7 +758,27 @@ index a484dc9..2abe8ce 100644
          self.after(500, self._tick_operation_clock)
  
      def _change_language(self, _event=None) -> None:
-@@ -3328,17 +3337,29 @@ class TransferApp(tk.Tk):
+@@ -3239,6 +3254,9 @@ class TransferApp(tk.Tk):
+         self._translate_tab()
+         self._render_operation_state()
+         self._render_last_result()
++        if self.operation_key == 'restore':
++            for label, text in zip(self.stage_labels, ('Check backup', 'Copy projects', 'Restore user data', 'Final verification', 'Finish')):
++                label.configure(text=text)
+         if self.launch_blocked:
+             self.status_label.configure(text=self.t("extract_status"))
+             self.header_status.configure(
+@@ -3263,6 +3281,9 @@ class TransferApp(tk.Tk):
+                 bg=("#EAF2FD" if self.busy else "#FDECEC" if self.operation_failed else "#E8F7EF"),
+                 fg=(self.BLUE if self.busy else "#B42318" if self.operation_failed else "#128250"),
+             )
++            if self.operation_paused:
++                self.header_status.configure(text='● Paused', bg='#FFF0D6', fg='#A85B00')
++                self.status_label.configure(text=self.last_progress_message)
+ 
+     def _render_last_result(self) -> None:
+         model = self.last_result_model
+@@ -3328,17 +3349,31 @@ class TransferApp(tk.Tk):
                  kind, value = self.messages.get_nowait()
              except queue.Empty:
                  break
@@ -692,6 +794,7 @@ index a484dc9..2abe8ce 100644
 -                self._set_busy(False)
                  callback, result = value
 +                paused = isinstance(result, dict) and result.get("status") == "paused"
++                self.operation_paused = paused
 +                cancelled = isinstance(result, dict) and result.get("cancelled")
 +                self.phase_progress.stop()
 +                self.pause_button.configure(state="disabled")
@@ -703,12 +806,13 @@ index a484dc9..2abe8ce 100644
 +                    return
                  callback(result)
              elif kind == "error":
++                self.close_after_pause = False
 +                self.phase_progress.stop()
 +                self.pause_button.configure(state="disabled")
                  self._finish_operation(False)
                  self._set_busy(False)
                  self._append_log(str(value))
-@@ -3349,6 +3370,7 @@ class TransferApp(tk.Tk):
+@@ -3349,6 +3384,7 @@ class TransferApp(tk.Tk):
  
      def _set_busy(self, value: bool) -> None:
          self.busy = value
@@ -716,7 +820,7 @@ index a484dc9..2abe8ce 100644
          self.status_dot.configure(fg=self.BLUE if value else self.SUCCESS)
          for button in self.action_buttons:
              button.configure(
-@@ -3367,6 +3389,7 @@ class TransferApp(tk.Tk):
+@@ -3367,6 +3403,7 @@ class TransferApp(tk.Tk):
              return
          self._begin_operation(operation)
          self._set_busy(True)
@@ -724,7 +828,7 @@ index a484dc9..2abe8ce 100644
  
          def worker():
              try:
-@@ -3794,6 +3817,8 @@ class TransferApp(tk.Tk):
+@@ -3794,6 +3831,8 @@ class TransferApp(tk.Tk):
          self, package: Path, external_roots: dict[str, str], comparison_plan: dict
      ) -> None:
  
@@ -733,7 +837,7 @@ index a484dc9..2abe8ce 100644
          def work():
              prepared = restore.prepare_restore(
                  package,
-@@ -3803,6 +3828,9 @@ class TransferApp(tk.Tk):
+@@ -3803,6 +3842,9 @@ class TransferApp(tk.Tk):
                  external_roots=external_roots,
                  comparison_plan=comparison_plan,
              )
@@ -743,7 +847,7 @@ index a484dc9..2abe8ce 100644
              confirmation = threading.Event()
              answer: list[bool] = []
  
-@@ -3825,21 +3853,21 @@ class TransferApp(tk.Tk):
+@@ -3825,32 +3867,21 @@ class TransferApp(tk.Tk):
              confirmation.wait()
              if not answer or not answer[0]:
                  return {"cancelled": True, **prepared}
@@ -768,10 +872,21 @@ index a484dc9..2abe8ce 100644
 +                self._resume_done(result)
              else:
                  self.last_package = package
-+                self._append_log("If you disabled Defender, reactivate real-time protection now.")
-                 retention = result.get("recoveryRetention", {})
-                 messagebox.showinfo(
-                     self.t("restore"),
+-                retention = result.get("recoveryRetention", {})
+-                messagebox.showinfo(
+-                    self.t("restore"),
+-                    self.t(
+-                        "restore_done_retention",
+-                        safety=result["safetyRoot"],
+-                        retained=retention.get("validPointsAfter", 1),
+-                        size=_format_bytes(int(retention.get("totalBytesAfter", 0))),
+-                    ),
+-                    parent=self,
+-                )
++                self._resume_done(result)
+ 
+         self._run(work, done, "restore")
+ 
 diff --git a/src/codex_transfer/main.py b/src/codex_transfer/main.py
 index 3027c08..3f6c96a 100644
 --- a/src/codex_transfer/main.py
@@ -1067,10 +1182,10 @@ index 0000000..92b5e41
 +    return result
 diff --git a/src/codex_transfer/recovery_ui.py b/src/codex_transfer/recovery_ui.py
 new file mode 100644
-index 0000000..f70eb5f
+index 0000000..1a44b7f
 --- /dev/null
 +++ b/src/codex_transfer/recovery_ui.py
-@@ -0,0 +1,208 @@
+@@ -0,0 +1,217 @@
 +"""Recovery controls and structured progress; Tk calls stay on the UI thread."""
 +from pathlib import Path
 +import threading
@@ -1092,6 +1207,7 @@ index 0000000..f70eb5f
 +        self.resume_document = None
 +        self.operation_paused = False
 +        self.structured_restore = False
++        self.structured_stage = 0
 +        self.defender_prompt = None
 +        self.defender_requested = False
 +        self.defender_last_state = None
@@ -1117,6 +1233,11 @@ index 0000000..f70eb5f
 +        for column in range(5):
 +            self.status_frame.columnconfigure(column, weight=1, uniform='restore-stages')
 +        self.after(3_600_000, self._check_defender_hourly)
++        grip = ttk.Label(self.log_frame, text='Drag to resize activity log', cursor='sb_v_double_arrow')
++        grip.grid(row=2, column=0, columnspan=2, sticky='ew')
++        grip.bind('<ButtonPress-1>', lambda event: setattr(self, '_log_drag', (event.y_root, int(self.log.cget('height')))))
++        grip.bind('<B1-Motion>', lambda event: self.log.configure(
++            height=max(4, min(60, self._log_drag[1] + (event.y_root-self._log_drag[0])//16))))
 +
 +    def _close_recovery_window(self):
 +        if self.busy:
@@ -1197,6 +1318,7 @@ index 0000000..f70eb5f
 +        stage = (0 if phase == 'index backup manifest' else
 +                 1 if phase in {'restore projects', 'apply destination project decisions'} else
 +                 3 if phase == 'verify restored' else 4 if phase == 'finish' else 2)
++        self.structured_stage = stage
 +        # Render explicit completed phases, not completion inferred from old weights.
 +        for i, (dot, label) in enumerate(zip(self.stage_dots, self.stage_labels)):
 +            dot.configure(text='✓' if i < stage else str(i+1),
@@ -1208,6 +1330,7 @@ index 0000000..f70eb5f
 +            self.header_status.configure(text='● Paused', bg='#FFF0D6', fg='#A85B00')
 +            self.operation_title.configure(text='Restoration paused')
 +            self.status_label.configure(text=result.get('pauseReason', 'Paused'))
++            self.last_progress_message = result.get('pauseReason', 'Paused')
 +            self._append_log(f'Resume document: {self.resume_document}')
 +            messagebox.showinfo('Paused', 'Completed work is saved. Reload this document to continue:\n'
 +                                + str(self.resume_document), parent=self)
@@ -1215,6 +1338,7 @@ index 0000000..f70eb5f
 +            warnings = [str(result[key]) for key in ('reportWarning', 'recoveryRetentionError') if key in result]
 +            messagebox.showinfo('Restore complete', 'Final verification passed.\n'
 +                                + ('Warnings: ' + '\n'.join(warnings) + '\n' if warnings else 'Reports and recovery retention completed.\n')
++                                + 'Recovery point: ' + str(result.get('safetyRoot', '')) + '\n'
 +                                + 'If you disabled Defender, reactivate real-time protection now.', parent=self)
 +
 +    def _defender_dialog(self):
@@ -1280,7 +1404,7 @@ index 0000000..f70eb5f
 +            return False
 +        return True
 diff --git a/src/codex_transfer/restore.py b/src/codex_transfer/restore.py
-index 1eae044..c55da21 100644
+index 1eae044..aaf0353 100644
 --- a/src/codex_transfer/restore.py
 +++ b/src/codex_transfer/restore.py
 @@ -13,6 +13,8 @@ from typing import Any, Callable
@@ -1795,7 +1919,7 @@ index 1eae044..c55da21 100644
          nonlocal manifest_index
          if manifest_index is not None:
              try:
-@@ -1853,13 +2063,30 @@ def restore_backup(
+@@ -1853,13 +2063,31 @@ def restore_backup(
                  )
              finally:
                  manifest_index = None
@@ -1814,10 +1938,11 @@ index 1eae044..c55da21 100644
 +            operation.phase = 'index backup manifest'
 +            operation.phase_start = __import__('time').monotonic()
 +            operation.emit(0, 0, 'Preparing manifest index', True)
-+            manifest_index = ManifestIndex(
-+                package_root, persistent_path=safety_root / 'resume-manifest.sqlite',
-+                guard=lambda: _ensure_restore_space(safety_root, 8 * 1024 * 1024, 256),
-+                progress=lambda count: operation.emit(count, 0, f'Indexed {count:,} manifest entries'))
++            if not operation.saved('phase:verify_restored')[0]:
++                manifest_index = ManifestIndex(
++                    package_root, persistent_path=safety_root / 'resume-manifest.sqlite',
++                    guard=lambda: _ensure_restore_space(safety_root, 8 * 1024 * 1024, 256),
++                    progress=lambda count: operation.emit(count, 0, f'Indexed {count:,} manifest entries'))
 +            operation.manifest_index = manifest_index
 +            operation.emit(1, 1, 'index backup manifest complete', True)
 +        else:
@@ -1828,7 +1953,7 @@ index 1eae044..c55da21 100644
          backup.write_json(journal_path, journal)
          project_files = _restore_projects(
              package_root,
-@@ -1928,7 +2155,10 @@ def restore_backup(
+@@ -1928,7 +2156,10 @@ def restore_backup(
              path = target_codex / f"state_5.sqlite{suffix}"
              if path.exists():
                  path.unlink()
@@ -1840,7 +1965,7 @@ index 1eae044..c55da21 100644
          current_index = backup.read_session_index(
              target_codex / "session_index.jsonl"
          )
-@@ -1968,7 +2198,12 @@ def restore_backup(
+@@ -1968,7 +2199,13 @@ def restore_backup(
          )
          if not verification["valid"]:
              raise RestoreError("Final verification failed: " + "; ".join(verification["errors"][:5]))
@@ -1849,12 +1974,13 @@ index 1eae044..c55da21 100644
 +            operation.phase = 'finish'
 +            operation.phase_start = __import__('time').monotonic()
 +            operation.emit(0, 3, 'Registering restored projects', True)
-+            operation.check()
 +        release_manifest_index(remove=True)
++        if operation:
++            operation.check()
          identities_registered = 0
          project_identity_roots_removed = 0
          identity_manifest_path = package_root / "manifest" / "project-identities.json"
-@@ -2029,6 +2264,8 @@ def restore_backup(
+@@ -2029,6 +2266,8 @@ def restore_backup(
          )
          backup.write_json(journal_path, journal)
          try:
@@ -1863,7 +1989,7 @@ index 1eae044..c55da21 100644
              retention = recovery.enforce_retention(
                  target_profile,
                  keep=recovery.DEFAULT_KEEP,
-@@ -2040,17 +2277,58 @@ def restore_backup(
+@@ -2040,17 +2279,58 @@ def restore_backup(
              # prove that an older recovery point is safe to remove.
              journal["recoveryRetentionError"] = f"{type(exc).__name__}: {exc}"
          backup.write_json(journal_path, journal)
@@ -1923,7 +2049,7 @@ index 1eae044..c55da21 100644
          journal_write_error: Exception | None = None
          try:
              backup.write_json(journal_path, journal)
-@@ -2061,7 +2339,11 @@ def restore_backup(
+@@ -2061,7 +2341,11 @@ def restore_backup(
          if progress:
              progress("Restore failed; running automatic rollback...")
          try:

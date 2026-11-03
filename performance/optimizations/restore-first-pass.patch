@@ -490,10 +490,10 @@ index 0000000..6a56c5f
 +    unittest.main()
 diff --git a/benchmarks/test_windows_optimization.py b/benchmarks/test_windows_optimization.py
 new file mode 100644
-index 0000000..1e1c722
+index 0000000..ece84cd
 --- /dev/null
 +++ b/benchmarks/test_windows_optimization.py
-@@ -0,0 +1,125 @@
+@@ -0,0 +1,147 @@
 +"""Failure injection against the actual Windows restore transaction."""
 +import argparse
 +import importlib
@@ -504,6 +504,7 @@ index 0000000..1e1c722
 +import sys
 +import sqlite3
 +import tempfile
++import threading
 +import unittest
 +from unittest.mock import patch
 +
@@ -533,9 +534,10 @@ index 0000000..1e1c722
 +            projects=[], additionalPortablePaths=[], excludeDirectoryNames=[],
 +            projectRegistryPath=str(root/'registry.json'),
 +            lineageStatePath=str(root/'lineage.json'), deviceStatePath=str(root/'device.json'))))
-+        self.package = backup.build_backup(argparse.Namespace(config=str(config),
++        self.build_args = argparse.Namespace(config=str(config),
 +            destination=str(root/'packages'), source_profile=str(source),
-+            source_codex_home=str(codex), allow_running_test=True))
++            source_codex_home=str(codex), allow_running_test=True)
++        self.package = backup.build_backup(self.build_args)
 +        self.target = root/'target'
 +        selftest._write_target(self.target, 'BEFORE')
 +        self.before = self.target_snapshot()
@@ -615,6 +617,26 @@ index 0000000..1e1c722
 +        self.assertFalse(result['valid'])
 +        self.assertTrue(any('Hash wijkt af' in e for e in result['errors']))
 +        self.assertGreaterEqual(result['checks']['hashedFilesChecked'], 80)
++
++    def test_mixed_large_file_preserves_chunk_progress_and_parallel_small_reads(self):
++        validator = importlib.import_module('codex_transfer.validate')
++        large = self.root/'source/Documents/DemoProject/large.bin'
++        large.write_bytes(b'x' * (17 * 1024 * 1024))
++        self.build_args.destination = str(self.root/'mixed-packages')
++        package = self.backup.build_backup(self.build_args)
++        coordinator = threading.get_ident()
++        seen = []
++        updates = []
++        original = validator.sha256_file
++        def record(path, progress=None):
++            seen.append((Path(path).name, threading.get_ident(), progress is not None))
++            return original(path, progress)
++        with patch.object(validator, 'sha256_file', record):
++            result = validator.validate(package, False, progress=lambda *p: updates.append(p))
++        self.assertTrue(result['valid'], result['errors'])
++        self.assertTrue(any(n == 'large.bin' and t == coordinator and p for n, t, p in seen))
++        self.assertTrue(any(n.startswith('payload-') and t != coordinator for n, t, _ in seen))
++        self.assertGreater(len(updates), 2)
 +
 +
 +if __name__ == '__main__':
@@ -1157,19 +1179,26 @@ index 0000000..ec91144
 +            value = value.replace(old, new)
 +        return value
 diff --git a/src/codex_transfer/validate.py b/src/codex_transfer/validate.py
-index 344e954..78d9fc9 100644
+index 344e954..f367f8d 100644
 --- a/src/codex_transfer/validate.py
 +++ b/src/codex_transfer/validate.py
-@@ -14,6 +14,8 @@ from pathlib import Path, PurePosixPath
+@@ -9,11 +9,15 @@ import hashlib
+ import json
+ import sqlite3
+ import time
++from threading import BoundedSemaphore
+ import urllib.parse
+ from pathlib import Path, PurePosixPath
  from typing import Any, Callable
  
  from . import lineage, path_model, project_identity, rollout as rollout_io
 +from .package_inventory import scan_package
 +from .parallel_hash import ordered_map
++from . import parallel_hash
  
  
  FORMAT_ID = "codex-portable-backup"
-@@ -213,11 +215,10 @@ def validate(
+@@ -213,11 +217,10 @@ def validate(
      except Exception as exc:
          errors.append(f"sha256.csv kan niet worden gelezen: {exc}")
  
@@ -1185,7 +1214,7 @@ index 344e954..78d9fc9 100644
      listed_files = set(hash_rows)
      for value in sorted(actual_files - listed_files):
          errors.append(f"Unexpected/unhashed file: {value}")
-@@ -229,50 +230,80 @@ def validate(
+@@ -229,50 +232,88 @@ def validate(
      last_update = 0.0
      if progress and verify_hashes:
          progress(0, max(total_hash_bytes, 1), f"Validating backup: 0/{len(hash_rows)} files")
@@ -1194,8 +1223,8 @@ index 344e954..78d9fc9 100644
 -    ):
 +    # Small files benefit from overlapping open/read/close operations. Keep
 +    # chunk-level progress on large files via the original sequential path.
-+    parallel_hashes = (verify_hashes and len(hash_rows) >= 64
-+                       and all(size <= 16 * 1024 * 1024 for size, _ in hash_rows.values()))
++    parallel_hashes = verify_hashes and len(hash_rows) >= 64
++    hash_slots = BoundedSemaphore(parallel_hash.HASH_WORKERS)
 +
 +    def hash_row(row):
 +        relative_path, (expected_size, _digest) = row
@@ -1212,7 +1241,10 @@ index 344e954..78d9fc9 100644
 -            file_bytes = 0
 +            return row, None, None
 +        size = path.stat().st_size
-+        digest = sha256_file(path) if size == expected_size else None
++        digest = None
++        if size == expected_size and size <= 16 * 1024 * 1024:
++            with hash_slots:
++                digest = sha256_file(path)
 +        return row, size, digest
  
 -            def chunk_progress(chunk_size: int) -> None:
@@ -1282,8 +1314,13 @@ index 344e954..78d9fc9 100644
 +                        )
 +                        last_update = now
 +
-+                actual_hash = (measured_hash if parallel_hashes else
-+                               sha256_file(path, chunk_progress))
++                if parallel_hashes and measured_hash is not None:
++                    actual_hash = measured_hash
++                else:
++                    # Large files keep byte-level progress on the coordinator.
++                    # Share the slots so this never adds a fifth concurrent read.
++                    with hash_slots:
++                        actual_hash = sha256_file(path, chunk_progress)
 +                checked_hashes += 1
 +                if actual_hash != expected_hash:
 +                    errors.append(f"Hash wijkt af: {relative_path}")
@@ -1306,7 +1343,7 @@ index 344e954..78d9fc9 100644
      checks["hashedFilesChecked"] = checked_hashes
      checks["payloadHashesVerified"] = verify_hashes
      if progress:
-@@ -652,14 +683,10 @@ def validate(
+@@ -652,14 +693,10 @@ def validate(
          )
      checks["dependencyExclusions"] = declared_dependency_exclusions
  
@@ -1325,7 +1362,7 @@ index 344e954..78d9fc9 100644
  
      database_path = package_root / "codex/state.snapshot.sqlite"
      database_threads: set[str] = set()
-@@ -1368,12 +1395,17 @@ def validate(
+@@ -1368,12 +1405,17 @@ def validate(
  
      if progress:
          progress(0, 0, "Checking backup history and portable relationships...")

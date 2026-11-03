@@ -1,3 +1,5 @@
+> Historical milestone. The integrated Windows delivery and current acceptance results are in [community-recovery-delivery.md](community-recovery-delivery.md).
+
 # Durable staging-copy checkpoints — implementation status
 
 This is the first recovery-feature increment after the current-format performance

@@ -1,3 +1,5 @@
+> Superseded by the [completed current-format performance pass and feature backlog](performance-pass-and-next-features.md). The patch now includes the complete pass, with final Windows validation and raw timing results.
+
 # Restore optimization candidate — 2026-11-03
 
 Based on dkwolf1/Codex-Lifeboat v3.4.11, commit 4fe9724ccb54422455544e56b54399fa2bc94bc3. Upstream MIT license applies to derived source. This is an experimental source patch, not a released recovery executable.

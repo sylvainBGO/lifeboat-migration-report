@@ -1,0 +1,3943 @@
+{
+  "schema": 1,
+  "upstream_commit": "4fe9724ccb54422455544e56b54399fa2bc94bc3",
+  "completed": true,
+  "passed": true,
+  "smoke": false,
+  "defender_start": {
+    "status": "ok",
+    "RealTimeProtectionEnabled": false,
+    "IsTamperProtected": false,
+    "AntivirusEnabled": true
+  },
+  "scenarios": [
+    {
+      "passed": true,
+      "profile": "small",
+      "backup_seconds": 24.190048100000013,
+      "results": [
+        {
+          "variant": "baseline",
+          "seconds": 32.11883130000001,
+          "valid": true,
+          "operations": {
+            "phases": {
+              "restore.prepare_restore": {
+                "hash_calls": 5026,
+                "hash_logical_bytes": 21076164,
+                "copy_calls": 6,
+                "copy_logical_bytes": 188,
+                "inclusive_seconds": 8.523007699999994,
+                "calls": 1
+              },
+              "restore.restore_backup": {
+                "hash_calls": 2,
+                "hash_logical_bytes": 54,
+                "copy_calls": 2,
+                "copy_logical_bytes": 41,
+                "inclusive_seconds": 23.595620300000007,
+                "calls": 1
+              },
+              "restore._ensure_restore_space": {
+                "inclusive_seconds": 1.9015885999992292,
+                "calls": 5049
+              },
+              "restore._restore_projects": {
+                "copy_calls": 5003,
+                "copy_logical_bytes": 5120070,
+                "inclusive_seconds": 18.83881489999999,
+                "calls": 1
+              },
+              "restore._project_manifest_entries": {
+                "inclusive_seconds": 0.50676529999987,
+                "calls": 40
+              },
+              "restore._verify_staged_project": {
+                "hash_calls": 5003,
+                "hash_logical_bytes": 5120070,
+                "inclusive_seconds": 5.204307399999777,
+                "calls": 40
+              },
+              "restore._build_restored_database": {
+                "copy_calls": 1,
+                "copy_logical_bytes": 57344,
+                "inclusive_seconds": 0.03021769999998014,
+                "calls": 1
+              },
+              "restore._restore_portable_profile": {
+                "rewrite_calls": 2,
+                "rewrite_logical_bytes": 35,
+                "inclusive_seconds": 0.00565679999999702,
+                "calls": 1
+              },
+              "restore._restore_sessions": {
+                "rewrite_calls": 4,
+                "rewrite_logical_bytes": 1143,
+                "inclusive_seconds": 0.013933300000019244,
+                "calls": 1
+              },
+              "restore._restore_attachments": {
+                "copy_calls": 1,
+                "copy_logical_bytes": 15,
+                "inclusive_seconds": 0.003197399999976369,
+                "calls": 1
+              },
+              "restore.verify_restored": {
+                "hash_calls": 5003,
+                "hash_logical_bytes": 5120070,
+                "inclusive_seconds": 4.517107699999997,
+                "calls": 1
+              }
+            },
+            "repeated_hash_calls_same_path": 1,
+            "repeated_writes_same_destination": 0,
+            "coverage": "Instrumented backup/validate SHA functions, shutil.copy2 and rollout rewrites. Counts include backup and restore; renamed paths are distinct. No claim of exhaustive physical reads. Phase times are inclusive and must not be summed."
+          },
+          "verification": {
+            "sqliteQuickCheck": "ok",
+            "threads": 3,
+            "expectedThreadIds": 3,
+            "recentIndexEntries": 2,
+            "projects": 40,
+            "projectDispositions": 0,
+            "pathPortability": {
+              "status": "portable",
+              "needsReviewReferences": 0,
+              "oldSourceReferences": 0,
+              "fieldsNeedingReview": 0
+            }
+          }
+        },
+        {
+          "variant": "indexed",
+          "seconds": 31.380760699999996,
+          "valid": true,
+          "operations": {
+            "phases": {
+              "restore.prepare_restore": {
+                "hash_calls": 5026,
+                "hash_logical_bytes": 21076164,
+                "copy_calls": 6,
+                "copy_logical_bytes": 188,
+                "inclusive_seconds": 8.443795899999998,
+                "calls": 1
+              },
+              "restore.restore_backup": {
+                "hash_calls": 2,
+                "hash_logical_bytes": 54,
+                "copy_calls": 2,
+                "copy_logical_bytes": 41,
+                "inclusive_seconds": 22.912438399999985,
+                "calls": 1
+              },
+              "restore._ensure_restore_space": {
+                "inclusive_seconds": 1.9105363999992733,
+                "calls": 5049
+              },
+              "restore._restore_projects": {
+                "copy_calls": 5003,
+                "copy_logical_bytes": 5120070,
+                "inclusive_seconds": 18.130969100000016,
+                "calls": 1
+              },
+              "restore._verify_staged_project": {
+                "hash_calls": 5003,
+                "hash_logical_bytes": 5120070,
+                "inclusive_seconds": 4.70219000000003,
+                "calls": 40
+              },
+              "restore._build_restored_database": {
+                "copy_calls": 1,
+                "copy_logical_bytes": 57344,
+                "inclusive_seconds": 0.03335939999999482,
+                "calls": 1
+              },
+              "restore._restore_portable_profile": {
+                "rewrite_calls": 2,
+                "rewrite_logical_bytes": 35,
+                "inclusive_seconds": 0.005446599999970658,
+                "calls": 1
+              },
+              "restore._restore_sessions": {
+                "rewrite_calls": 4,
+                "rewrite_logical_bytes": 1143,
+                "inclusive_seconds": 0.010915699999998196,
+                "calls": 1
+              },
+              "restore._restore_attachments": {
+                "copy_calls": 1,
+                "copy_logical_bytes": 15,
+                "inclusive_seconds": 0.003193199999998342,
+                "calls": 1
+              },
+              "restore.verify_restored": {
+                "hash_calls": 5003,
+                "hash_logical_bytes": 5120070,
+                "inclusive_seconds": 4.545487499999979,
+                "calls": 1
+              }
+            },
+            "repeated_hash_calls_same_path": 1,
+            "repeated_writes_same_destination": 0,
+            "coverage": "Instrumented backup/validate SHA functions, shutil.copy2 and rollout rewrites. Counts include backup and restore; renamed paths are distinct. No claim of exhaustive physical reads. Phase times are inclusive and must not be summed."
+          },
+          "verification": {
+            "sqliteQuickCheck": "ok",
+            "threads": 3,
+            "expectedThreadIds": 3,
+            "recentIndexEntries": 2,
+            "projects": 40,
+            "projectDispositions": 0,
+            "pathPortability": {
+              "status": "portable",
+              "needsReviewReferences": 0,
+              "oldSourceReferences": 0,
+              "fieldsNeedingReview": 0
+            }
+          }
+        }
+      ],
+      "backup_operations": {
+        "phases": {
+          "backup.build_backup": {
+            "copy_calls": 5012,
+            "copy_logical_bytes": 35092085,
+            "hash_calls": 5030,
+            "hash_logical_bytes": 21801166,
+            "inclusive_seconds": 24.190040099999976,
+            "calls": 1
+          }
+        },
+        "repeated_hash_calls_same_path": 4,
+        "repeated_writes_same_destination": 0,
+        "coverage": "Instrumented backup/validate SHA functions, shutil.copy2 and rollout rewrites. Counts include backup and restore; renamed paths are distinct. No claim of exhaustive physical reads. Phase times are inclusive and must not be summed."
+      },
+      "collision_check": null,
+      "secondary_backup_operations": null,
+      "fixture": {
+        "added_files": 5000,
+        "added_bytes": 5120000,
+        "additional_project_roots": 39
+      },
+      "limitations": "Same generated package; baseline runs first (cache bias). Indexed variant only replaces staging manifest selection. Official source/target fixtures include JSONL, ZST, attachment, SQLite and retained authentication.",
+      "seconds": 92.3343088,
+      "resources": {
+        "available": true,
+        "peak_working_set_bytes": 51286016,
+        "io": {
+          "ReadOperationCount": 126606,
+          "WriteOperationCount": 6298,
+          "OtherOperationCount": 3652489,
+          "ReadTransferCount": 184641864,
+          "WriteTransferCount": 67620361,
+          "OtherTransferCount": 204944232
+        },
+        "scope": "Entire scenario process including fixture/setup. OS logical I/O counters, not physical disk bytes."
+      },
+      "scenario": "restore-small",
+      "exit_code": 0
+    },
+    {
+      "passed": true,
+      "profile": "large",
+      "backup_seconds": 0.8458245999999576,
+      "results": [
+        {
+          "variant": "baseline",
+          "seconds": 0.818124800000021,
+          "valid": true,
+          "operations": {
+            "phases": {
+              "restore.prepare_restore": {
+                "hash_calls": 34,
+                "hash_logical_bytes": 149299289,
+                "copy_calls": 6,
+                "copy_logical_bytes": 188,
+                "inclusive_seconds": 0.2608179000000064,
+                "calls": 1
+              },
+              "restore.restore_backup": {
+                "hash_calls": 2,
+                "hash_logical_bytes": 54,
+                "copy_calls": 2,
+                "copy_logical_bytes": 41,
+                "inclusive_seconds": 0.557104900000013,
+                "calls": 1
+              },
+              "restore._ensure_restore_space": {
+                "inclusive_seconds": 0.007595199999968827,
+                "calls": 18
+              },
+              "restore._restore_projects": {
+                "copy_calls": 11,
+                "copy_logical_bytes": 134217798,
+                "inclusive_seconds": 0.27255519999999933,
+                "calls": 1
+              },
+              "restore._project_manifest_entries": {
+                "inclusive_seconds": 0.0002580999999963751,
+                "calls": 1
+              },
+              "restore._verify_staged_project": {
+                "hash_calls": 11,
+                "hash_logical_bytes": 134217798,
+                "inclusive_seconds": 0.14155399999998508,
+                "calls": 1
+              },
+              "restore._build_restored_database": {
+                "copy_calls": 1,
+                "copy_logical_bytes": 57344,
+                "inclusive_seconds": 0.029951699999969605,
+                "calls": 1
+              },
+              "restore._restore_portable_profile": {
+                "rewrite_calls": 2,
+                "rewrite_logical_bytes": 35,
+                "inclusive_seconds": 0.005377299999963725,
+                "calls": 1
+              },
+              "restore._restore_sessions": {
+                "rewrite_calls": 4,
+                "rewrite_logical_bytes": 1143,
+                "inclusive_seconds": 0.0109112999999752,
+                "calls": 1
+              },
+              "restore._restore_attachments": {
+                "copy_calls": 1,
+                "copy_logical_bytes": 15,
+                "inclusive_seconds": 0.003146000000015192,
+                "calls": 1
+              },
+              "restore.verify_restored": {
+                "hash_calls": 11,
+                "hash_logical_bytes": 134217798,
+                "inclusive_seconds": 0.14467919999998458,
+                "calls": 1
+              }
+            },
+            "repeated_hash_calls_same_path": 1,
+            "repeated_writes_same_destination": 0,
+            "coverage": "Instrumented backup/validate SHA functions, shutil.copy2 and rollout rewrites. Counts include backup and restore; renamed paths are distinct. No claim of exhaustive physical reads. Phase times are inclusive and must not be summed."
+          },
+          "verification": {
+            "sqliteQuickCheck": "ok",
+            "threads": 3,
+            "expectedThreadIds": 3,
+            "recentIndexEntries": 2,
+            "projects": 1,
+            "projectDispositions": 0,
+            "pathPortability": {
+              "status": "portable",
+              "needsReviewReferences": 0,
+              "oldSourceReferences": 0,
+              "fieldsNeedingReview": 0
+            }
+          }
+        },
+        {
+          "variant": "indexed",
+          "seconds": 0.8540065000000254,
+          "valid": true,
+          "operations": {
+            "phases": {
+              "restore.prepare_restore": {
+                "hash_calls": 34,
+                "hash_logical_bytes": 149299289,
+                "copy_calls": 6,
+                "copy_logical_bytes": 188,
+                "inclusive_seconds": 0.2684671000000094,
+                "calls": 1
+              },
+              "restore.restore_backup": {
+                "hash_calls": 2,
+                "hash_logical_bytes": 54,
+                "copy_calls": 2,
+                "copy_logical_bytes": 41,
+                "inclusive_seconds": 0.5831527000000278,
+                "calls": 1
+              },
+              "restore._ensure_restore_space": {
+                "inclusive_seconds": 0.007344499999987875,
+                "calls": 18
+              },
+              "restore._restore_projects": {
+                "copy_calls": 11,
+                "copy_logical_bytes": 134217798,
+                "inclusive_seconds": 0.274962099999982,
+                "calls": 1
+              },
+              "restore._verify_staged_project": {
+                "hash_calls": 11,
+                "hash_logical_bytes": 134217798,
+                "inclusive_seconds": 0.1394546999999875,
+                "calls": 1
+              },
+              "restore._build_restored_database": {
+                "copy_calls": 1,
+                "copy_logical_bytes": 57344,
+                "inclusive_seconds": 0.030876300000045376,
+                "calls": 1
+              },
+              "restore._restore_portable_profile": {
+                "rewrite_calls": 2,
+                "rewrite_logical_bytes": 35,
+                "inclusive_seconds": 0.005313999999998487,
+                "calls": 1
+              },
+              "restore._restore_sessions": {
+                "rewrite_calls": 4,
+                "rewrite_logical_bytes": 1143,
+                "inclusive_seconds": 0.010815100000002076,
+                "calls": 1
+              },
+              "restore._restore_attachments": {
+                "copy_calls": 1,
+                "copy_logical_bytes": 15,
+                "inclusive_seconds": 0.00316379999998162,
+                "calls": 1
+              },
+              "restore.verify_restored": {
+                "hash_calls": 11,
+                "hash_logical_bytes": 134217798,
+                "inclusive_seconds": 0.1431516999999758,
+                "calls": 1
+              }
+            },
+            "repeated_hash_calls_same_path": 1,
+            "repeated_writes_same_destination": 0,
+            "coverage": "Instrumented backup/validate SHA functions, shutil.copy2 and rollout rewrites. Counts include backup and restore; renamed paths are distinct. No claim of exhaustive physical reads. Phase times are inclusive and must not be summed."
+          },
+          "verification": {
+            "sqliteQuickCheck": "ok",
+            "threads": 3,
+            "expectedThreadIds": 3,
+            "recentIndexEntries": 2,
+            "projects": 1,
+            "projectDispositions": 0,
+            "pathPortability": {
+              "status": "portable",
+              "needsReviewReferences": 0,
+              "oldSourceReferences": 0,
+              "fieldsNeedingReview": 0
+            }
+          }
+        }
+      ],
+      "backup_operations": {
+        "phases": {
+          "backup.build_backup": {
+            "copy_calls": 20,
+            "copy_logical_bytes": 164189813,
+            "hash_calls": 38,
+            "hash_logical_bytes": 149312521,
+            "inclusive_seconds": 0.845818099999974,
+            "calls": 1
+          }
+        },
+        "repeated_hash_calls_same_path": 4,
+        "repeated_writes_same_destination": 0,
+        "coverage": "Instrumented backup/validate SHA functions, shutil.copy2 and rollout rewrites. Counts include backup and restore; renamed paths are distinct. No claim of exhaustive physical reads. Phase times are inclusive and must not be summed."
+      },
+      "collision_check": null,
+      "secondary_backup_operations": null,
+      "fixture": {
+        "added_files": 8,
+        "added_bytes": 134217728,
+        "additional_project_roots": 0
+      },
+      "limitations": "Same generated package; baseline runs first (cache bias). Indexed variant only replaces staging manifest selection. Official source/target fixtures include JSONL, ZST, attachment, SQLite and retained authentication.",
+      "seconds": 3.3392372999999793,
+      "resources": {
+        "available": true,
+        "peak_working_set_bytes": 49115136,
+        "io": {
+          "ReadOperationCount": 2959,
+          "WriteOperationCount": 581,
+          "OtherOperationCount": 32103,
+          "ReadTransferCount": 1422779452,
+          "WriteTransferCount": 567991664,
+          "OtherTransferCount": 1313492
+        },
+        "scope": "Entire scenario process including fixture/setup. OS logical I/O counters, not physical disk bytes."
+      },
+      "scenario": "restore-large",
+      "exit_code": 0
+    },
+    {
+      "passed": true,
+      "profile": "overlap",
+      "backup_seconds": 2.455116499999974,
+      "results": [
+        {
+          "variant": "baseline",
+          "seconds": 1.6308934000000477,
+          "valid": true,
+          "operations": {
+            "phases": {
+              "restore.prepare_restore": {
+                "hash_calls": 229,
+                "hash_logical_bytes": 119974658,
+                "copy_calls": 6,
+                "copy_logical_bytes": 188,
+                "inclusive_seconds": 0.4483922999999663,
+                "calls": 1
+              },
+              "restore.restore_backup": {
+                "hash_calls": 2,
+                "hash_logical_bytes": 54,
+                "copy_calls": 2,
+                "copy_logical_bytes": 41,
+                "inclusive_seconds": 1.1822879000000057,
+                "calls": 1
+              },
+              "restore._ensure_restore_space": {
+                "inclusive_seconds": 0.08299419999980273,
+                "calls": 213
+              },
+              "restore._restore_projects": {
+                "copy_calls": 205,
+                "copy_logical_bytes": 104858384,
+                "inclusive_seconds": 0.7745281999999634,
+                "calls": 1
+              },
+              "restore._project_manifest_entries": {
+                "inclusive_seconds": 0.0018886999999949694,
+                "calls": 2
+              },
+              "restore._verify_staged_project": {
+                "hash_calls": 205,
+                "hash_logical_bytes": 104858384,
+                "inclusive_seconds": 0.26046619999993936,
+                "calls": 2
+              },
+              "restore._build_restored_database": {
+                "copy_calls": 1,
+                "copy_logical_bytes": 57344,
+                "inclusive_seconds": 0.03175469999996494,
+                "calls": 1
+              },
+              "restore._restore_portable_profile": {
+                "copy_calls": 1,
+                "copy_logical_bytes": 700,
+                "rewrite_calls": 2,
+                "rewrite_logical_bytes": 35,
+                "inclusive_seconds": 0.008941100000015467,
+                "calls": 1
+              },
+              "restore._restore_sessions": {
+                "rewrite_calls": 4,
+                "rewrite_logical_bytes": 1144,
+                "inclusive_seconds": 0.01124499999997397,
+                "calls": 1
+              },
+              "restore._restore_attachments": {
+                "copy_calls": 1,
+                "copy_logical_bytes": 15,
+                "inclusive_seconds": 0.0030757000000107837,
+                "calls": 1
+              },
+              "restore.verify_restored": {
+                "hash_calls": 205,
+                "hash_logical_bytes": 104858384,
+                "inclusive_seconds": 0.2518744000000197,
+                "calls": 1
+              }
+            },
+            "repeated_hash_calls_same_path": 1,
+            "repeated_writes_same_destination": 0,
+            "coverage": "Instrumented backup/validate SHA functions, shutil.copy2 and rollout rewrites. Counts include backup and restore; renamed paths are distinct. No claim of exhaustive physical reads. Phase times are inclusive and must not be summed."
+          },
+          "verification": {
+            "sqliteQuickCheck": "ok",
+            "threads": 3,
+            "expectedThreadIds": 3,
+            "recentIndexEntries": 2,
+            "projects": 2,
+            "projectDispositions": 0,
+            "pathPortability": {
+              "status": "portable",
+              "needsReviewReferences": 0,
+              "oldSourceReferences": 0,
+              "fieldsNeedingReview": 0
+            }
+          }
+        },
+        {
+          "variant": "indexed",
+          "seconds": 1.6325750999999968,
+          "valid": true,
+          "operations": {
+            "phases": {
+              "restore.prepare_restore": {
+                "hash_calls": 229,
+                "hash_logical_bytes": 119974658,
+                "copy_calls": 6,
+                "copy_logical_bytes": 188,
+                "inclusive_seconds": 0.4505087000000003,
+                "calls": 1
+              },
+              "restore.restore_backup": {
+                "hash_calls": 2,
+                "hash_logical_bytes": 54,
+                "copy_calls": 2,
+                "copy_logical_bytes": 41,
+                "inclusive_seconds": 1.1785466000000042,
+                "calls": 1
+              },
+              "restore._ensure_restore_space": {
+                "inclusive_seconds": 0.08118659999990996,
+                "calls": 213
+              },
+              "restore._restore_projects": {
+                "copy_calls": 205,
+                "copy_logical_bytes": 104858384,
+                "inclusive_seconds": 0.7497880000000237,
+                "calls": 1
+              },
+              "restore._verify_staged_project": {
+                "hash_calls": 205,
+                "hash_logical_bytes": 104858384,
+                "inclusive_seconds": 0.26168970000003355,
+                "calls": 2
+              },
+              "restore._build_restored_database": {
+                "copy_calls": 1,
+                "copy_logical_bytes": 57344,
+                "inclusive_seconds": 0.031091300000014144,
+                "calls": 1
+              },
+              "restore._restore_portable_profile": {
+                "copy_calls": 1,
+                "copy_logical_bytes": 700,
+                "rewrite_calls": 2,
+                "rewrite_logical_bytes": 35,
+                "inclusive_seconds": 0.008781099999964681,
+                "calls": 1
+              },
+              "restore._restore_sessions": {
+                "rewrite_calls": 4,
+                "rewrite_logical_bytes": 1144,
+                "inclusive_seconds": 0.011001800000030926,
+                "calls": 1
+              },
+              "restore._restore_attachments": {
+                "copy_calls": 1,
+                "copy_logical_bytes": 15,
+                "inclusive_seconds": 0.0030567000000019107,
+                "calls": 1
+              },
+              "restore.verify_restored": {
+                "hash_calls": 205,
+                "hash_logical_bytes": 104858384,
+                "inclusive_seconds": 0.252967999999953,
+                "calls": 1
+              }
+            },
+            "repeated_hash_calls_same_path": 1,
+            "repeated_writes_same_destination": 0,
+            "coverage": "Instrumented backup/validate SHA functions, shutil.copy2 and rollout rewrites. Counts include backup and restore; renamed paths are distinct. No claim of exhaustive physical reads. Phase times are inclusive and must not be summed."
+          },
+          "verification": {
+            "sqliteQuickCheck": "ok",
+            "threads": 3,
+            "expectedThreadIds": 3,
+            "recentIndexEntries": 2,
+            "projects": 2,
+            "projectDispositions": 0,
+            "pathPortability": {
+              "status": "portable",
+              "needsReviewReferences": 0,
+              "oldSourceReferences": 0,
+              "fieldsNeedingReview": 0
+            }
+          }
+        }
+      ],
+      "backup_operations": {
+        "phases": {
+          "backup.build_backup": {
+            "copy_calls": 216,
+            "copy_logical_bytes": 134831114,
+            "hash_calls": 234,
+            "hash_logical_bytes": 120019468,
+            "inclusive_seconds": 1.2960026000000084,
+            "calls": 1
+          }
+        },
+        "repeated_hash_calls_same_path": 4,
+        "repeated_writes_same_destination": 0,
+        "coverage": "Instrumented backup/validate SHA functions, shutil.copy2 and rollout rewrites. Counts include backup and restore; renamed paths are distinct. No claim of exhaustive physical reads. Phase times are inclusive and must not be summed."
+      },
+      "collision_check": {
+        "rejected": true,
+        "target_unchanged": true
+      },
+      "secondary_backup_operations": {
+        "phases": {
+          "backup.build_backup": {
+            "copy_calls": 214,
+            "copy_logical_bytes": 119845689,
+            "hash_calls": 233,
+            "hash_logical_bytes": 120015749,
+            "inclusive_seconds": 1.1590978999999493,
+            "calls": 1
+          }
+        },
+        "repeated_hash_calls_same_path": 4,
+        "repeated_writes_same_destination": 0,
+        "coverage": "Instrumented backup/validate SHA functions, shutil.copy2 and rollout rewrites. Counts include backup and restore; renamed paths are distinct. No claim of exhaustive physical reads. Phase times are inclusive and must not be summed."
+      },
+      "fixture": {
+        "added_files": 200,
+        "added_bytes": 104857600,
+        "additional_project_roots": 2
+      },
+      "limitations": "Same generated package; baseline runs first (cache bias). Indexed variant only replaces staging manifest selection. Official source/target fixtures include JSONL, ZST, attachment, SQLite and retained authentication.",
+      "seconds": 7.195626800000014,
+      "resources": {
+        "available": true,
+        "peak_working_set_bytes": 41914368,
+        "io": {
+          "ReadOperationCount": 8568,
+          "WriteOperationCount": 935,
+          "OtherOperationCount": 177333,
+          "ReadTransferCount": 1490226809,
+          "WriteTransferCount": 570818996,
+          "OtherTransferCount": 9556644
+        },
+        "scope": "Entire scenario process including fixture/setup. OS logical I/O counters, not physical disk bytes."
+      },
+      "scenario": "restore-overlap",
+      "exit_code": 0
+    },
+    {
+      "passed": true,
+      "data": {
+        "schema": 1,
+        "kind": "manifest-suite",
+        "completed": true,
+        "scenarios": [
+          {
+            "schema": 1,
+            "kind": "manifest-index",
+            "platform": "Windows-2025Server-10.0.26100-SP0",
+            "python": "3.12.10",
+            "rows": 100000,
+            "projects": 40,
+            "repeats": 3,
+            "results": [
+              {
+                "strategy": "baseline",
+                "repeat": 0,
+                "build_seconds": 0,
+                "select_seconds": 8.577369500000032,
+                "seconds": 8.577369500000032,
+                "index_bytes": 0,
+                "csv_rows_read": 4000000,
+                "identical_results": true
+              },
+              {
+                "strategy": "sqlite",
+                "repeat": 0,
+                "build_seconds": 0.4237692000000379,
+                "select_seconds": 0.12273129999988441,
+                "seconds": 0.5465004999999223,
+                "index_bytes": 10424320,
+                "csv_rows_read": 100000,
+                "identical_results": true
+              },
+              {
+                "strategy": "sqlite",
+                "repeat": 1,
+                "build_seconds": 0.41641480000004094,
+                "select_seconds": 0.12042130000014595,
+                "seconds": 0.5368361000001869,
+                "index_bytes": 10424320,
+                "csv_rows_read": 100000,
+                "identical_results": true
+              },
+              {
+                "strategy": "baseline",
+                "repeat": 1,
+                "build_seconds": 0,
+                "select_seconds": 8.55870550000003,
+                "seconds": 8.55870550000003,
+                "index_bytes": 0,
+                "csv_rows_read": 4000000,
+                "identical_results": true
+              },
+              {
+                "strategy": "baseline",
+                "repeat": 2,
+                "build_seconds": 0,
+                "select_seconds": 8.544212400000049,
+                "seconds": 8.544212400000049,
+                "index_bytes": 0,
+                "csv_rows_read": 4000000,
+                "identical_results": true
+              },
+              {
+                "strategy": "sqlite",
+                "repeat": 2,
+                "build_seconds": 0.41722679999998036,
+                "select_seconds": 0.12675639999991972,
+                "seconds": 0.5439831999999001,
+                "index_bytes": 10424320,
+                "csv_rows_read": 100000,
+                "identical_results": true
+              }
+            ],
+            "completed": true,
+            "limitations": "Synthetic warm-cache test. Includes index construction. No file copy or content hashing. Timings exclude comparison signatures. SQLite cache target is not a process memory cap.",
+            "fixture_seconds": 0.2001969000000372,
+            "csv_bytes": 9063917
+          },
+          {
+            "schema": 1,
+            "kind": "manifest-index",
+            "platform": "Windows-2025Server-10.0.26100-SP0",
+            "python": "3.12.10",
+            "rows": 1000000,
+            "projects": 40,
+            "repeats": 1,
+            "results": [
+              {
+                "strategy": "baseline",
+                "repeat": 0,
+                "build_seconds": 0,
+                "select_seconds": 85.82787879999995,
+                "seconds": 85.82787879999995,
+                "index_bytes": 0,
+                "csv_rows_read": 40000000,
+                "identical_results": true
+              },
+              {
+                "strategy": "sqlite",
+                "repeat": 0,
+                "build_seconds": 4.363418200000012,
+                "select_seconds": 1.322132700000168,
+                "seconds": 5.68555090000018,
+                "index_bytes": 105000960,
+                "csv_rows_read": 1000000,
+                "identical_results": true
+              }
+            ],
+            "completed": true,
+            "limitations": "Synthetic warm-cache test. Includes index construction. No file copy or content hashing. Timings exclude comparison signatures. SQLite cache target is not a process memory cap.",
+            "fixture_seconds": 1.956748800000014,
+            "csv_bytes": 91638917
+          }
+        ]
+      },
+      "seconds": 127.39326539999996,
+      "resources": {
+        "available": true,
+        "peak_working_set_bytes": 48308224,
+        "io": {
+          "ReadOperationCount": 628132,
+          "WriteOperationCount": 48430,
+          "OtherOperationCount": 2863,
+          "ReadTransferCount": 5009128711,
+          "WriteTransferCount": 248839865,
+          "OtherTransferCount": 83406
+        },
+        "scope": "Entire scenario process including fixture/setup. OS logical I/O counters, not physical disk bytes."
+      },
+      "scenario": "manifest",
+      "exit_code": 0
+    },
+    {
+      "passed": true,
+      "data": {
+        "schema": 2,
+        "version": "0.2",
+        "profile": "mixed",
+        "platform": "Windows-2025Server-10.0.26100-SP0",
+        "python": "3.12.10",
+        "file_count": 3000,
+        "file_bytes": 4096,
+        "repeats": 3,
+        "results": [
+          {
+            "strategy": "fused_no_metadata",
+            "repeat": 0,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "copy_and_source_hash",
+                "seconds": 4.2391389,
+                "cpu_seconds": 3.109375
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.798043000000007,
+                "cpu_seconds": 1.8125,
+                "details": {
+                  "hash_read_seconds": 1.5644804000000363,
+                  "slowest_file_seconds": [
+                    0.007198700000003555,
+                    0.0007921000000123968,
+                    0.0007575000000201726,
+                    0.0007570999999870764,
+                    0.0007548000000383581,
+                    0.0007284999999797037,
+                    0.0007257999999978892,
+                    0.0007243000000016764,
+                    0.0007213999999748921,
+                    0.0007211999999867658
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.037181900000007,
+            "verified": true
+          },
+          {
+            "strategy": "fused",
+            "repeat": 0,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "copy_and_source_hash",
+                "seconds": 5.076228800000024,
+                "cpu_seconds": 3.796875
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.8348914999999693,
+                "cpu_seconds": 1.765625,
+                "details": {
+                  "hash_read_seconds": 1.5749245000000087,
+                  "slowest_file_seconds": [
+                    0.009551600000008875,
+                    0.0010346999999910622,
+                    0.000860700000032466,
+                    0.0008219000000053711,
+                    0.0007714000000191845,
+                    0.000752499999975953,
+                    0.0007426000000236854,
+                    0.0007386999999994259,
+                    0.0007365999999819905,
+                    0.0007353999999963889
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.911120299999993,
+            "verified": true
+          },
+          {
+            "strategy": "zip",
+            "repeat": 0,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "extract_with_crc",
+                "seconds": 2.6166248999999766,
+                "cpu_seconds": 1.515625
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.8072003999999993,
+                "cpu_seconds": 1.75,
+                "details": {
+                  "hash_read_seconds": 1.5710361000000148,
+                  "slowest_file_seconds": [
+                    0.003366200000016306,
+                    0.0008914999999660722,
+                    0.0008525999999733358,
+                    0.00084500000002663,
+                    0.0008350999999606756,
+                    0.0008229000000028464,
+                    0.000820099999998547,
+                    0.0008100000000013097,
+                    0.0008094000000369306,
+                    0.0008023999999977605
+                  ]
+                }
+              }
+            ],
+            "seconds": 4.423825299999976,
+            "verified": true
+          },
+          {
+            "strategy": "copytree_no_metadata",
+            "repeat": 0,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.8490628999999785,
+                "cpu_seconds": 1.859375,
+                "details": {
+                  "hash_read_seconds": 1.6066329000000223,
+                  "slowest_file_seconds": [
+                    0.005626600000027793,
+                    0.005503599999997277,
+                    0.00275099999998929,
+                    0.0019543999999882544,
+                    0.0019002999999884196,
+                    0.0018509999999878346,
+                    0.0018309999999814863,
+                    0.0018147000000112712,
+                    0.001803299999949104,
+                    0.0018006999999897744
+                  ]
+                }
+              },
+              {
+                "phase": "copy",
+                "seconds": 2.635257000000024,
+                "cpu_seconds": 1.609375
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.8021732999999927,
+                "cpu_seconds": 1.78125,
+                "details": {
+                  "hash_read_seconds": 1.5728778999999804,
+                  "slowest_file_seconds": [
+                    0.004815900000039619,
+                    0.0009479999999939537,
+                    0.0009164999999597967,
+                    0.0008422000000223306,
+                    0.0008365999999568885,
+                    0.0008109999999987849,
+                    0.000791700000036144,
+                    0.0007906000000161839,
+                    0.0007832000000007611,
+                    0.0007654999999999745
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.286493199999995,
+            "verified": true
+          },
+          {
+            "strategy": "copyfile",
+            "repeat": 0,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.8220294000000195,
+                "cpu_seconds": 1.796875,
+                "details": {
+                  "hash_read_seconds": 1.5940721000000053,
+                  "slowest_file_seconds": [
+                    0.006799700000044595,
+                    0.0038200000000188084,
+                    0.0018328000000451539,
+                    0.001756599999964692,
+                    0.001747899999998026,
+                    0.0017241999999555446,
+                    0.0016765999999961423,
+                    0.0016760999999974047,
+                    0.0016580999999860069,
+                    0.0016270000000417895
+                  ]
+                }
+              },
+              {
+                "phase": "listed_copy2",
+                "seconds": 3.4267977999999744,
+                "cpu_seconds": 1.875
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.8147351999999728,
+                "cpu_seconds": 1.796875,
+                "details": {
+                  "hash_read_seconds": 1.5806334999999763,
+                  "slowest_file_seconds": [
+                    0.008131100000014158,
+                    0.0009252999999489475,
+                    0.0009001999999327381,
+                    0.0008128000000624525,
+                    0.000796400000012909,
+                    0.0007768000000396569,
+                    0.0007759000000078231,
+                    0.0007728000000497559,
+                    0.0007613000000219472,
+                    0.0007601999999451436
+                  ]
+                }
+              }
+            ],
+            "seconds": 7.063562399999967,
+            "verified": true
+          },
+          {
+            "strategy": "separate",
+            "repeat": 0,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.7951468999999634,
+                "cpu_seconds": 1.78125,
+                "details": {
+                  "hash_read_seconds": 1.5690640000000258,
+                  "slowest_file_seconds": [
+                    0.008423799999945913,
+                    0.004705700000044999,
+                    0.0008296999999402033,
+                    0.0008252000000084081,
+                    0.0008076000000301065,
+                    0.0008076000000301065,
+                    0.0007646999999906257,
+                    0.0007515999999441192,
+                    0.0007364000000507076,
+                    0.0007315999999946143
+                  ]
+                }
+              },
+              {
+                "phase": "copy",
+                "seconds": 3.182806000000028,
+                "cpu_seconds": 1.484375
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.8079453000000285,
+                "cpu_seconds": 1.796875,
+                "details": {
+                  "hash_read_seconds": 1.579496899999981,
+                  "slowest_file_seconds": [
+                    0.005351799999971263,
+                    0.000922599999967133,
+                    0.0008661000000529384,
+                    0.0008616999999730979,
+                    0.0008189000000129454,
+                    0.0007822999999689273,
+                    0.0007662000000436819,
+                    0.0007571000001007633,
+                    0.0007527000000209227,
+                    0.0007475000001022636
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.78589820000002,
+            "verified": true
+          },
+          {
+            "strategy": "separate",
+            "repeat": 1,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.8284673000000566,
+                "cpu_seconds": 1.796875,
+                "details": {
+                  "hash_read_seconds": 1.5982611000000588,
+                  "slowest_file_seconds": [
+                    0.003968200000031175,
+                    0.0031427999999777967,
+                    0.0019247999999834065,
+                    0.001760300000000825,
+                    0.0016964999999800057,
+                    0.0016814000000522356,
+                    0.0016481000000112545,
+                    0.0016322999999829335,
+                    0.0016226999999844338,
+                    0.001610700000014731
+                  ]
+                }
+              },
+              {
+                "phase": "copy",
+                "seconds": 3.1420530999999983,
+                "cpu_seconds": 1.4375
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.80217760000005,
+                "cpu_seconds": 1.78125,
+                "details": {
+                  "hash_read_seconds": 1.5681521000000203,
+                  "slowest_file_seconds": [
+                    0.007189799999991919,
+                    0.003156600000011167,
+                    0.0010556999999380423,
+                    0.0009618000000273241,
+                    0.0008921999999529362,
+                    0.0008222999999816238,
+                    0.0008149999999886859,
+                    0.0008131000000730637,
+                    0.0007613999999875887,
+                    0.0007607999999663662
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.772698000000105,
+            "verified": true
+          },
+          {
+            "strategy": "fused_no_metadata",
+            "repeat": 1,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "copy_and_source_hash",
+                "seconds": 4.035199700000021,
+                "cpu_seconds": 3.046875
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.8193591000000424,
+                "cpu_seconds": 1.8125,
+                "details": {
+                  "hash_read_seconds": 1.5632779000000028,
+                  "slowest_file_seconds": [
+                    0.010191300000087722,
+                    0.0008331000000225686,
+                    0.0007924999999886495,
+                    0.0007887000000437183,
+                    0.0007841000000325948,
+                    0.000783399999932044,
+                    0.0007659999999987122,
+                    0.0007564000000002125,
+                    0.0007461000000148488,
+                    0.0007387000000562693
+                  ]
+                }
+              }
+            ],
+            "seconds": 5.8545588000000635,
+            "verified": true
+          },
+          {
+            "strategy": "copytree_no_metadata",
+            "repeat": 1,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.839288599999918,
+                "cpu_seconds": 1.796875,
+                "details": {
+                  "hash_read_seconds": 1.5580881999999292,
+                  "slowest_file_seconds": [
+                    0.010080499999958192,
+                    0.000993600000015249,
+                    0.0008249999999634383,
+                    0.0007994999999709762,
+                    0.000793799999996736,
+                    0.000786500000003798,
+                    0.0007732999999916501,
+                    0.0007704999999305073,
+                    0.000745199999983015,
+                    0.0007418000000143365
+                  ]
+                }
+              },
+              {
+                "phase": "copy",
+                "seconds": 2.429828200000088,
+                "cpu_seconds": 1.59375
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.8845245999999634,
+                "cpu_seconds": 1.8125,
+                "details": {
+                  "hash_read_seconds": 1.6070757999999614,
+                  "slowest_file_seconds": [
+                    0.009021899999993366,
+                    0.0011961000000155764,
+                    0.0010518000000274697,
+                    0.000980599999934384,
+                    0.0009598000000323736,
+                    0.0009248000000070533,
+                    0.0008829999999306892,
+                    0.0008795999999620108,
+                    0.0008606000000099812,
+                    0.0008600000001024455
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.1536413999999695,
+            "verified": true
+          },
+          {
+            "strategy": "fused",
+            "repeat": 1,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "copy_and_source_hash",
+                "seconds": 4.929741799999988,
+                "cpu_seconds": 3.875
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.8188807000000224,
+                "cpu_seconds": 1.828125,
+                "details": {
+                  "hash_read_seconds": 1.5812539999999444,
+                  "slowest_file_seconds": [
+                    0.0047326999999768304,
+                    0.0014959000000089873,
+                    0.0011935999999650448,
+                    0.0010577999998986343,
+                    0.0010290999999824635,
+                    0.0009622999999692183,
+                    0.0009387000000060652,
+                    0.0008803999999145162,
+                    0.000852300000019568,
+                    0.0008052000000589032
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.74862250000001,
+            "verified": true
+          },
+          {
+            "strategy": "copyfile",
+            "repeat": 1,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.8139668000000029,
+                "cpu_seconds": 1.8125,
+                "details": {
+                  "hash_read_seconds": 1.5817751000000726,
+                  "slowest_file_seconds": [
+                    0.005310099999974227,
+                    0.002588300000070376,
+                    0.0024454000000559972,
+                    0.0024349000000256638,
+                    0.0022943000000168468,
+                    0.002047400000037669,
+                    0.002041399999939131,
+                    0.0019384999999374486,
+                    0.0017260000000760556,
+                    0.0016518999999561856
+                  ]
+                }
+              },
+              {
+                "phase": "listed_copy2",
+                "seconds": 3.044797199999948,
+                "cpu_seconds": 1.890625
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.851594500000033,
+                "cpu_seconds": 1.8125,
+                "details": {
+                  "hash_read_seconds": 1.5665519000000359,
+                  "slowest_file_seconds": [
+                    0.00901299999998173,
+                    0.0009431999999378604,
+                    0.0009326999999075269,
+                    0.0008798000000069806,
+                    0.0008389999999280917,
+                    0.0007568999999421067,
+                    0.0007552000000714543,
+                    0.0007464999999911015,
+                    0.0007462000000941771,
+                    0.0007384000000456581
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.710358499999984,
+            "verified": true
+          },
+          {
+            "strategy": "zip",
+            "repeat": 1,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "extract_with_crc",
+                "seconds": 2.5837523000000147,
+                "cpu_seconds": 1.390625
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.8134732999999414,
+                "cpu_seconds": 1.796875,
+                "details": {
+                  "hash_read_seconds": 1.5844246999999996,
+                  "slowest_file_seconds": [
+                    0.011029300000018338,
+                    0.0016596000000390632,
+                    0.0012831999999889376,
+                    0.0008778000000120301,
+                    0.00083319999998821,
+                    0.0008265999999821361,
+                    0.0008216999999604013,
+                    0.0008124000000861997,
+                    0.0008104999999432039,
+                    0.0008071000000882123
+                  ]
+                }
+              }
+            ],
+            "seconds": 4.397225599999956,
+            "verified": true
+          },
+          {
+            "strategy": "fused",
+            "repeat": 2,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "copy_and_source_hash",
+                "seconds": 4.973515600000042,
+                "cpu_seconds": 3.84375
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.7945945999999822,
+                "cpu_seconds": 1.765625,
+                "details": {
+                  "hash_read_seconds": 1.566872099999955,
+                  "slowest_file_seconds": [
+                    0.0072073000000045795,
+                    0.0009009999999989304,
+                    0.0008274000000483284,
+                    0.0008055000000695145,
+                    0.0007752999999866006,
+                    0.0007669999999961874,
+                    0.000765500000056818,
+                    0.0007627999999613166,
+                    0.0007626000000300337,
+                    0.0007455999999592677
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.768110200000024,
+            "verified": true
+          },
+          {
+            "strategy": "fused_no_metadata",
+            "repeat": 2,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "copy_and_source_hash",
+                "seconds": 3.957627200000047,
+                "cpu_seconds": 3.078125
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.8234761999999591,
+                "cpu_seconds": 1.734375,
+                "details": {
+                  "hash_read_seconds": 1.5753871000000572,
+                  "slowest_file_seconds": [
+                    0.011184299999968061,
+                    0.0009476999999833424,
+                    0.0009105999999974301,
+                    0.0008662999999842214,
+                    0.0008248999999977968,
+                    0.0008157999999411913,
+                    0.0007998999999472289,
+                    0.0007744999999204083,
+                    0.0007709000000204469,
+                    0.0007660999999643536
+                  ]
+                }
+              }
+            ],
+            "seconds": 5.781103400000006,
+            "verified": true
+          },
+          {
+            "strategy": "copytree_no_metadata",
+            "repeat": 2,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.8532936999999947,
+                "cpu_seconds": 1.8125,
+                "details": {
+                  "hash_read_seconds": 1.5689919000000145,
+                  "slowest_file_seconds": [
+                    0.009632600000031744,
+                    0.0008587999999463136,
+                    0.0008273000000826869,
+                    0.0008248999999977968,
+                    0.0007789999999658903,
+                    0.0007718000000522807,
+                    0.0007455999999592677,
+                    0.0007448000000067623,
+                    0.0007339999999658176,
+                    0.0007253999999647931
+                  ]
+                }
+              },
+              {
+                "phase": "copy",
+                "seconds": 2.872690200000079,
+                "cpu_seconds": 1.4375
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.7919173999999884,
+                "cpu_seconds": 1.78125,
+                "details": {
+                  "hash_read_seconds": 1.5631743000000142,
+                  "slowest_file_seconds": [
+                    0.008652699999970537,
+                    0.001090800000042691,
+                    0.0009229999999433858,
+                    0.0008996999999908439,
+                    0.0008992000000489497,
+                    0.0008887000000186163,
+                    0.0008621000000630374,
+                    0.0008363000000599641,
+                    0.0008298000000195316,
+                    0.0008152999999992971
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.517901300000062,
+            "verified": true
+          },
+          {
+            "strategy": "separate",
+            "repeat": 2,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.789979399999993,
+                "cpu_seconds": 1.78125,
+                "details": {
+                  "hash_read_seconds": 1.5599842000000308,
+                  "slowest_file_seconds": [
+                    0.009608899999989262,
+                    0.0008404000000155065,
+                    0.0008397000000286425,
+                    0.0008344000000306551,
+                    0.0008031999999502659,
+                    0.0007927999999992608,
+                    0.0007685000000492437,
+                    0.0007592000000613552,
+                    0.000747100000012324,
+                    0.0007461999999804902
+                  ]
+                }
+              },
+              {
+                "phase": "copy",
+                "seconds": 2.8575684999999567,
+                "cpu_seconds": 1.40625
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.8112509999999702,
+                "cpu_seconds": 1.796875,
+                "details": {
+                  "hash_read_seconds": 1.583045699999957,
+                  "slowest_file_seconds": [
+                    0.006058700000039607,
+                    0.0012131000000863423,
+                    0.0011247999999568492,
+                    0.0010684999999739375,
+                    0.000980900000058682,
+                    0.000976599999944483,
+                    0.000976599999944483,
+                    0.0009688000000096508,
+                    0.0009575000000268119,
+                    0.0008722000000034313
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.45879889999992,
+            "verified": true
+          },
+          {
+            "strategy": "zip",
+            "repeat": 2,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "extract_with_crc",
+                "seconds": 2.164332400000035,
+                "cpu_seconds": 1.390625
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.8235449000000017,
+                "cpu_seconds": 1.765625,
+                "details": {
+                  "hash_read_seconds": 1.5698913999999604,
+                  "slowest_file_seconds": [
+                    0.010363900000015747,
+                    0.0012045999999372725,
+                    0.0009560000000874425,
+                    0.0008973000000196407,
+                    0.00080040000000281,
+                    0.000799199999960365,
+                    0.0007918000000017855,
+                    0.0007897000000411936,
+                    0.000784599999974489,
+                    0.0007754000000659289
+                  ]
+                }
+              }
+            ],
+            "seconds": 3.9878773000000365,
+            "verified": true
+          },
+          {
+            "strategy": "copyfile",
+            "repeat": 2,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.859863799999971,
+                "cpu_seconds": 1.8125,
+                "details": {
+                  "hash_read_seconds": 1.5681382999999869,
+                  "slowest_file_seconds": [
+                    0.009670799999980773,
+                    0.0009670000000596701,
+                    0.0008074999999507781,
+                    0.0007626999999956752,
+                    0.000745899999969879,
+                    0.0007448000000067623,
+                    0.0007399000000987144,
+                    0.0007394000000431333,
+                    0.0007211999999299223,
+                    0.0007127999999738677
+                  ]
+                }
+              },
+              {
+                "phase": "listed_copy2",
+                "seconds": 3.239401599999951,
+                "cpu_seconds": 2
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.830733900000041,
+                "cpu_seconds": 1.78125,
+                "details": {
+                  "hash_read_seconds": 1.601909800000044,
+                  "slowest_file_seconds": [
+                    0.011196799999993345,
+                    0.005696899999975358,
+                    0.0009932000000389962,
+                    0.0009590999999318228,
+                    0.0008642000000236294,
+                    0.0008548999999220541,
+                    0.000853000000006432,
+                    0.0008251999998947213,
+                    0.0008233999999447406,
+                    0.0008218000000397296
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.929999299999963,
+            "verified": true
+          }
+        ],
+        "limitations": [
+          "Synthetic strategies, not full restore timings",
+          "Warm OS cache; no cache eviction or physical I/O measurement",
+          "SHA-256 destination readback is not a physical durability guarantee",
+          "ZIP preparation is measured separately; metadata fidelity not equivalent",
+          "No Defender settings changed"
+        ],
+        "defender_start": {
+          "status": "ok",
+          "RealTimeProtectionEnabled": false,
+          "IsTamperProtected": false,
+          "AntivirusEnabled": true
+        },
+        "setup": [
+          {
+            "phase": "fixture_generation",
+            "seconds": 2.504123800000002,
+            "cpu_seconds": 1.515625
+          },
+          {
+            "phase": "archive_preparation",
+            "seconds": 0.7797392000000514,
+            "cpu_seconds": 0.765625
+          }
+        ],
+        "archive_bytes": 6608845,
+        "defender_end": {
+          "status": "ok",
+          "RealTimeProtectionEnabled": false,
+          "IsTamperProtected": false,
+          "AntivirusEnabled": true
+        }
+      },
+      "seconds": 135.52268209999994,
+      "resources": {
+        "available": true,
+        "peak_working_set_bytes": 39604224,
+        "io": {
+          "ReadOperationCount": 344690,
+          "WriteOperationCount": 45141,
+          "OtherOperationCount": 2408402,
+          "ReadTransferCount": 551525451,
+          "WriteTransferCount": 240227099,
+          "OtherTransferCount": 63879268
+        },
+        "scope": "Entire scenario process including fixture/setup. OS logical I/O counters, not physical disk bytes."
+      },
+      "scenario": "io-mixed",
+      "exit_code": 0
+    },
+    {
+      "passed": true,
+      "data": {
+        "schema": 2,
+        "version": "0.2",
+        "profile": "incompressible",
+        "platform": "Windows-2025Server-10.0.26100-SP0",
+        "python": "3.12.10",
+        "file_count": 3000,
+        "file_bytes": 4096,
+        "repeats": 3,
+        "results": [
+          {
+            "strategy": "fused_no_metadata",
+            "repeat": 0,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "copy_and_source_hash",
+                "seconds": 4.275814700000069,
+                "cpu_seconds": 3.09375
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.7886376000000155,
+                "cpu_seconds": 1.765625,
+                "details": {
+                  "hash_read_seconds": 1.5505886999999348,
+                  "slowest_file_seconds": [
+                    0.00634679999996024,
+                    0.0008437000000185435,
+                    0.0007844000000432061,
+                    0.0007495999999491687,
+                    0.0007408999999825028,
+                    0.0007320000000845539,
+                    0.0007302000000208864,
+                    0.0007206000000223867,
+                    0.0007156000000350105,
+                    0.000708900000063295
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.0644523000000845,
+            "verified": true
+          },
+          {
+            "strategy": "fused",
+            "repeat": 0,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "copy_and_source_hash",
+                "seconds": 5.412654099999941,
+                "cpu_seconds": 4.015625
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.8192890000000261,
+                "cpu_seconds": 1.765625,
+                "details": {
+                  "hash_read_seconds": 1.5845392999999603,
+                  "slowest_file_seconds": [
+                    0.007421000000022104,
+                    0.0011087000000316038,
+                    0.0009711000000152126,
+                    0.0009321999999656327,
+                    0.0009007999999539607,
+                    0.0008914000000004307,
+                    0.0008912999999211024,
+                    0.000885799999991832,
+                    0.000884400000018104,
+                    0.0008616999999730979
+                  ]
+                }
+              }
+            ],
+            "seconds": 7.231943099999967,
+            "verified": true
+          },
+          {
+            "strategy": "zip",
+            "repeat": 0,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "extract_with_crc",
+                "seconds": 2.8173644999999397,
+                "cpu_seconds": 1.515625
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.8448869000000059,
+                "cpu_seconds": 1.828125,
+                "details": {
+                  "hash_read_seconds": 1.5913272000000234,
+                  "slowest_file_seconds": [
+                    0.010330899999985377,
+                    0.0010541999999986729,
+                    0.0010194999999839638,
+                    0.001002099999936945,
+                    0.0009847000000036132,
+                    0.0009761999999682303,
+                    0.0009716000000707936,
+                    0.0009418000000778193,
+                    0.0009218000000146276,
+                    0.0008670999999367268
+                  ]
+                }
+              }
+            ],
+            "seconds": 4.6622513999999455,
+            "verified": true
+          },
+          {
+            "strategy": "copytree_no_metadata",
+            "repeat": 0,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 2.0169663000000355,
+                "cpu_seconds": 1.984375,
+                "details": {
+                  "hash_read_seconds": 1.7382439000000431,
+                  "slowest_file_seconds": [
+                    0.006604499999980362,
+                    0.002050000000053842,
+                    0.0015852999999879103,
+                    0.0014072999999825697,
+                    0.001084900000023481,
+                    0.0009059000000206652,
+                    0.0008865999999443375,
+                    0.0008811999999807085,
+                    0.0008671000000504137,
+                    0.0008584999999357024
+                  ]
+                }
+              },
+              {
+                "phase": "copy",
+                "seconds": 2.9239165000000185,
+                "cpu_seconds": 1.640625
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.8460618999999951,
+                "cpu_seconds": 1.8125,
+                "details": {
+                  "hash_read_seconds": 1.6055039000000306,
+                  "slowest_file_seconds": [
+                    0.011125099999958366,
+                    0.0009735999999520573,
+                    0.0009486000000151762,
+                    0.0009479999999939537,
+                    0.0009416000000328495,
+                    0.0009270000000469736,
+                    0.0008968000000777465,
+                    0.0008884999999736465,
+                    0.0008794000000307278,
+                    0.0008722000000034313
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.786944700000049,
+            "verified": true
+          },
+          {
+            "strategy": "copyfile",
+            "repeat": 0,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.8791635999999698,
+                "cpu_seconds": 1.875,
+                "details": {
+                  "hash_read_seconds": 1.6391921000000593,
+                  "slowest_file_seconds": [
+                    0.008715299999948911,
+                    0.0018608999999969456,
+                    0.0017560000000003129,
+                    0.0014906999999766413,
+                    0.0013947999999572858,
+                    0.0013167000000748885,
+                    0.0012434000000212109,
+                    0.001023099999997612,
+                    0.0009689999999409338,
+                    0.0009654000000409724
+                  ]
+                }
+              },
+              {
+                "phase": "listed_copy2",
+                "seconds": 3.182329999999979,
+                "cpu_seconds": 1.875
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.8152949000000262,
+                "cpu_seconds": 1.796875,
+                "details": {
+                  "hash_read_seconds": 1.5673124999999573,
+                  "slowest_file_seconds": [
+                    0.010465699999940625,
+                    0.0009274000000232263,
+                    0.0009073999999600346,
+                    0.0008697000000665867,
+                    0.0008374999999887223,
+                    0.0008336000000781496,
+                    0.0008296999999402033,
+                    0.0008110999999644264,
+                    0.0008013000000346437,
+                    0.0007941999999729887
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.876788499999975,
+            "verified": true
+          },
+          {
+            "strategy": "separate",
+            "repeat": 0,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.820942999999943,
+                "cpu_seconds": 1.78125,
+                "details": {
+                  "hash_read_seconds": 1.541369599999939,
+                  "slowest_file_seconds": [
+                    0.010878900000079739,
+                    0.0012271000000509957,
+                    0.00104810000004818,
+                    0.0009124000000610977,
+                    0.0008713000000852844,
+                    0.0008081999999376421,
+                    0.0008053999999901862,
+                    0.000803700000005847,
+                    0.0007918000000017855,
+                    0.0007888000000093598
+                  ]
+                }
+              },
+              {
+                "phase": "copy",
+                "seconds": 2.6009990999999673,
+                "cpu_seconds": 1.421875
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.817453999999998,
+                "cpu_seconds": 1.78125,
+                "details": {
+                  "hash_read_seconds": 1.5630803999999898,
+                  "slowest_file_seconds": [
+                    0.012739199999941775,
+                    0.0010013999999500811,
+                    0.0008681000000478889,
+                    0.0008440999999947962,
+                    0.000836499999991247,
+                    0.0008139000000255692,
+                    0.0008013000000346437,
+                    0.0007888000000093598,
+                    0.000785299999961353,
+                    0.0007665000000542932
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.239396099999908,
+            "verified": true
+          },
+          {
+            "strategy": "separate",
+            "repeat": 1,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.8265044999999418,
+                "cpu_seconds": 1.78125,
+                "details": {
+                  "hash_read_seconds": 1.6021456000000853,
+                  "slowest_file_seconds": [
+                    0.010557600000083767,
+                    0.0030824000000393426,
+                    0.002309500000023945,
+                    0.0022675999999819396,
+                    0.002234400000020287,
+                    0.002158899999926689,
+                    0.00206670000000031,
+                    0.0019992999999658423,
+                    0.0019545000000107393,
+                    0.0018453999999792359
+                  ]
+                }
+              },
+              {
+                "phase": "copy",
+                "seconds": 8.163627499999961,
+                "cpu_seconds": 1.484375
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.8488406000000168,
+                "cpu_seconds": 1.765625,
+                "details": {
+                  "hash_read_seconds": 1.6069492999999966,
+                  "slowest_file_seconds": [
+                    0.01059629999997469,
+                    0.0010270000000218715,
+                    0.0010057000000642802,
+                    0.0009735999999520573,
+                    0.0009547999999313106,
+                    0.000898300000017116,
+                    0.0008767000000489134,
+                    0.0008328000000119573,
+                    0.000831999999945765,
+                    0.0008199000000104206
+                  ]
+                }
+              }
+            ],
+            "seconds": 11.83897259999992,
+            "verified": true
+          },
+          {
+            "strategy": "fused_no_metadata",
+            "repeat": 1,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "copy_and_source_hash",
+                "seconds": 10.597445900000025,
+                "cpu_seconds": 3.421875
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.8825916000000689,
+                "cpu_seconds": 1.859375,
+                "details": {
+                  "hash_read_seconds": 1.6323069000000032,
+                  "slowest_file_seconds": [
+                    0.007989500000007865,
+                    0.0030266999999639665,
+                    0.002692499999966458,
+                    0.002607099999977436,
+                    0.001660500000070897,
+                    0.0014460000001008666,
+                    0.0013420999999880223,
+                    0.0009727999999995518,
+                    0.0009542999999894164,
+                    0.0009503999999651569
+                  ]
+                }
+              }
+            ],
+            "seconds": 12.480037500000094,
+            "verified": true
+          },
+          {
+            "strategy": "copytree_no_metadata",
+            "repeat": 1,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.9141961999999921,
+                "cpu_seconds": 1.890625,
+                "details": {
+                  "hash_read_seconds": 1.6601539000000685,
+                  "slowest_file_seconds": [
+                    0.007906599999955688,
+                    0.0012351999999964391,
+                    0.001073099999985061,
+                    0.0010165999999571795,
+                    0.0009280000000444488,
+                    0.0009046999999782201,
+                    0.0009006000000226777,
+                    0.0008963000000221655,
+                    0.000882699999920078,
+                    0.0008801999999832333
+                  ]
+                }
+              },
+              {
+                "phase": "copy",
+                "seconds": 3.992715299999986,
+                "cpu_seconds": 1.5625
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.7914075999999568,
+                "cpu_seconds": 1.78125,
+                "details": {
+                  "hash_read_seconds": 1.5504863999999543,
+                  "slowest_file_seconds": [
+                    0.006203400000003967,
+                    0.0008428000001003966,
+                    0.0008414999999786232,
+                    0.0007801000000426939,
+                    0.0007646000000249842,
+                    0.00074050000000625,
+                    0.0007389999999531938,
+                    0.0007354000000532324,
+                    0.0007345000000213986,
+                    0.0007302999999865278
+                  ]
+                }
+              }
+            ],
+            "seconds": 7.698319099999935,
+            "verified": true
+          },
+          {
+            "strategy": "fused",
+            "repeat": 1,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "copy_and_source_hash",
+                "seconds": 4.886512299999936,
+                "cpu_seconds": 3.828125
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.7941753999999719,
+                "cpu_seconds": 1.734375,
+                "details": {
+                  "hash_read_seconds": 1.5402125000000524,
+                  "slowest_file_seconds": [
+                    0.01075309999998808,
+                    0.0018099000000120213,
+                    0.0009718000000020766,
+                    0.0008527999999614622,
+                    0.0007775999999921623,
+                    0.0007637999999587919,
+                    0.0007408999999825028,
+                    0.0007209000000329979,
+                    0.0007205000000567452,
+                    0.0007194999999455831
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.680687699999908,
+            "verified": true
+          },
+          {
+            "strategy": "copyfile",
+            "repeat": 1,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.8419648999999936,
+                "cpu_seconds": 1.8125,
+                "details": {
+                  "hash_read_seconds": 1.5479295000000093,
+                  "slowest_file_seconds": [
+                    0.009764799999970819,
+                    0.000841899999954876,
+                    0.0008232999999790991,
+                    0.0007994999999709762,
+                    0.0007738000000472312,
+                    0.0007716000000073109,
+                    0.0007668999999168591,
+                    0.0007342000000107873,
+                    0.0007250999999541818,
+                    0.0007145000000718937
+                  ]
+                }
+              },
+              {
+                "phase": "listed_copy2",
+                "seconds": 3.328762500000039,
+                "cpu_seconds": 1.953125
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.7631923000000143,
+                "cpu_seconds": 1.765625,
+                "details": {
+                  "hash_read_seconds": 1.5307021000000987,
+                  "slowest_file_seconds": [
+                    0.006059800000002724,
+                    0.0010436999999683394,
+                    0.0008139000000255692,
+                    0.0008075999999164196,
+                    0.0007825000000138971,
+                    0.000759400000106325,
+                    0.0007540999999946507,
+                    0.000752499999975953,
+                    0.0007303999999521693,
+                    0.0007218000000648317
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.933919700000047,
+            "verified": true
+          },
+          {
+            "strategy": "zip",
+            "repeat": 1,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "extract_with_crc",
+                "seconds": 2.1472287999999935,
+                "cpu_seconds": 1.40625
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.8198889999999892,
+                "cpu_seconds": 1.75,
+                "details": {
+                  "hash_read_seconds": 1.5588467000000037,
+                  "slowest_file_seconds": [
+                    0.010364699999968252,
+                    0.0009451000000808563,
+                    0.000924699999927725,
+                    0.0008814999999913198,
+                    0.0008705999999847336,
+                    0.0008332999999538515,
+                    0.0008303000000751126,
+                    0.0008230000000821747,
+                    0.0008095000000594155,
+                    0.0008000999999921987
+                  ]
+                }
+              }
+            ],
+            "seconds": 3.9671177999999827,
+            "verified": true
+          },
+          {
+            "strategy": "fused",
+            "repeat": 2,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "copy_and_source_hash",
+                "seconds": 5.103017000000023,
+                "cpu_seconds": 3.8125
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.7695641999999907,
+                "cpu_seconds": 1.734375,
+                "details": {
+                  "hash_read_seconds": 1.545424099999991,
+                  "slowest_file_seconds": [
+                    0.004728399999976318,
+                    0.0008776000000807471,
+                    0.000845700000013494,
+                    0.0008296999999402033,
+                    0.0008085999999138949,
+                    0.0007886000000780768,
+                    0.00078859999996439,
+                    0.0007835000000113723,
+                    0.0007792000000108601,
+                    0.0007725000000391447
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.872581200000013,
+            "verified": true
+          },
+          {
+            "strategy": "fused_no_metadata",
+            "repeat": 2,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "copy_and_source_hash",
+                "seconds": 4.360938600000054,
+                "cpu_seconds": 2.96875
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.7858236000000716,
+                "cpu_seconds": 1.75,
+                "details": {
+                  "hash_read_seconds": 1.559753999999998,
+                  "slowest_file_seconds": [
+                    0.005112499999995634,
+                    0.0010128000000122483,
+                    0.0008427000000210683,
+                    0.0008296999999402033,
+                    0.0008103999999775624,
+                    0.0008064999999533029,
+                    0.0007929999999305437,
+                    0.0007875000000012733,
+                    0.0007830000000694781,
+                    0.0007687999999461681
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.146762200000126,
+            "verified": true
+          },
+          {
+            "strategy": "copytree_no_metadata",
+            "repeat": 2,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.811301100000037,
+                "cpu_seconds": 1.765625,
+                "details": {
+                  "hash_read_seconds": 1.585698500000035,
+                  "slowest_file_seconds": [
+                    0.011071300000025985,
+                    0.005714599999919301,
+                    0.002798000000098,
+                    0.002685899999960384,
+                    0.0025638999999273437,
+                    0.002330000000029031,
+                    0.0023194999999986976,
+                    0.002319099999908758,
+                    0.002246499999955631,
+                    0.0022175999999944906
+                  ]
+                }
+              },
+              {
+                "phase": "copy",
+                "seconds": 2.4326201000000083,
+                "cpu_seconds": 1.5
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.7903711999999814,
+                "cpu_seconds": 1.78125,
+                "details": {
+                  "hash_read_seconds": 1.5531815000000506,
+                  "slowest_file_seconds": [
+                    0.011156400000004396,
+                    0.0009522999999944659,
+                    0.0008662999999842214,
+                    0.0008589999999912834,
+                    0.000839999999925567,
+                    0.0008136000000149579,
+                    0.0008076999999957479,
+                    0.0007887000000437183,
+                    0.0007736999999679028,
+                    0.0007715000000416694
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.034292400000027,
+            "verified": true
+          },
+          {
+            "strategy": "separate",
+            "repeat": 2,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.8198882000000367,
+                "cpu_seconds": 1.75,
+                "details": {
+                  "hash_read_seconds": 1.5927120999999715,
+                  "slowest_file_seconds": [
+                    0.010510000000067521,
+                    0.004131799999981922,
+                    0.0029024000000390515,
+                    0.002419600000052924,
+                    0.0020498999999745138,
+                    0.0018721999999797845,
+                    0.001860999999962587,
+                    0.0018512999999984459,
+                    0.0018345999999382911,
+                    0.001763799999935145
+                  ]
+                }
+              },
+              {
+                "phase": "copy",
+                "seconds": 2.652381699999978,
+                "cpu_seconds": 1.609375
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.7890894999999318,
+                "cpu_seconds": 1.796875,
+                "details": {
+                  "hash_read_seconds": 1.5413426000000072,
+                  "slowest_file_seconds": [
+                    0.010261900000045898,
+                    0.0008229000000028464,
+                    0.0007798000000320826,
+                    0.0007779999999684151,
+                    0.0007696999999780019,
+                    0.0007545000000845903,
+                    0.0007445999999617925,
+                    0.0007295000000340224,
+                    0.0007227999999486201,
+                    0.0007171999999400214
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.261359399999947,
+            "verified": true
+          },
+          {
+            "strategy": "zip",
+            "repeat": 2,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "extract_with_crc",
+                "seconds": 2.4365181000000575,
+                "cpu_seconds": 1.390625
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.7756471000000147,
+                "cpu_seconds": 1.765625,
+                "details": {
+                  "hash_read_seconds": 1.5438373000000638,
+                  "slowest_file_seconds": [
+                    0.002652900000043701,
+                    0.001085799999941628,
+                    0.0008728999999902953,
+                    0.0008622999999943204,
+                    0.0008493999999927837,
+                    0.0008301999999957843,
+                    0.0008046000000376807,
+                    0.000801099999989674,
+                    0.0007878000000118845,
+                    0.0007868000000144093
+                  ]
+                }
+              }
+            ],
+            "seconds": 4.212165200000072,
+            "verified": true
+          },
+          {
+            "strategy": "copyfile",
+            "repeat": 2,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.8018461000000343,
+                "cpu_seconds": 1.765625,
+                "details": {
+                  "hash_read_seconds": 1.5748932000000195,
+                  "slowest_file_seconds": [
+                    0.0042483999999376465,
+                    0.0034233000000085667,
+                    0.002054199999975026,
+                    0.0020209000000477317,
+                    0.002016699999899174,
+                    0.0018737000000328408,
+                    0.001772100000039245,
+                    0.0017579999999952634,
+                    0.0017467000000124244,
+                    0.0017361000000164495
+                  ]
+                }
+              },
+              {
+                "phase": "listed_copy2",
+                "seconds": 3.397357300000067,
+                "cpu_seconds": 2.109375
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.7969693999999663,
+                "cpu_seconds": 1.796875,
+                "details": {
+                  "hash_read_seconds": 1.566187799999966,
+                  "slowest_file_seconds": [
+                    0.006949000000076921,
+                    0.0008221000000503409,
+                    0.0008005999999340929,
+                    0.0007893999999168955,
+                    0.0007797999999183958,
+                    0.0007785000000239961,
+                    0.0007752999999866006,
+                    0.0007683999999699154,
+                    0.0007667999999512176,
+                    0.0007630999999719279
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.996172800000068,
+            "verified": true
+          }
+        ],
+        "limitations": [
+          "Synthetic strategies, not full restore timings",
+          "Warm OS cache; no cache eviction or physical I/O measurement",
+          "SHA-256 destination readback is not a physical durability guarantee",
+          "ZIP preparation is measured separately; metadata fidelity not equivalent",
+          "No Defender settings changed"
+        ],
+        "defender_start": {
+          "status": "ok",
+          "RealTimeProtectionEnabled": false,
+          "IsTamperProtected": false,
+          "AntivirusEnabled": true
+        },
+        "setup": [
+          {
+            "phase": "fixture_generation",
+            "seconds": 2.606304000000023,
+            "cpu_seconds": 1.5625
+          },
+          {
+            "phase": "archive_preparation",
+            "seconds": 0.8980058999999301,
+            "cpu_seconds": 0.875
+          }
+        ],
+        "archive_bytes": 12639022,
+        "defender_end": {
+          "status": "ok",
+          "RealTimeProtectionEnabled": false,
+          "IsTamperProtected": false,
+          "AntivirusEnabled": true
+        }
+      },
+      "seconds": 175.35955549999994,
+      "resources": {
+        "available": true,
+        "peak_working_set_bytes": 39362560,
+        "io": {
+          "ReadOperationCount": 346893,
+          "WriteOperationCount": 45141,
+          "OtherOperationCount": 2408402,
+          "ReadTransferCount": 569613387,
+          "WriteTransferCount": 246257277,
+          "OtherTransferCount": 63879292
+        },
+        "scope": "Entire scenario process including fixture/setup. OS logical I/O counters, not physical disk bytes."
+      },
+      "scenario": "io-incompressible",
+      "exit_code": 0
+    },
+    {
+      "passed": true,
+      "data": {
+        "schema": 2,
+        "version": "0.2",
+        "profile": "compressible",
+        "platform": "Windows-2025Server-10.0.26100-SP0",
+        "python": "3.12.10",
+        "file_count": 3000,
+        "file_bytes": 4096,
+        "repeats": 3,
+        "results": [
+          {
+            "strategy": "fused_no_metadata",
+            "repeat": 0,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "copy_and_source_hash",
+                "seconds": 4.402507799999967,
+                "cpu_seconds": 3.046875
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.7620050000000447,
+                "cpu_seconds": 1.734375,
+                "details": {
+                  "hash_read_seconds": 1.531889099999944,
+                  "slowest_file_seconds": [
+                    0.006990700000073957,
+                    0.0008778999999776715,
+                    0.0008351999999831605,
+                    0.0008091999999351174,
+                    0.0007762999999840758,
+                    0.0007661999999299951,
+                    0.0007619000000431697,
+                    0.0007618999999294829,
+                    0.0007603999999901134,
+                    0.0007560999999896012
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.164512800000011,
+            "verified": true
+          },
+          {
+            "strategy": "fused",
+            "repeat": 0,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "copy_and_source_hash",
+                "seconds": 5.0671198,
+                "cpu_seconds": 3.703125
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.7539232999999967,
+                "cpu_seconds": 1.734375,
+                "details": {
+                  "hash_read_seconds": 1.5256039999999302,
+                  "slowest_file_seconds": [
+                    0.00692530000003444,
+                    0.0008050999999795749,
+                    0.0007317000000739426,
+                    0.0007193999999799416,
+                    0.0007188999999243606,
+                    0.0007166000000324857,
+                    0.0007157999999662934,
+                    0.0007102999999233361,
+                    0.0007100000000264117,
+                    0.0007095999999364722
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.821043099999997,
+            "verified": true
+          },
+          {
+            "strategy": "zip",
+            "repeat": 0,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "extract_with_crc",
+                "seconds": 2.6819242999999915,
+                "cpu_seconds": 1.390625
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.7689470000000256,
+                "cpu_seconds": 1.765625,
+                "details": {
+                  "hash_read_seconds": 1.540175999999974,
+                  "slowest_file_seconds": [
+                    0.006018100000005688,
+                    0.0008433000000422908,
+                    0.0008024999999634019,
+                    0.0008018000000902248,
+                    0.0007573999999976877,
+                    0.0007567000000108237,
+                    0.0007560999999896012,
+                    0.0007543000000396205,
+                    0.0007475000001022636,
+                    0.0007461000000148488
+                  ]
+                }
+              }
+            ],
+            "seconds": 4.450871300000017,
+            "verified": true
+          },
+          {
+            "strategy": "copytree_no_metadata",
+            "repeat": 0,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.7718267000000196,
+                "cpu_seconds": 1.734375,
+                "details": {
+                  "hash_read_seconds": 1.5429709000000003,
+                  "slowest_file_seconds": [
+                    0.006653099999994083,
+                    0.0024237999999741078,
+                    0.001864800000021205,
+                    0.0016969000000699452,
+                    0.0016666000000213899,
+                    0.0016318000000410393,
+                    0.0016034999999874344,
+                    0.001602199999979348,
+                    0.0015923000000839238,
+                    0.0015379000000166343
+                  ]
+                }
+              },
+              {
+                "phase": "copy",
+                "seconds": 2.664101500000015,
+                "cpu_seconds": 1.46875
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.7620722999999998,
+                "cpu_seconds": 1.75,
+                "details": {
+                  "hash_read_seconds": 1.535761999999977,
+                  "slowest_file_seconds": [
+                    0.005629200000043966,
+                    0.0010244000000056985,
+                    0.0008169000000179949,
+                    0.0008156000000099084,
+                    0.0007541999999602922,
+                    0.0007530999999971755,
+                    0.0007511999999678665,
+                    0.0007463000000598186,
+                    0.0007334000000582819,
+                    0.0007302999999865278
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.198000500000035,
+            "verified": true
+          },
+          {
+            "strategy": "copyfile",
+            "repeat": 0,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.7792223999999806,
+                "cpu_seconds": 1.75,
+                "details": {
+                  "hash_read_seconds": 1.5563775000000533,
+                  "slowest_file_seconds": [
+                    0.004775499999936983,
+                    0.0031738999999788575,
+                    0.002284000000031483,
+                    0.0021950999999944543,
+                    0.0020306999999775144,
+                    0.0019592999999531457,
+                    0.001918299999942974,
+                    0.0018855000000712607,
+                    0.001838799999973162,
+                    0.001823300000069139
+                  ]
+                }
+              },
+              {
+                "phase": "listed_copy2",
+                "seconds": 3.597004200000015,
+                "cpu_seconds": 1.953125
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.7576420999999982,
+                "cpu_seconds": 1.734375,
+                "details": {
+                  "hash_read_seconds": 1.5316029000000526,
+                  "slowest_file_seconds": [
+                    0.005464100000040162,
+                    0.001249099999995451,
+                    0.0010024000000612432,
+                    0.0008521999999402396,
+                    0.0008127999999487656,
+                    0.0007822000000032858,
+                    0.0007679000000280212,
+                    0.0007650999999668784,
+                    0.0007646000000249842,
+                    0.0007623000000194224
+                  ]
+                }
+              }
+            ],
+            "seconds": 7.133868699999994,
+            "verified": true
+          },
+          {
+            "strategy": "separate",
+            "repeat": 0,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.7668257999999923,
+                "cpu_seconds": 1.734375,
+                "details": {
+                  "hash_read_seconds": 1.5434983000000102,
+                  "slowest_file_seconds": [
+                    0.005886899999950401,
+                    0.002048300000069503,
+                    0.001882199999954537,
+                    0.0018446000000267304,
+                    0.0018200999999180567,
+                    0.0017318999999815787,
+                    0.0017200999999431588,
+                    0.0016661000000794957,
+                    0.0016390000000683358,
+                    0.001588100000049053
+                  ]
+                }
+              },
+              {
+                "phase": "copy",
+                "seconds": 3.0947269999999207,
+                "cpu_seconds": 1.40625
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.7866366999999173,
+                "cpu_seconds": 1.75,
+                "details": {
+                  "hash_read_seconds": 1.561119799999915,
+                  "slowest_file_seconds": [
+                    0.005689899999993031,
+                    0.0009979000000157612,
+                    0.0009026000000176282,
+                    0.000879899999972622,
+                    0.0008608000000549509,
+                    0.0008584999999357024,
+                    0.0008238000000346801,
+                    0.0008222000000159824,
+                    0.0008094999999457286,
+                    0.0007995999999366177
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.64818949999983,
+            "verified": true
+          },
+          {
+            "strategy": "separate",
+            "repeat": 1,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.796446099999912,
+                "cpu_seconds": 1.796875,
+                "details": {
+                  "hash_read_seconds": 1.570710599999984,
+                  "slowest_file_seconds": [
+                    0.0042680000000245855,
+                    0.0033071999999947366,
+                    0.0023142999999663516,
+                    0.002136500000005981,
+                    0.002050400000030095,
+                    0.0018718999999691732,
+                    0.0018555000000333166,
+                    0.001850400000080299,
+                    0.0018414999999549764,
+                    0.0017722000000048865
+                  ]
+                }
+              },
+              {
+                "phase": "copy",
+                "seconds": 2.6853403999999728,
+                "cpu_seconds": 1.34375
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.7826754000000165,
+                "cpu_seconds": 1.75,
+                "details": {
+                  "hash_read_seconds": 1.557048800000075,
+                  "slowest_file_seconds": [
+                    0.011333700000022873,
+                    0.004606299999977637,
+                    0.0011994999999842548,
+                    0.0011668999999301377,
+                    0.0009928000000627435,
+                    0.0009519999999838547,
+                    0.0009036000000151034,
+                    0.0008986000000277272,
+                    0.0008974999999509237,
+                    0.0008874000000105298
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.264461899999901,
+            "verified": true
+          },
+          {
+            "strategy": "fused_no_metadata",
+            "repeat": 1,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "copy_and_source_hash",
+                "seconds": 4.247036200000025,
+                "cpu_seconds": 3.015625
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.7809035999999878,
+                "cpu_seconds": 1.75,
+                "details": {
+                  "hash_read_seconds": 1.5542832999999519,
+                  "slowest_file_seconds": [
+                    0.007169200000021192,
+                    0.0009185999999772321,
+                    0.0009052000000338012,
+                    0.0008550000000013824,
+                    0.0008369000000811866,
+                    0.0008262999999715248,
+                    0.0008186999999679756,
+                    0.0008145000000467917,
+                    0.0007980000000316068,
+                    0.0007933000000548418
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.027939800000013,
+            "verified": true
+          },
+          {
+            "strategy": "copytree_no_metadata",
+            "repeat": 1,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.8053350000000137,
+                "cpu_seconds": 1.75,
+                "details": {
+                  "hash_read_seconds": 1.5748419999999896,
+                  "slowest_file_seconds": [
+                    0.005451300000004267,
+                    0.003954300000032163,
+                    0.0021736999999575346,
+                    0.0021590999999716587,
+                    0.0021385000000009313,
+                    0.0020620999999891865,
+                    0.0020564999999805877,
+                    0.002025900000035108,
+                    0.001985999999988053,
+                    0.001886000000013155
+                  ]
+                }
+              },
+              {
+                "phase": "copy",
+                "seconds": 2.7544829999999365,
+                "cpu_seconds": 1.546875
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.75506699999994,
+                "cpu_seconds": 1.71875,
+                "details": {
+                  "hash_read_seconds": 1.5269141999999647,
+                  "slowest_file_seconds": [
+                    0.003300300000091738,
+                    0.002116300000011506,
+                    0.0009517999999388849,
+                    0.0009407000000010157,
+                    0.0009262999999464228,
+                    0.0008599000000231172,
+                    0.0008287000000564149,
+                    0.0007707999999411186,
+                    0.0007567000000108237,
+                    0.0007566000000451822
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.31488499999989,
+            "verified": true
+          },
+          {
+            "strategy": "fused",
+            "repeat": 1,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "copy_and_source_hash",
+                "seconds": 4.793321699999979,
+                "cpu_seconds": 3.828125
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.807763399999999,
+                "cpu_seconds": 1.796875,
+                "details": {
+                  "hash_read_seconds": 1.5415553000000273,
+                  "slowest_file_seconds": [
+                    0.00962060000006204,
+                    0.0008273000000826869,
+                    0.0007999999999128704,
+                    0.0007776999999578038,
+                    0.0007193000000143002,
+                    0.0007192000000486587,
+                    0.0007190000000036889,
+                    0.0007180999999718551,
+                    0.0007173000000193497,
+                    0.0007076000000552085
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.6010850999999775,
+            "verified": true
+          },
+          {
+            "strategy": "copyfile",
+            "repeat": 1,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.8285617999999886,
+                "cpu_seconds": 1.828125,
+                "details": {
+                  "hash_read_seconds": 1.5419405999999753,
+                  "slowest_file_seconds": [
+                    0.009094799999957104,
+                    0.0013552000000345288,
+                    0.00116769999999633,
+                    0.0010961000000406784,
+                    0.0010821999999279797,
+                    0.0009951999999202599,
+                    0.0009801999999581312,
+                    0.0009619999999586071,
+                    0.0009592000000111511,
+                    0.0009502999999995154
+                  ]
+                }
+              },
+              {
+                "phase": "listed_copy2",
+                "seconds": 3.300637599999959,
+                "cpu_seconds": 1.828125
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.7690083999999615,
+                "cpu_seconds": 1.734375,
+                "details": {
+                  "hash_read_seconds": 1.5415515999999343,
+                  "slowest_file_seconds": [
+                    0.0066382999999632375,
+                    0.0010978999999906591,
+                    0.0008258999999952721,
+                    0.0008215999999947599,
+                    0.0008212000000185071,
+                    0.0008143999999674634,
+                    0.0008106000000225322,
+                    0.0008002999999234817,
+                    0.0007870999999113337,
+                    0.0007841999999982363
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.898207799999909,
+            "verified": true
+          },
+          {
+            "strategy": "zip",
+            "repeat": 1,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "extract_with_crc",
+                "seconds": 2.0327286000000413,
+                "cpu_seconds": 1.390625
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.8242737999999008,
+                "cpu_seconds": 1.796875,
+                "details": {
+                  "hash_read_seconds": 1.5569006999999147,
+                  "slowest_file_seconds": [
+                    0.010827199999994264,
+                    0.0008639999999786596,
+                    0.0008559999999988577,
+                    0.0008348000000069078,
+                    0.0008268999999927473,
+                    0.0008247000000665139,
+                    0.0008083000000169704,
+                    0.000801600000045255,
+                    0.000795700000026045,
+                    0.0007914999999911743
+                  ]
+                }
+              }
+            ],
+            "seconds": 3.857002399999942,
+            "verified": true
+          },
+          {
+            "strategy": "fused",
+            "repeat": 2,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "copy_and_source_hash",
+                "seconds": 5.038541599999917,
+                "cpu_seconds": 3.828125
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.77398340000002,
+                "cpu_seconds": 1.734375,
+                "details": {
+                  "hash_read_seconds": 1.5376614000000473,
+                  "slowest_file_seconds": [
+                    0.005937799999969684,
+                    0.0008520999999745982,
+                    0.0008280000000695509,
+                    0.0008258000000296306,
+                    0.0008123000000068714,
+                    0.0008109999999987849,
+                    0.0008076999999957479,
+                    0.0008061999999426916,
+                    0.0007970000000341315,
+                    0.0007811000000401691
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.812524999999937,
+            "verified": true
+          },
+          {
+            "strategy": "fused_no_metadata",
+            "repeat": 2,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "copy_and_source_hash",
+                "seconds": 4.492240500000094,
+                "cpu_seconds": 3
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.771942899999999,
+                "cpu_seconds": 1.75,
+                "details": {
+                  "hash_read_seconds": 1.5376779999999144,
+                  "slowest_file_seconds": [
+                    0.008181000000035965,
+                    0.0008752999999614985,
+                    0.000850399999990259,
+                    0.0008235000000240689,
+                    0.0008043999999927109,
+                    0.000791700000036144,
+                    0.0007825999999795386,
+                    0.0007688000000598549,
+                    0.0007510000000365835,
+                    0.000743100000022423
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.264183400000093,
+            "verified": true
+          },
+          {
+            "strategy": "copytree_no_metadata",
+            "repeat": 2,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.7665786000000026,
+                "cpu_seconds": 1.734375,
+                "details": {
+                  "hash_read_seconds": 1.5405577000000221,
+                  "slowest_file_seconds": [
+                    0.0063077999999450185,
+                    0.0038524000000279557,
+                    0.0025388999999904627,
+                    0.002503100000012637,
+                    0.002453400000035799,
+                    0.0008057999999664389,
+                    0.0007239999999910651,
+                    0.0007216000000198619,
+                    0.0007213000000092507,
+                    0.0007190000000036889
+                  ]
+                }
+              },
+              {
+                "phase": "copy",
+                "seconds": 2.7931915000000345,
+                "cpu_seconds": 1.515625
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.7836288000000877,
+                "cpu_seconds": 1.78125,
+                "details": {
+                  "hash_read_seconds": 1.5521595000000161,
+                  "slowest_file_seconds": [
+                    0.005963199999996505,
+                    0.0009276999999201507,
+                    0.0008572999998932573,
+                    0.0008357000000387416,
+                    0.0007974999999760257,
+                    0.0007818000000270331,
+                    0.0007811000000401691,
+                    0.0007722999999941749,
+                    0.0007646000000249842,
+                    0.0007646000000249842
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.343398900000125,
+            "verified": true
+          },
+          {
+            "strategy": "separate",
+            "repeat": 2,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.8148161999999957,
+                "cpu_seconds": 1.765625,
+                "details": {
+                  "hash_read_seconds": 1.5795683000000054,
+                  "slowest_file_seconds": [
+                    0.00643450000006851,
+                    0.0021219999999857464,
+                    0.0020604000000048472,
+                    0.001943800000049123,
+                    0.0018142000000125336,
+                    0.0018120000000863001,
+                    0.001691400000026988,
+                    0.0016851999999971667,
+                    0.0016305999999985943,
+                    0.0016045999999505511
+                  ]
+                }
+              },
+              {
+                "phase": "copy",
+                "seconds": 2.7591893999999684,
+                "cpu_seconds": 1.515625
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.7729722999999922,
+                "cpu_seconds": 1.78125,
+                "details": {
+                  "hash_read_seconds": 1.547227399999997,
+                  "slowest_file_seconds": [
+                    0.00527379999994082,
+                    0.0010118999999804146,
+                    0.0009210000000621221,
+                    0.0008654999999180291,
+                    0.0008356999999250547,
+                    0.0008116999999856489,
+                    0.0008048999999346051,
+                    0.0008046000000376807,
+                    0.0007583000000295215,
+                    0.000741199999993114
+                  ]
+                }
+              }
+            ],
+            "seconds": 6.346977899999956,
+            "verified": true
+          },
+          {
+            "strategy": "zip",
+            "repeat": 2,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "extract_with_crc",
+                "seconds": 2.619622100000015,
+                "cpu_seconds": 1.421875
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.7867167000000563,
+                "cpu_seconds": 1.78125,
+                "details": {
+                  "hash_read_seconds": 1.5583870000000388,
+                  "slowest_file_seconds": [
+                    0.004083799999989424,
+                    0.0010498999999981606,
+                    0.0010087999999086605,
+                    0.0010017999999263338,
+                    0.0008311999999932596,
+                    0.0007802000000083353,
+                    0.0007789999999658903,
+                    0.0007765000000290456,
+                    0.0007712000000310582,
+                    0.0007677999999486929
+                  ]
+                }
+              }
+            ],
+            "seconds": 4.406338800000071,
+            "verified": true
+          },
+          {
+            "strategy": "copyfile",
+            "repeat": 2,
+            "defender_before": {
+              "status": "ok",
+              "RealTimeProtectionEnabled": false,
+              "IsTamperProtected": false,
+              "AntivirusEnabled": true
+            },
+            "defender_sample": "run_start",
+            "phases": [
+              {
+                "phase": "source_verify",
+                "seconds": 1.8124387999999954,
+                "cpu_seconds": 1.765625,
+                "details": {
+                  "hash_read_seconds": 1.5852786000000378,
+                  "slowest_file_seconds": [
+                    0.0037313000000267493,
+                    0.0034769999999753054,
+                    0.001906800000028852,
+                    0.0018658000000186803,
+                    0.0018553999999539883,
+                    0.0017464999999674546,
+                    0.0017421999999669424,
+                    0.0017288000000235115,
+                    0.0016855999999734195,
+                    0.0016831000000365748
+                  ]
+                }
+              },
+              {
+                "phase": "listed_copy2",
+                "seconds": 3.4162053000000014,
+                "cpu_seconds": 1.875
+              },
+              {
+                "phase": "destination_verify",
+                "seconds": 1.777315999999928,
+                "cpu_seconds": 1.734375,
+                "details": {
+                  "hash_read_seconds": 1.5491170999999895,
+                  "slowest_file_seconds": [
+                    0.009497000000010303,
+                    0.001458299999967494,
+                    0.0012913000000480679,
+                    0.0012864999999919746,
+                    0.0011766999999736072,
+                    0.0011318000000528627,
+                    0.0009592000000111511,
+                    0.0009509000000207379,
+                    0.000934400000005553,
+                    0.0008307000000513654
+                  ]
+                }
+              }
+            ],
+            "seconds": 7.005960099999925,
+            "verified": true
+          }
+        ],
+        "limitations": [
+          "Synthetic strategies, not full restore timings",
+          "Warm OS cache; no cache eviction or physical I/O measurement",
+          "SHA-256 destination readback is not a physical durability guarantee",
+          "ZIP preparation is measured separately; metadata fidelity not equivalent",
+          "No Defender settings changed"
+        ],
+        "defender_start": {
+          "status": "ok",
+          "RealTimeProtectionEnabled": false,
+          "IsTamperProtected": false,
+          "AntivirusEnabled": true
+        },
+        "setup": [
+          {
+            "phase": "fixture_generation",
+            "seconds": 2.582734999999957,
+            "cpu_seconds": 1.546875
+          },
+          {
+            "phase": "archive_preparation",
+            "seconds": 0.6834073999999646,
+            "cpu_seconds": 0.5625
+          }
+        ],
+        "archive_bytes": 578659,
+        "defender_end": {
+          "status": "ok",
+          "RealTimeProtectionEnabled": false,
+          "IsTamperProtected": false,
+          "AntivirusEnabled": true
+        }
+      },
+      "seconds": 136.17997360000004,
+      "resources": {
+        "available": true,
+        "peak_working_set_bytes": 40316928,
+        "io": {
+          "ReadOperationCount": 342479,
+          "WriteOperationCount": 45141,
+          "OtherOperationCount": 2408402,
+          "ReadTransferCount": 533437515,
+          "WriteTransferCount": 234196913,
+          "OtherTransferCount": 63879292
+        },
+        "scope": "Entire scenario process including fixture/setup. OS logical I/O counters, not physical disk bytes."
+      },
+      "scenario": "io-compressible",
+      "exit_code": 0
+    },
+    {
+      "passed": true,
+      "results": [
+        {
+          "workers": 1,
+          "copy_seconds": 3.5976236999999855,
+          "verify_seconds": 1.7742239000000382,
+          "valid": true
+        },
+        {
+          "workers": 2,
+          "copy_seconds": 2.146350200000029,
+          "verify_seconds": 1.8280214000000115,
+          "valid": true
+        },
+        {
+          "workers": 4,
+          "copy_seconds": 1.848464100000001,
+          "verify_seconds": 1.884980599999949,
+          "valid": true
+        },
+        {
+          "workers": 8,
+          "copy_seconds": 1.7647133000000395,
+          "verify_seconds": 1.8794714999999087,
+          "valid": true
+        }
+      ],
+      "limitations": "Synthetic copy2 worker-count comparison, fixed order, warm cache. No production parallel restore implementation.",
+      "seconds": 20.441417,
+      "resources": {
+        "available": true,
+        "peak_working_set_bytes": 37335040,
+        "io": {
+          "ReadOperationCount": 48297,
+          "WriteOperationCount": 3000,
+          "OtherOperationCount": 509517,
+          "ReadTransferCount": 101617191,
+          "WriteTransferCount": 61440000,
+          "OtherTransferCount": 10530658
+        },
+        "scope": "Entire scenario process including fixture/setup. OS logical I/O counters, not physical disk bytes."
+      },
+      "scenario": "parallel",
+      "exit_code": 0
+    },
+    {
+      "passed": true,
+      "checks": {
+        "interruption": true,
+        "low_space": true,
+        "resumed": true,
+        "no_duplicate_copies": true,
+        "contents": true
+      },
+      "limitations": "Isolated persistent checkpoint concept with injected interruption and simulated free-space values. Not Lifeboat production resume; no power-loss simulation.",
+      "seconds": 0.06972740000003341,
+      "resources": {
+        "available": true,
+        "peak_working_set_bytes": 30318592,
+        "io": {
+          "ReadOperationCount": 457,
+          "WriteOperationCount": 25,
+          "OtherOperationCount": 2493,
+          "ReadTransferCount": 3542711,
+          "WriteTransferCount": 99373,
+          "OtherTransferCount": 77238
+        },
+        "scope": "Entire scenario process including fixture/setup. OS logical I/O counters, not physical disk bytes."
+      },
+      "scenario": "resume-concept",
+      "exit_code": 0
+    },
+    {
+      "passed": true,
+      "checks": {
+        "packageValid": true,
+        "visualBackupSummaryComplete": true,
+        "backupSelectionPreviewComplete": true,
+        "rolloutPreflightHasExactDiagnostics": true,
+        "destinationPathBudgetPreflight": true,
+        "singleUsbStillPromptsForDestination": true,
+        "paginatedHistoryProjectionOffsetsReset": true,
+        "unreadablePythonCacheWarnsAndContinues": true,
+        "unreadableNormalFileStillFailsClosed": true,
+        "dependencyPreflightFindsFullScope": true,
+        "dependencyExclusionsRequireExplicitApproval": true,
+        "dependencyExclusionReportRoundTrips": true,
+        "otherUnreadableDirectoriesFailClosed": true,
+        "identicalDuplicateRolloutResolved": true,
+        "differentDuplicateRolloutResolved": true,
+        "compressedDatabaseRolloutPathResolved": true,
+        "compressedRolloutBackupIsExactAndFailClosed": true,
+        "selectiveProjectExclusionComplete": true,
+        "snapshotUsesSingleFileJournal": true,
+        "validatorIsReadOnly": true,
+        "hashingProgressComplete": true,
+        "validationProgressComplete": true,
+        "progressTransitionsClear": true,
+        "unknownStoreVersionDoesNotWarn": true,
+        "usbDriveClassification": true,
+        "compressedFolderLaunchBlocked": true,
+        "diagnosticCenterReadOnlyAndAnonymous": true,
+        "pathPortabilityAudit": true,
+        "backupContainsAnonymousPortabilityAudit": true,
+        "gitAwareConflictExplanation": true,
+        "gitInsightNeverChangesRestoreAction": true,
+        "atomicMetadataSurvivesInterruptedWrite": true,
+        "strictConversationPrefixClassifier": true,
+        "conversationPrefixRejectsUnsafeCases": true,
+        "prefixOnlyConversationSyncIsAutomaticAndIdempotent": true,
+        "portablePathModel": true,
+        "longUnicodePathModel": true,
+        "lowDiskSpaceRejected": true,
+        "restorePeakSpaceIncludesAllocationOverhead": true,
+        "restoreRuntimeSpaceReserveEnforced": true,
+        "portableLocationsRecorded": true,
+        "legacyFormat20Supported": true,
+        "legacyFormat21Supported": true,
+        "legacyFormat22Supported": true,
+        "legacyFormat23Supported": true,
+        "completePhase3Inventory": true,
+        "attachmentDetectionAndAccessResilience": true,
+        "pluginRuntimeExcludedAndTargetPreserved": true,
+        "provisioningGuardRuntimeExcluded": true,
+        "projectRootInventoryAnalysis": true,
+        "lineageChangeModel": true,
+        "streamingLineageDigest": true,
+        "lineageSurvivesRoundTrip": true,
+        "projectLocationMapper": true,
+        "comparisonPlanPreviewComplete": true,
+        "comparisonPlanPerformsNoWrites": true,
+        "comparisonPlanConflictsBlockRestore": true,
+        "comparisonPlanMatchesRestoreExecution": true,
+        "legacyPackageComparisonSupported": true,
+        "conversationConflictChoicesComplete": true,
+        "conversationMirrorExact": true,
+        "repeatedConversationRestoreIsIdempotent": true,
+        "explicitConversationDelete": true,
+        "conversationRollbackPreserved": true,
+        "rollbackSurvivesFailureJournalENOSPC": true,
+        "destinationProjectRetainedByDefault": true,
+        "destinationProjectArchiveComplete": true,
+        "destinationProjectDeleteRecoverable": true,
+        "projectConflictChoicesComplete": true,
+        "destinationProjectRollbackPreserved": true,
+        "managedRecoveryPointRetention": true,
+        "restoreUsesManagedRecoveryLocation": true,
+        "transactionalProjectMirror": true,
+        "repeatedRestoreIsIdempotent": true,
+        "rollbackAfterProjectQuarantine": true,
+        "rollbackAfterProjectActivation": true,
+        "projectIdentityModel": true,
+        "projectIdentitiesInstalled": true,
+        "projectIdentitiesSurviveRoundTrip": true,
+        "sourceUnchanged": true,
+        "sourceAuthExcluded": true,
+        "portableExecutableIncluded": true,
+        "restoreValid": true,
+        "compressedRolloutRestoreVerified": true,
+        "targetAuthPreserved": true,
+        "projectExact": true,
+        "portableProfileRestored": true,
+        "emptyTreeLineageValidated": true,
+        "missingEmptyTreeRejected": true,
+        "tamperRejected": true,
+        "rollbackTriggeredAndPreserved": true,
+        "lineageRollbackPreserved": true,
+        "safetyCopyKept": true,
+        "newerSourceToOlderTarget": true,
+        "stableOperationProgress": true,
+        "operationFailureStatusPersists": true,
+        "dutchEnglishGui": true
+      },
+      "git_available": true,
+      "limitations": "Official suite on synthetic profiles. Packaged GUI check is skipped by upstream. Git-dependent checks require Git on PATH.",
+      "seconds": 21.6855726,
+      "resources": {
+        "available": true,
+        "peak_working_set_bytes": 56631296,
+        "io": {
+          "ReadOperationCount": 17996,
+          "WriteOperationCount": 3376,
+          "OtherOperationCount": 322745,
+          "ReadTransferCount": 902386494,
+          "WriteTransferCount": 191998999,
+          "OtherTransferCount": 12599648
+        },
+        "scope": "Entire scenario process including fixture/setup. OS logical I/O counters, not physical disk bytes."
+      },
+      "scenario": "official-regression",
+      "exit_code": 0
+    }
+  ],
+  "limitations": [
+    "Synthetic data, not original 88 GiB backup. No two-hour guarantee.",
+    "No change to Defender. OS cache not flushed. Full-scale disk allocation and peak memory require representative production validation.",
+    "ZIP, parallel copy and resume concept are isolated prototypes; not production restore variants."
+  ],
+  "defender_end": {
+    "status": "ok",
+    "RealTimeProtectionEnabled": false,
+    "IsTamperProtected": false,
+    "AntivirusEnabled": true
+  }
+}

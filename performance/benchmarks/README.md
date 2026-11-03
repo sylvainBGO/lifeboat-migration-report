@@ -1,3 +1,21 @@
+# Windows benchmark 0.2 — instructions
+
+Extract all files, then double-click Run-Benchmark.cmd. It runs three repetitions of six copy/extraction strategies on 3,000 mixed-content synthetic files. Send only the new benchmark-v2-*.json in results/. The build-server smoke report is no longer bundled.
+
+For a second run using incompressible content, open a terminal here:
+
+```
+Lifeboat-Microbench.exe --directory results --files 3000 --bytes 4096 --repeats 3 --profile incompressible
+```
+
+Version 0.2 compares tree copy2, tree copyfile, listed copy2, streamed copy with/without copystat, and ZIP extraction. Metadata-free cases are diagnostic only, not acceptable replacements for metadata-preserving restoration. Unique destination names prevent direct reuse of earlier trial paths. Order is deterministic and shuffled per repetition. OS cache is not cleared.
+
+Read-only Defender snapshots are collected at run start/end, outside timed phases. Failure to read status is reported as unavailable. No security setting is modified. This is not the final hourly Defender UI.
+
+Verification timing now records the ten slowest individual hash reads. Reports are checkpointed after complete trials; interruption records incomplete status. Only the tool-created temporary folder is cleaned. No private files are read.
+
+The source data is deterministic, mixed or incompressible rather than uniformly highly compressible. All methods must produce identical SHA-256 contents and file sets. Archives are locally generated. ZIP metadata differs from copy2. Results are synthetic I/O timings, not full Lifeboat performance, physical disk counters or a durability guarantee.
+
 # Lifeboat performance investigation — prototype 0.1
 
 Baseline inspected: upstream v3.4.11, commit 4fe9724. Existing incident-specific v3.4.7 sources remain unchanged.

@@ -1,0 +1,10 @@
+{
+  "rows": 100000,
+  "projects": 40,
+  "upstream_seconds": 7.474184882999907,
+  "indexed_seconds": 0.28701812100007373,
+  "upstream_rows_parsed": 4000000,
+  "indexed_rows_parsed": 100000,
+  "identical_results": true,
+  "limitations": "Isolated exact upstream function; synthetic flat prefixes; warm cache; not complete restore; memory budget and general path mapping still required"
+}

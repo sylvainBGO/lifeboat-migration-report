@@ -22,7 +22,9 @@ jobs:
       - run: python -m pip install zstandard==0.25.0
       - name: Apply candidate
         working-directory: upstream
-        run: git apply ../performance/optimizations/restore-first-pass.patch
+        run: |
+          python -c "from pathlib import Path; paths=[Path('src/codex_transfer/restore.py'),Path('../performance/optimizations/restore-first-pass.patch')]; [p.write_bytes(p.read_bytes().replace(bytes([13,10]),bytes([10]))) for p in paths]"
+          git apply ../performance/optimizations/restore-first-pass.patch
       - name: Component tests
         working-directory: upstream
         run: python -m unittest discover -s benchmarks -p test_restore_optimization.py -v

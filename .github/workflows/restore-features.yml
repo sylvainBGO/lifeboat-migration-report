@@ -1,0 +1,47 @@
+name: Restore recovery feature regression
+on:
+  push:
+    paths: ['features/**', '.github/workflows/restore-features.yml']
+  workflow_dispatch:
+concurrency:
+  group: restore-features
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: dkwolf1/Codex-Lifeboat
+          ref: 4fe9724ccb54422455544e56b54399fa2bc94bc3
+          path: upstream
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install zstandard==0.25.0
+      - name: Apply performance baseline and recovery building blocks
+        working-directory: upstream
+        run: |
+          python -c "from pathlib import Path; paths=[Path('src/codex_transfer/restore.py'),Path('src/codex_transfer/validate.py'),Path('../performance/optimizations/restore-first-pass.patch'),Path('../features/resume-copy-foundation.patch')]; [p.write_bytes(p.read_bytes().replace(bytes([13,10]),bytes([10]))) for p in paths]"
+          git apply ../performance/optimizations/restore-first-pass.patch
+          if ($LASTEXITCODE -ne 0) { throw 'Performance patch failed' }
+          git apply ../features/resume-copy-foundation.patch
+          if ($LASTEXITCODE -ne 0) { throw 'Recovery feature patch failed' }
+      - name: Component and Windows failure-injection tests
+        working-directory: upstream
+        run: python -m unittest discover -s benchmarks -p '*optimization*.py' -v
+      - name: Official source regression including GUI and rollback
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = "$pwd/upstream/src"
+          python -c "from pathlib import Path; from codex_transfer.selftest import run_self_test; r=run_self_test(Path('C:/lb-feat')); print(r['checks']); assert r['passed']"
+          if ($LASTEXITCODE -ne 0) { throw 'Restore regression failed' }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Restore-feature-regression
+          path: C:/lb-feat/self-test-result.json

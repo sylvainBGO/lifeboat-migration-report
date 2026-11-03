@@ -490,10 +490,10 @@ index 0000000..6a56c5f
 +    unittest.main()
 diff --git a/benchmarks/test_windows_optimization.py b/benchmarks/test_windows_optimization.py
 new file mode 100644
-index 0000000..bb77029
+index 0000000..30d0f2a
 --- /dev/null
 +++ b/benchmarks/test_windows_optimization.py
-@@ -0,0 +1,148 @@
+@@ -0,0 +1,167 @@
 +"""Failure injection against the actual Windows restore transaction."""
 +import argparse
 +from contextlib import closing
@@ -566,6 +566,25 @@ index 0000000..bb77029
 +            return copy_staging_tree(source, target, probe, copy=failure)
 +        with patch.object(self.restore, 'copy_staging_tree', stage):
 +            with self.assertRaisesRegex(OSError, 'injected parallel'):
++                self.run_restore()
++        self.assertEqual(self.before, self.target_snapshot())
++
++    def test_index_is_released_before_rollback_even_if_cleanup_reports_error(self):
++        real_index = self.restore.ManifestIndex
++        original_rollback = self.restore.rollback_restore
++        closed = []
++        class Index(real_index):
++            def close(index_self):
++                super().close()
++                closed.append(True)
++                raise OSError('injected cleanup report failure')
++        def rollback(*args):
++            self.assertTrue(closed, 'temporary disk must be released before rollback')
++            return original_rollback(*args)
++        with patch.object(self.restore, 'ManifestIndex', Index), \
++             patch.object(self.restore, 'rollback_restore', rollback), \
++             patch.object(self.restore, 'copy_staging_tree', side_effect=OSError('injected copy')):
++            with self.assertRaisesRegex(OSError, 'injected copy'):
 +                self.run_restore()
 +        self.assertEqual(self.before, self.target_snapshot())
 +
@@ -858,7 +877,7 @@ index 0000000..078a752
 +            for future in pending:
 +                future.cancel()
 diff --git a/src/codex_transfer/restore.py b/src/codex_transfer/restore.py
-index 60397e5..0e436eb 100644
+index 60397e5..1eae044 100644
 --- a/src/codex_transfer/restore.py
 +++ b/src/codex_transfer/restore.py
 @@ -13,6 +13,11 @@ from typing import Any, Callable
@@ -1072,11 +1091,25 @@ index 60397e5..0e436eb 100644
          checked_projects += 1
          if action == "archive-and-replace":
              disposition_value = plan_item.get("dispositionPath")
-@@ -1826,7 +1839,11 @@ def restore_backup(
+@@ -1826,7 +1839,25 @@ def restore_backup(
      auth_path = target_codex / "auth.json"
      auth_hash_before = backup.sha256_file(auth_path)
      temporary_database = safety_root / "state_5.restored.tmp.sqlite"
 +    manifest_index = None
++
++    def release_manifest_index():
++        nonlocal manifest_index
++        if manifest_index is not None:
++            try:
++                manifest_index.close()
++            except Exception as cleanup_error:
++                # Disposable index cleanup must never prevent transaction rollback.
++                journal["manifestIndexCleanupError"] = (
++                    f"{type(cleanup_error).__name__}: {cleanup_error}"
++                )
++            finally:
++                manifest_index = None
++
      try:
 +        if progress:
 +            progress("Indexing backup manifest for project verification...")
@@ -1084,7 +1117,7 @@ index 60397e5..0e436eb 100644
          journal["status"] = "restoring"
          journal["startedAtUtc"] = backup.utc_now()
          backup.write_json(journal_path, journal)
-@@ -1839,6 +1856,7 @@ def restore_backup(
+@@ -1839,6 +1870,7 @@ def restore_backup(
              journal.get("comparisonPlan"),
              fail_after_project_quarantine_for_test,
              fail_after_project_activation_for_test,
@@ -1092,7 +1125,7 @@ index 60397e5..0e436eb 100644
          )
          project_dispositions = _apply_destination_project_decisions(
              safety_root,
-@@ -1932,6 +1950,7 @@ def restore_backup(
+@@ -1932,9 +1964,11 @@ def restore_backup(
              target_profile,
              translator,
              journal.get("comparisonPlan"),
@@ -1100,13 +1133,25 @@ index 60397e5..0e436eb 100644
          )
          if not verification["valid"]:
              raise RestoreError("Final verification failed: " + "; ".join(verification["errors"][:5]))
-@@ -2038,3 +2057,6 @@ def restore_backup(
++        release_manifest_index()
+         identities_registered = 0
+         project_identity_roots_removed = 0
+         identity_manifest_path = package_root / "manifest" / "project-identities.json"
+@@ -2015,6 +2049,8 @@ def restore_backup(
+         return journal
+     except Exception as original_error:
+         journal["error"] = traceback.format_exc()
++        # Free temporary disk before writing the failure journal or rolling back.
++        release_manifest_index()
+         journal_write_error: Exception | None = None
+         try:
+             backup.write_json(journal_path, journal)
+@@ -2038,3 +2074,5 @@ def restore_backup(
                  )
              raise RestoreError("; ".join(details)) from original_error
          raise
 +    finally:
-+        if manifest_index is not None:
-+            manifest_index.close()
++        release_manifest_index()
 diff --git a/src/codex_transfer/space_budget.py b/src/codex_transfer/space_budget.py
 new file mode 100644
 index 0000000..8f40724

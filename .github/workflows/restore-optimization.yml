@@ -33,7 +33,7 @@ jobs:
           git apply ../performance/optimizations/restore-first-pass.patch
       - name: Component tests
         working-directory: upstream
-        run: python -m unittest discover -s benchmarks -p test_restore_optimization.py -v
+        run: python -m unittest discover -s benchmarks -p '*optimization*.py' -v
       - name: Official source regression including GUI and rollback
         shell: pwsh
         run: |

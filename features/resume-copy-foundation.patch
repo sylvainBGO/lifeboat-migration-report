@@ -1,0 +1,402 @@
+diff --git a/benchmarks/test_checkpoint_optimization.py b/benchmarks/test_checkpoint_optimization.py
+new file mode 100644
+index 0000000..0d9e449
+--- /dev/null
++++ b/benchmarks/test_checkpoint_optimization.py
+@@ -0,0 +1,138 @@
++"""Recovery primitives: real copies, interruption, lock and restart boundaries."""
++from pathlib import Path
++import os
++import shutil
++import subprocess
++import sys
++import tempfile
++import threading
++import unittest
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
++from codex_transfer.parallel_copy import copy_staging_tree
++from codex_transfer.restore_checkpoint import (
++    CopyCheckpoint, RestorePaused, CheckpointBusy, PAUSE_RESERVE_BYTES,
++)
++
++
++class CheckpointTests(unittest.TestCase):
++    def setUp(self):
++        self.temp = tempfile.TemporaryDirectory()
++        self.addCleanup(self.temp.cleanup)
++        self.root = Path(self.temp.name)
++        self.source = self.root / 'source'
++        self.target = self.root / 'stage'
++        self.path = self.root / 'copy.sqlite'
++        self.source.mkdir()
++        for n in range(40):
++            (self.source / str(n)).write_bytes(bytes([n]) * (n + 1))
++
++    def ledger(self, **kwargs):
++        return CopyCheckpoint(self.path, self.source, self.target, **kwargs)
++
++    def probe(self, *_):
++        return 10**9, 4096
++
++    def test_manual_pause_drains_then_resume_never_recopies_completed(self):
++        copied = []
++        lock = threading.Lock()
++        with self.ledger() as checkpoint:
++            def copy(source, target):
++                shutil.copy2(source, target)
++                with lock:
++                    copied.append(Path(source).name)
++                checkpoint.request_pause()
++
++            with self.assertRaises(RestorePaused):
++                copy_staging_tree(self.source, self.target, self.probe,
++                                  checkpoint=checkpoint, copy=copy)
++            finished = set(copied)
++            self.assertGreater(len(finished), 0)
++            self.assertLess(len(finished), 40)
++            self.assertEqual(checkpoint.summary()['files'], len(finished))
++        # Reopening the on-disk document is independent of the old event/object.
++        with self.ledger() as checkpoint:
++            def resumed_copy(source, target):
++                self.assertNotIn(Path(source).name, finished)
++                shutil.copy2(source, target)
++                copied.append(Path(source).name)
++            count, size = copy_staging_tree(
++                self.source, self.target, self.probe,
++                checkpoint=checkpoint, copy=resumed_copy)
++            self.assertEqual((count, size), (40, sum(range(1, 41))))
++            self.assertEqual(len(copied), len(set(copied)))
++        for source in self.source.iterdir():
++            self.assertEqual(source.read_bytes(), (self.target / source.name).read_bytes())
++
++    def test_low_space_pauses_before_any_write_and_can_resume(self):
++        with self.ledger() as checkpoint:
++            probe = checkpoint.space_probe(lambda _: (PAUSE_RESERVE_BYTES, 4096))
++            with self.assertRaises(RestorePaused):
++                copy_staging_tree(self.source, self.target, probe, checkpoint=checkpoint)
++            self.assertEqual(checkpoint.summary()['files'], 0)
++            self.assertEqual(list(self.target.iterdir()), [])
++        with self.ledger() as checkpoint:
++            probe = checkpoint.space_probe(lambda _: (10**9, 4096))
++            self.assertEqual(copy_staging_tree(
++                self.source, self.target, probe, checkpoint=checkpoint)[0], 40)
++
++    def test_reserve_includes_pending_bytes_and_allocation(self):
++        with self.ledger() as checkpoint:
++            minimum = PAUSE_RESERVE_BYTES + 123 + 2 * 4096
++            probe = checkpoint.space_probe(lambda _: (minimum, 4096))
++            self.assertEqual(probe(self.target, 123, 2), (8315, 4096))
++            with self.assertRaises(RestorePaused):
++                probe(self.target, 124, 2)
++
++    def test_disk_error_while_pausing_is_not_hidden(self):
++        with self.ledger() as checkpoint:
++            def fail(source, target):
++                checkpoint.request_pause()
++                raise OSError('injected write failure')
++            with self.assertRaisesRegex(OSError, 'injected write failure'):
++                copy_staging_tree(self.source, self.target, self.probe,
++                                  checkpoint=checkpoint, copy=fail)
++            self.assertEqual(checkpoint.summary()['files'], 0)
++
++    def test_binding_rejects_wrong_destination_before_copy(self):
++        with self.ledger() as checkpoint:
++            with self.assertRaises(ValueError):
++                copy_staging_tree(self.source, self.root / 'other', self.probe,
++                                  checkpoint=checkpoint)
++        with self.assertRaises(ValueError):
++            CopyCheckpoint(self.path, self.source, self.root / 'other')
++        # Failed initialization releases its lock.
++        with self.ledger():
++            pass
++
++    def test_one_writer_and_released_lock(self):
++        with self.ledger():
++            with self.assertRaises(CheckpointBusy):
++                self.ledger()
++        with self.ledger():
++            pass
++
++    def test_abrupt_process_exit_keeps_only_committed_batch(self):
++        # Exit without close/finally: SQLite must roll back the unfinished batch,
++        # while the OS releases the lock so another process can resume.
++        script = '''
++import os, sys
++from pathlib import Path
++from codex_transfer.restore_checkpoint import CopyCheckpoint
++root = Path(sys.argv[1])
++ledger = CopyCheckpoint(root/'copy.sqlite', root/'source', root/'stage', batch_size=2)
++for n in range(3):
++    ledger.complete(root/'source'/str(n), n+1)
++os._exit(23)
++'''
++        env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1] / 'src'))
++        result = subprocess.run([sys.executable, '-c', script, str(self.root)],
++                                env=env, capture_output=True, timeout=20)
++        self.assertEqual(result.returncode, 23, result.stderr.decode())
++        with self.ledger() as checkpoint:
++            self.assertEqual(checkpoint.summary(), {'files': 2, 'bytes': 3})
++            self.assertIsNone(checkpoint.done(self.source / '2'))
++
++
++if __name__ == '__main__':
++    unittest.main()
+diff --git a/src/codex_transfer/parallel_copy.py b/src/codex_transfer/parallel_copy.py
+index 5b4727b..282ad74 100644
+--- a/src/codex_transfer/parallel_copy.py
++++ b/src/codex_transfer/parallel_copy.py
+@@ -7,17 +7,32 @@ import shutil
+ 
+ try:
+     from .space_budget import CopySpaceBudget
++    from .restore_checkpoint import RestorePaused
+ except ImportError:
+     from space_budget import CopySpaceBudget
++    from restore_checkpoint import RestorePaused
+ 
+ 
+-def copy_staging_tree(source, destination, probe, workers=4, copy=shutil.copy2):
++def copy_staging_tree(source, destination, probe, workers=4, copy=shutil.copy2,
++                      checkpoint=None):
+     """Drain all writers before propagating errors so rollback cannot race them.
+ 
+     Only the coordinator creates directories and accounts for space. The queue
+     bounds memory independently of the source file count. Pending reservations
+     include completed-but-not-collected copies (conservative).
++
++    An optional checkpoint is only valid for an exclusively owned staging tree.
++    On pause, every submitted writer finishes and its success is committed before
++    RestorePaused escapes. A real copy error during draining remains an error.
+     """
++    if workers < 1:
++        raise ValueError('workers must be positive')
++    if checkpoint is not None and (
++            Path(source).resolve() != checkpoint.source
++            or Path(destination).resolve() != checkpoint.destination):
++        raise ValueError('Checkpoint paths do not match the staging operation')
++    if checkpoint is not None:
++        source, destination = checkpoint.source, checkpoint.destination
+     pending = deque()
+     reserved_bytes = 0
+     reserved_files = 0
+@@ -31,8 +46,10 @@ def copy_staging_tree(source, destination, probe, workers=4, copy=shutil.copy2):
+ 
+     def collect():
+         nonlocal reserved_bytes, reserved_files, count, total
+-        future, size = pending.popleft()
++        future, size, source_path = pending.popleft()
+         future.result()
++        if checkpoint is not None:
++            checkpoint.complete(source_path, size)
+         reserved_bytes -= size
+         reserved_files -= 1
+         count += 1
+@@ -43,10 +60,14 @@ def copy_staging_tree(source, destination, probe, workers=4, copy=shutil.copy2):
+         try:
+             stack = [(Path(source), Path(destination))]
+             while stack:
++                if checkpoint is not None:
++                    checkpoint.check()
+                 current, target_dir = stack.pop()
+                 target_dir.mkdir(parents=True, exist_ok=True)
+                 with os.scandir(current) as entries:
+                     for entry in entries:
++                        if checkpoint is not None:
++                            checkpoint.check()
+                         target = target_dir / entry.name
+                         if entry.is_symlink() or (
+                             hasattr(entry, 'is_junction') and entry.is_junction()
+@@ -55,18 +76,35 @@ def copy_staging_tree(source, destination, probe, workers=4, copy=shutil.copy2):
+                         if entry.is_dir(follow_symlinks=False):
+                             stack.append((Path(entry.path), target))
+                         elif entry.is_file(follow_symlinks=False):
++                            if checkpoint is not None:
++                                previous = checkpoint.done(entry.path)
++                                if previous is not None:
++                                    count += 1
++                                    total += previous[0]
++                                    continue
+                             if len(pending) >= workers * 2:
+                                 collect()
+                             size = entry.stat(follow_symlinks=False).st_size
+                             guard(Path(entry.path), target, size)
+                             future = executor.submit(copy, entry.path, target)
+-                            pending.append((future, size))
++                            pending.append((future, size, entry.path))
+                             reserved_bytes += size
+                             reserved_files += 1
+             while pending:
+                 collect()
++            if checkpoint is not None:
++                checkpoint.flush()
++                checkpoint.check()
++        except RestorePaused:
++            # Do not cancel queued work: retain all work admitted before the pause.
++            # The executor context still drains if collecting a writer fails.
++            while pending:
++                collect()
++            if checkpoint is not None:
++                checkpoint.flush()
++            raise
+         except BaseException:
+-            for future, _ in pending:
++            for future, _, _ in pending:
+                 future.cancel()
+             raise
+     return count, total
+diff --git a/src/codex_transfer/restore_checkpoint.py b/src/codex_transfer/restore_checkpoint.py
+new file mode 100644
+index 0000000..f2a6970
+--- /dev/null
++++ b/src/codex_transfer/restore_checkpoint.py
+@@ -0,0 +1,149 @@
++"""Durable checkpoints for resumable staging, independent of GUI state.
++
++This is an internal building block, not a replacement for the restore journal.
++Completed rows mean a copy returned successfully, NOT that verification passed.
++One coordinator owns the ledger; copy workers must never call it.
++"""
++import json
++import os
++from pathlib import Path
++import sqlite3
++import threading
++
++
++PAUSE_RESERVE_BYTES = 500_000_000
++
++
++class RestorePaused(Exception):
++    """Cooperative stop after writers have drained; must not trigger rollback."""
++
++
++class CheckpointBusy(RuntimeError):
++    pass
++
++
++class CopyCheckpoint:
++    """Single-writer, bounded-memory copy ledger with restartable batches.
++
++    Graceful pauses commit every successful in-flight copy. Abrupt termination
++    can replay at most a batch plus the bounded worker queue. Skipping recorded
++    files assumes exclusive ownership of the staging tree; final hashes remain
++    required. Paths bind a ledger to one source/staging pair without a scan.
++    """
++
++    def __init__(self, path, source, destination, batch_size=256):
++        if batch_size < 1:
++            raise ValueError('batch_size must be positive')
++        self.path = Path(path)
++        self.source = Path(source).resolve()
++        self.destination = Path(destination).resolve()
++        self.batch_size = batch_size
++        self._pending = 0
++        self._pause = threading.Event()
++        self._db = None
++        self._lock = None
++        self.path.parent.mkdir(parents=True, exist_ok=True)
++        try:
++            self._acquire_lock()
++            self._db = sqlite3.connect(self.path)
++            # This is recovery state, unlike the disposable manifest index.
++            self._db.execute('PRAGMA synchronous=FULL')
++            self._db.execute('PRAGMA journal_mode=DELETE')
++            self._db.execute('PRAGMA cache_size=-2048')
++            self._db.execute('CREATE TABLE IF NOT EXISTS metadata '
++                             '(key TEXT PRIMARY KEY, value TEXT NOT NULL)')
++            self._db.execute('CREATE TABLE IF NOT EXISTS completed '
++                             '(path TEXT PRIMARY KEY, size INTEGER NOT NULL)')
++            identity = json.dumps([1, str(self.source), str(self.destination)])
++            stored = self._db.execute(
++                "SELECT value FROM metadata WHERE key='identity'").fetchone()
++            if stored is not None and stored[0] != identity:
++                raise ValueError('Checkpoint belongs to a different copy operation')
++            self._db.execute("INSERT OR IGNORE INTO metadata VALUES ('identity', ?)",
++                             (identity,))
++            self._db.commit()
++        except BaseException:
++            self.close()
++            raise
++
++    def _acquire_lock(self):
++        self._lock = open(str(self.path) + '.lock', 'a+b')
++        # Lock one existing byte on Windows. The persistent lock file is harmless;
++        # the OS releases the lock when the owning process exits or crashes.
++        self._lock.seek(0, os.SEEK_END)
++        if self._lock.tell() == 0:
++            self._lock.write(b'0')
++            self._lock.flush()
++        self._lock.seek(0)
++        try:
++            if os.name == 'nt':
++                import msvcrt
++                msvcrt.locking(self._lock.fileno(), msvcrt.LK_NBLCK, 1)
++            else:
++                import fcntl
++                fcntl.flock(self._lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
++        except OSError as exc:
++            self._lock.close()
++            self._lock = None
++            raise CheckpointBusy('This copy operation is already running') from exc
++
++    def request_pause(self):
++        """Thread-safe entry point for the future GUI button."""
++        self._pause.set()
++
++    def check(self):
++        if self._pause.is_set():
++            raise RestorePaused('Manual pause requested')
++
++    def space_probe(self, probe):
++        """Adapt a raw (free bytes, allocation unit) probe to CopySpaceBudget."""
++        def check_space(target, size, files):
++            self.check()
++            free, unit = probe(target)
++            required = PAUSE_RESERVE_BYTES + max(0, size) + max(0, files) * unit
++            if free < required:
++                raise RestorePaused(
++                    f'Insufficient space: {free} bytes free; {required} required '
++                    f'including the {PAUSE_RESERVE_BYTES}-byte reserve')
++            return free - PAUSE_RESERVE_BYTES, unit
++        return check_space
++
++    def _key(self, source):
++        return Path(source).relative_to(self.source).as_posix()
++
++    def done(self, source):
++        return self._db.execute('SELECT size FROM completed WHERE path=?',
++                                (self._key(source),)).fetchone()
++
++    def complete(self, source, size):
++        self._db.execute('INSERT OR REPLACE INTO completed VALUES (?, ?)',
++                         (self._key(source), size))
++        self._pending += 1
++        if self._pending >= self.batch_size:
++            self.flush()
++
++    def flush(self):
++        self._db.commit()
++        self._pending = 0
++
++    def summary(self):
++        count, size = self._db.execute(
++            'SELECT COUNT(*), COALESCE(SUM(size),0) FROM completed').fetchone()
++        return {'files': count, 'bytes': size}
++
++    def close(self):
++        try:
++            if self._db is not None:
++                # Never turn uncommitted work into completed work merely by closing.
++                self._db.close()
++        finally:
++            self._db = None
++            if self._lock is not None:
++                self._lock.close()
++                self._lock = None
++
++    def __enter__(self):
++        return self
++
++    def __exit__(self, *_):
++        self.close()

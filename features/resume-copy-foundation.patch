@@ -1,9 +1,9 @@
 diff --git a/COMMUNITY-RECOVERY.md b/COMMUNITY-RECOVERY.md
 new file mode 100644
-index 0000000..1f33005
+index 0000000..4291922
 --- /dev/null
 +++ b/COMMUNITY-RECOVERY.md
-@@ -0,0 +1,111 @@
+@@ -0,0 +1,127 @@
 +# Codex Lifeboat — Community Recovery
 +
 +Version communautaire dérivée de dkwolf1/Codex-Lifeboat 3.4.11 (MIT), avec
@@ -115,6 +115,22 @@ index 0000000..1f33005
 +les contrôles d'intégrité ; il ne les supprime pas pour afficher un meilleur temps.
 +
 +Sources, tests et résultats : https://github.com/sylvainBGO/lifeboat-migration-report
++
++## Reconstruire le programme à partir des sources
++
++Sur Windows avec Python 3.12 et Tkinter, depuis la racine de l'archive sources :
++
++```powershell
++python -m pip install -r requirements-build.txt
++python -m unittest discover -s benchmarks -p '*optimization*.py' -v
++python src/run_codex_transfer.py --self-test --work C:/lb-source-test
++python -m PyInstaller --noconfirm --clean --onefile --windowed --name Codex-Lifeboat-Community --paths src src/run_codex_transfer.py
++```
++
++Le test de reprise de l'exécutable s'exécute avec `--recovery-self-test --work`
++suivi d'un **nouveau dossier** réservé à des données synthétiques. Les résultats
++sont enregistrés dans `recovery-self-test-result.json`. Les captures synthétiques
++de l'interface utilisent Pillow ; elles sont indépendantes de la restauration.
 diff --git a/benchmarks/capture_recovery_ui.py b/benchmarks/capture_recovery_ui.py
 new file mode 100644
 index 0000000..ac6f035
@@ -318,10 +334,10 @@ index 0000000..04fbfea
 +    unittest.main()
 diff --git a/benchmarks/test_feature_ui_optimization.py b/benchmarks/test_feature_ui_optimization.py
 new file mode 100644
-index 0000000..a30704e
+index 0000000..3959b42
 --- /dev/null
 +++ b/benchmarks/test_feature_ui_optimization.py
-@@ -0,0 +1,78 @@
+@@ -0,0 +1,87 @@
 +"""UI state and Defender command contracts, without changing host protection."""
 +import os
 +from pathlib import Path
@@ -345,6 +361,15 @@ index 0000000..a30704e
 +        self.app._set_busy(True)
 +        self.app._apply_progress(50, 100, 'Pre-restore check: Validating backup')
 +        self.assertLess(float(self.app.progress.cget('value')), 15)
++        self.assertNotEqual(self.app.stage_dots[1].cget('text'), '✓')
++
++    def test_preview_completion_is_not_restore_completion(self):
++        self.app._begin_operation('restore_preparation')
++        self.app._set_busy(True)
++        self.app._apply_progress(100, 100, 'Comparison plan ready')
++        self.app.messages.put(('done', (lambda result: None, {})))
++        self.app._drain_messages()
++        self.assertLess(float(self.app.progress.cget('value')), 100)
 +        self.assertNotEqual(self.app.stage_dots[1].cget('text'), '✓')
 +
 +    def test_defender_prompt_is_nonmodal_and_does_not_pause_worker(self):
@@ -402,10 +427,10 @@ index 0000000..a30704e
 +        self.assertTrue(result['RealTimeProtectionEnabled'])
 diff --git a/benchmarks/test_resume_optimization.py b/benchmarks/test_resume_optimization.py
 new file mode 100644
-index 0000000..40cc1ae
+index 0000000..1efd1e1
 --- /dev/null
 +++ b/benchmarks/test_resume_optimization.py
-@@ -0,0 +1,197 @@
+@@ -0,0 +1,208 @@
 +"""Actual Windows restore with durable operation checkpoints."""
 +import os
 +from pathlib import Path
@@ -603,6 +628,17 @@ index 0000000..40cc1ae
 +                                                     journal, 'destination-only', item)
 +        self.assertFalse(target.exists())
 +        self.assertEqual((moved/'keep.txt').read_text(), 'preserve this')
++
++    def test_changed_resume_destination_is_rejected_before_writing(self):
++        operation = self.prepare()
++        other = self.root / 'unrelated-target'
++        other.mkdir()
++        document = self.backup.read_json(self.document)
++        document['targetProfile'] = str(other)
++        self.backup.write_json(self.document, document)
++        with self.assertRaisesRegex(ValueError, 'does not match'):
++            operation.resume_from_document(self.document)
++        self.assertEqual(list(other.iterdir()), [])
 diff --git a/src/codex_transfer/defender_control.py b/src/codex_transfer/defender_control.py
 new file mode 100644
 index 0000000..e14ddd7
@@ -644,7 +680,7 @@ index 0000000..e14ddd7
 +    current['requestExitCode'] = result.returncode
 +    return current
 diff --git a/src/codex_transfer/gui.py b/src/codex_transfer/gui.py
-index a484dc9..25469ba 100644
+index a484dc9..b6cab11 100644
 --- a/src/codex_transfer/gui.py
 +++ b/src/codex_transfer/gui.py
 @@ -13,6 +13,8 @@ from tkinter import filedialog, messagebox, ttk
@@ -682,7 +718,13 @@ index a484dc9..25469ba 100644
          self._translate()
          self.bind("<Map>", self._restore_from_taskbar, add="+")
          self.after(100, self._drain_messages)
-@@ -3026,6 +3029,8 @@ class TransferApp(tk.Tk):
+@@ -3021,11 +3024,14 @@ class TransferApp(tk.Tk):
+             "backup": "operation_backup_title",
+             "verify_backup": "operation_verify_title",
+             "restore": "operation_restore_title",
++            "restore_preparation": "operation_restore_title",
+             "verify_restore": "operation_restore_verify_title",
+         }.get(self.operation_key, "operation_other_title")
  
      def _begin_operation(self, operation: str | None = None) -> None:
          self.operation_key = operation or "other"
@@ -691,15 +733,16 @@ index a484dc9..25469ba 100644
          self.operation_failed = False
          self.operation_started_at = time.monotonic()
          self.phase_started_at = self.operation_started_at
-@@ -3088,7 +3093,18 @@ class TransferApp(tk.Tk):
+@@ -3088,7 +3094,19 @@ class TransferApp(tk.Tk):
      def _apply_progress(self, current: int, total: int, message: str) -> None:
          current = max(int(current), 0)
          total = max(int(total), 0)
 -        stage = self._progress_stage(message)
 +        if self.operation_key == "restore" and self.structured_restore:
 +            return
-+        stage = 0 if self.operation_key == "restore" else self._progress_stage(message)
-+        if self.operation_key == 'restore':
++        preparing_restore = self.operation_key in {'restore', 'restore_preparation'}
++        stage = 0 if preparing_restore else self._progress_stage(message)
++        if preparing_restore:
 +            self.operation_title.configure(text='Preparing restore — reading and checking backup')
 +            self.phase_progress.stop()
 +            if total:
@@ -711,7 +754,14 @@ index a484dc9..25469ba 100644
          self.operation_progress = weighted_operation_progress(
              self.operation_progress, stage, current, total
          )
-@@ -3139,17 +3155,20 @@ class TransferApp(tk.Tk):
+@@ -3136,20 +3154,27 @@ class TransferApp(tk.Tk):
+             self.remaining_label.configure(text=f"{self.t('remaining')}: {self.t('calculating')}")
+             self.throughput_label.configure(text=f"{self.t('throughput')}: —")
+         self._render_stage_state(active=stage)
++        if preparing_restore:
++            # Reading/checking is never evidence that project copying finished.
++            for index, dot in enumerate(self.stage_dots):
++                dot.configure(text=str(index + 1), bg='#FFF0D6' if index == 0 else '#EDF1F5')
  
      def _render_stage_state(self, active: int | None = None, complete: bool = False) -> None:
          ranges = PROGRESS_STAGE_RANGES
@@ -734,7 +784,7 @@ index a484dc9..25469ba 100644
                  dot.configure(text=str(index + 1), bg="#FFF0D6", fg="#A85B00")
                  label.configure(fg=self.NAVY)
              else:
-@@ -3160,6 +3179,9 @@ class TransferApp(tk.Tk):
+@@ -3160,6 +3185,9 @@ class TransferApp(tk.Tk):
          if self.busy:
              self.operation_title.configure(text=self.t(self._operation_title_key()))
              self.operation_subtitle.configure(text=self.t("source_unchanged"))
@@ -744,7 +794,7 @@ index a484dc9..25469ba 100644
          elif self.operation_failed:
              self.operation_title.configure(text=self.t("operation_failed_title"))
              self.operation_subtitle.configure(text=self.t("operation_failed_subtitle"))
-@@ -3174,13 +3196,6 @@ class TransferApp(tk.Tk):
+@@ -3174,13 +3202,6 @@ class TransferApp(tk.Tk):
              self.elapsed_label.configure(
                  text=f"{self.t('elapsed')}: {self._format_duration(elapsed)}"
              )
@@ -758,17 +808,17 @@ index a484dc9..25469ba 100644
          self.after(500, self._tick_operation_clock)
  
      def _change_language(self, _event=None) -> None:
-@@ -3239,6 +3254,9 @@ class TransferApp(tk.Tk):
+@@ -3239,6 +3260,9 @@ class TransferApp(tk.Tk):
          self._translate_tab()
          self._render_operation_state()
          self._render_last_result()
-+        if self.operation_key == 'restore':
++        if self.operation_key in {'restore', 'restore_preparation'}:
 +            for label, text in zip(self.stage_labels, ('Check backup', 'Copy projects', 'Restore user data', 'Final verification', 'Finish')):
 +                label.configure(text=text)
          if self.launch_blocked:
              self.status_label.configure(text=self.t("extract_status"))
              self.header_status.configure(
-@@ -3263,6 +3281,9 @@ class TransferApp(tk.Tk):
+@@ -3263,6 +3287,9 @@ class TransferApp(tk.Tk):
                  bg=("#EAF2FD" if self.busy else "#FDECEC" if self.operation_failed else "#E8F7EF"),
                  fg=(self.BLUE if self.busy else "#B42318" if self.operation_failed else "#128250"),
              )
@@ -778,7 +828,7 @@ index a484dc9..25469ba 100644
  
      def _render_last_result(self) -> None:
          model = self.last_result_model
-@@ -3328,17 +3349,31 @@ class TransferApp(tk.Tk):
+@@ -3328,17 +3355,31 @@ class TransferApp(tk.Tk):
                  kind, value = self.messages.get_nowait()
              except queue.Empty:
                  break
@@ -798,7 +848,7 @@ index a484dc9..25469ba 100644
 +                cancelled = isinstance(result, dict) and result.get("cancelled")
 +                self.phase_progress.stop()
 +                self.pause_button.configure(state="disabled")
-+                if not paused and not cancelled:
++                if not paused and not cancelled and self.operation_key != 'restore_preparation':
 +                    self._finish_operation(True)
 +                self._set_busy(False)
 +                if self.close_after_pause:
@@ -812,7 +862,7 @@ index a484dc9..25469ba 100644
                  self._finish_operation(False)
                  self._set_busy(False)
                  self._append_log(str(value))
-@@ -3349,6 +3384,7 @@ class TransferApp(tk.Tk):
+@@ -3349,6 +3390,7 @@ class TransferApp(tk.Tk):
  
      def _set_busy(self, value: bool) -> None:
          self.busy = value
@@ -820,7 +870,7 @@ index a484dc9..25469ba 100644
          self.status_dot.configure(fg=self.BLUE if value else self.SUCCESS)
          for button in self.action_buttons:
              button.configure(
-@@ -3367,6 +3403,7 @@ class TransferApp(tk.Tk):
+@@ -3367,6 +3409,7 @@ class TransferApp(tk.Tk):
              return
          self._begin_operation(operation)
          self._set_busy(True)
@@ -828,7 +878,15 @@ index a484dc9..25469ba 100644
  
          def worker():
              try:
-@@ -3794,6 +3831,8 @@ class TransferApp(tk.Tk):
+@@ -3787,13 +3830,15 @@ class TransferApp(tk.Tk):
+                 ),
+             ),
+             preview_done,
+-            "restore",
++            "restore_preparation",
+         )
+ 
+     def _execute_restore(
          self, package: Path, external_roots: dict[str, str], comparison_plan: dict
      ) -> None:
  
@@ -837,7 +895,7 @@ index a484dc9..25469ba 100644
          def work():
              prepared = restore.prepare_restore(
                  package,
-@@ -3803,6 +3842,9 @@ class TransferApp(tk.Tk):
+@@ -3803,6 +3848,9 @@ class TransferApp(tk.Tk):
                  external_roots=external_roots,
                  comparison_plan=comparison_plan,
              )
@@ -847,7 +905,7 @@ index a484dc9..25469ba 100644
              confirmation = threading.Event()
              answer: list[bool] = []
  
-@@ -3825,32 +3867,21 @@ class TransferApp(tk.Tk):
+@@ -3825,32 +3873,21 @@ class TransferApp(tk.Tk):
              confirmation.wait()
              if not answer or not answer[0]:
                  return {"cancelled": True, **prepared}
@@ -1182,10 +1240,10 @@ index 0000000..92b5e41
 +    return result
 diff --git a/src/codex_transfer/recovery_ui.py b/src/codex_transfer/recovery_ui.py
 new file mode 100644
-index 0000000..1a44b7f
+index 0000000..5416d1a
 --- /dev/null
 +++ b/src/codex_transfer/recovery_ui.py
-@@ -0,0 +1,217 @@
+@@ -0,0 +1,215 @@
 +"""Recovery controls and structured progress; Tk calls stay on the UI thread."""
 +from pathlib import Path
 +import threading
@@ -1320,9 +1378,7 @@ index 0000000..1a44b7f
 +                 3 if phase == 'verify restored' else 4 if phase == 'finish' else 2)
 +        self.structured_stage = stage
 +        # Render explicit completed phases, not completion inferred from old weights.
-+        for i, (dot, label) in enumerate(zip(self.stage_dots, self.stage_labels)):
-+            dot.configure(text='✓' if i < stage else str(i+1),
-+                          bg=self.SUCCESS if i < stage else '#FFF0D6' if i == stage else '#EDF1F5')
++        self._render_stage_state(active=stage)
 +
 +    def _resume_done(self, result):
 +        if result.get('status') == 'paused':
@@ -2253,10 +2309,10 @@ index 0000000..7a8581a
 +        self.close()
 diff --git a/src/codex_transfer/restore_operation.py b/src/codex_transfer/restore_operation.py
 new file mode 100644
-index 0000000..cdd473a
+index 0000000..4dddd12
 --- /dev/null
 +++ b/src/codex_transfer/restore_operation.py
-@@ -0,0 +1,223 @@
+@@ -0,0 +1,235 @@
 +"""Operation-level durable checkpoints. No source-wide preflight on resume."""
 +from contextvars import ContextVar
 +from functools import wraps
@@ -2457,6 +2513,13 @@ index 0000000..cdd473a
 +        raise ValueError('Unsupported resume document')
 +    safety = document.parent
 +    package, target = Path(state['package']), Path(state['targetProfile'])
++    journal = backup.read_json(safety / 'restore-journal.json')
++    # Bind two small saved documents; this does not scan or revalidate payloads.
++    if (Path(journal['package']).resolve() != package.resolve()
++            or Path(journal['targetProfile']).resolve() != target.resolve()
++            or Path(journal['safetyRoot']).resolve() != safety
++            or journal.get('resumeExternalRoots') != state.get('externalRoots')):
++        raise ValueError('Resume document does not match its original restore journal')
 +    backup.check_codex_not_running(target / '.codex', False)
 +    with RestoreOperation(safety, package, target, pause, progress):
 +        try:
@@ -2473,11 +2536,16 @@ index 0000000..cdd473a
 +
 +
 +def create_document(safety, package, target, external_roots=None):
-+    from . import backup
++    from . import backup, restore
 +    path = Path(safety) / 'resume-plan.json'
++    journal_path = Path(safety) / 'restore-journal.json'
++    journal = backup.read_json(journal_path)
++    roots = restore.resolved_external_roots(Path(target), external_roots)
++    journal['resumeExternalRoots'] = roots
++    backup.write_json(journal_path, journal)
 +    backup.write_json(path, {'resumeVersion': 1, 'package': str(Path(package).resolve()),
 +                            'targetProfile': str(Path(target).resolve()),
-+                            'externalRoots': external_roots or {},
++                            'externalRoots': roots,
 +                            'reserveBytes': PAUSE_RESERVE_BYTES})
 +    return path
 diff --git a/src/codex_transfer/restore_reporting.py b/src/codex_transfer/restore_reporting.py

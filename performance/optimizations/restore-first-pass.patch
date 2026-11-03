@@ -152,10 +152,10 @@ index 0000000..ab0c863
 +    main()
 diff --git a/benchmarks/test_restore_optimization.py b/benchmarks/test_restore_optimization.py
 new file mode 100644
-index 0000000..1b5ce5d
+index 0000000..fddb2ce
 --- /dev/null
 +++ b/benchmarks/test_restore_optimization.py
-@@ -0,0 +1,237 @@
+@@ -0,0 +1,266 @@
 +"""Portable component tests; full restore integration must also run on Windows."""
 +import csv
 +import importlib.util
@@ -182,6 +182,7 @@ index 0000000..1b5ce5d
 +Budget = module('space_budget').CopySpaceBudget
 +Index = module('manifest_index').ManifestIndex
 +Replacer = module('text_replace').OrderedPathReplacer
++scan_package = module('package_inventory').scan_package
 +sys.path.insert(0, str(SOURCE.parent))
 +from codex_transfer.parallel_copy import copy_staging_tree
 +
@@ -376,6 +377,7 @@ index 0000000..1b5ce5d
 +            for old, new in pairs:
 +                expected = expected.replace(old, new)
 +            self.assertEqual(Replacer(pairs)(text), expected)
++
 +        self.assertEqual(Replacer([])('plain'), 'plain')
 +
 +    def test_randomized_equivalence(self):
@@ -389,6 +391,33 @@ index 0000000..1b5ce5d
 +            for old, new in pairs:
 +                expected = expected.replace(old, new)
 +            self.assertEqual(Replacer(pairs)(text), expected)
++
++
++class PackageInventoryTests(unittest.TestCase):
++    def test_matches_membership_and_detects_empty_forbidden_roots(self):
++        with tempfile.TemporaryDirectory() as folder:
++            root = Path(folder)
++            (root/'codex/cache').mkdir(parents=True)
++            (root/'codex/auth.json').write_text('synthetic')
++            (root/'project').mkdir()
++            (root/'project/data.bin').write_bytes(b'data')
++            (root/'ignore').write_text('excluded')
++            files, forbidden, directories = scan_package(root, {'ignore'},
++                {'codex/auth.json'}, {'codex/cache'})
++            self.assertEqual(files, {p.relative_to(root).as_posix() for p in root.rglob('*')
++                                    if p.is_file() and p.name != 'ignore'})
++            self.assertEqual(forbidden, {'codex/auth.json'})
++            self.assertEqual(directories, {'codex/cache'})
++
++    def test_second_scan_detects_new_empty_runtime_directory(self):
++        with tempfile.TemporaryDirectory() as folder:
++            root = Path(folder)
++            before = scan_package(root, set(), set(), {'codex/cache'})
++            (root/'codex/cache').mkdir(parents=True)
++            after = scan_package(root, set(), set(), {'codex/cache'})
++            self.assertEqual(before[0], after[0])
++            self.assertNotEqual(before[2], after[2])
++
 +
 +
 +if __name__ == '__main__':
@@ -465,6 +494,33 @@ index 0000000..23ca7dd
 +
 +    def __exit__(self, *args):
 +        self.close()
+diff --git a/src/codex_transfer/package_inventory.py b/src/codex_transfer/package_inventory.py
+new file mode 100644
+index 0000000..bb635a9
+--- /dev/null
++++ b/src/codex_transfer/package_inventory.py
+@@ -0,0 +1,21 @@
++"""One filesystem walk for payload membership and forbidden Codex paths."""
++
++
++def scan_package(root, exclusions, forbidden_files, forbidden_directories):
++    files = set()
++    found_files = set()
++    found_directories = set()
++    for path in root.rglob('*'):
++        relative = path.relative_to(root).as_posix()
++        lower = relative.lower()
++        if lower in forbidden_files:
++            found_files.add(lower)
++        # Forbidden runtime roots are direct children of codex/. Do not retain
++        # a second set containing all millions of package paths just for this.
++        if lower.startswith('codex/'):
++            root_name = '/'.join(lower.split('/', 2)[:2])
++            if root_name in forbidden_directories:
++                found_directories.add(root_name)
++        if relative not in exclusions and path.is_file():
++            files.add(relative)
++    return files, found_files, found_directories
 diff --git a/src/codex_transfer/parallel_copy.py b/src/codex_transfer/parallel_copy.py
 new file mode 100644
 index 0000000..5b4727b
@@ -829,10 +885,18 @@ index 0000000..ec91144
 +            value = value.replace(old, new)
 +        return value
 diff --git a/src/codex_transfer/validate.py b/src/codex_transfer/validate.py
-index 344e954..8bb6834 100644
+index 344e954..e282509 100644
 --- a/src/codex_transfer/validate.py
 +++ b/src/codex_transfer/validate.py
-@@ -213,11 +213,15 @@ def validate(
+@@ -14,6 +14,7 @@ from pathlib import Path, PurePosixPath
+ from typing import Any, Callable
+ 
+ from . import lineage, path_model, project_identity, rollout as rollout_io
++from .package_inventory import scan_package
+ 
+ 
+ FORMAT_ID = "codex-portable-backup"
+@@ -213,11 +214,10 @@ def validate(
      except Exception as exc:
          errors.append(f"sha256.csv kan niet worden gelezen: {exc}")
  
@@ -841,23 +905,53 @@ index 344e954..8bb6834 100644
 -        for path in package_root.rglob("*")
 -        if path.is_file() and rel(path, package_root) not in MANIFEST_EXCLUSIONS
 -    }
-+    # Share the initial directory enumeration with forbidden-path checks.
-+    # Keep the separate end-of-validation scan that detects package changes.
-+    actual_files: set[str] = set()
-+    actual_all: set[str] = set()
-+    for path in package_root.rglob("*"):
-+        relative = rel(path, package_root)
-+        actual_all.add(relative.lower())
-+        if path.is_file() and relative not in MANIFEST_EXCLUSIONS:
-+            actual_files.add(relative)
++    actual_files, forbidden_files, forbidden_directories = scan_package(
++        package_root, MANIFEST_EXCLUSIONS,
++        FORBIDDEN_CODEX_PATHS, FORBIDDEN_CODEX_DIRECTORIES,
++    )
      listed_files = set(hash_rows)
      for value in sorted(actual_files - listed_files):
          errors.append(f"Unexpected/unhashed file: {value}")
-@@ -652,7 +656,6 @@ def validate(
+@@ -652,14 +652,10 @@ def validate(
          )
      checks["dependencyExclusions"] = declared_dependency_exclusions
  
 -    actual_all = {rel(path, package_root).lower() for path in package_root.rglob("*")}
-     for forbidden in FORBIDDEN_CODEX_PATHS:
-         if forbidden.lower() in actual_all:
-             errors.append(f"Machine-specific Codex file found: {forbidden}")
+-    for forbidden in FORBIDDEN_CODEX_PATHS:
+-        if forbidden.lower() in actual_all:
+-            errors.append(f"Machine-specific Codex file found: {forbidden}")
+-    for forbidden_directory in FORBIDDEN_CODEX_DIRECTORIES:
+-        prefix = forbidden_directory.lower() + "/"
+-        if any(value == forbidden_directory.lower() or value.startswith(prefix) for value in actual_all):
+-            errors.append(f"Machine-specific Codex directory found: {forbidden_directory}")
++    for forbidden in sorted(forbidden_files):
++        errors.append(f"Machine-specific Codex file found: {forbidden}")
++    for forbidden in sorted(forbidden_directories):
++        errors.append(f"Machine-specific Codex directory found: {forbidden}")
+ 
+     database_path = package_root / "codex/state.snapshot.sqlite"
+     database_threads: set[str] = set()
+@@ -1368,12 +1364,17 @@ def validate(
+ 
+     if progress:
+         progress(0, 0, "Checking backup history and portable relationships...")
+-    actual_files_after = {
+-        rel(path, package_root)
+-        for path in package_root.rglob("*")
+-        if path.is_file() and rel(path, package_root) not in MANIFEST_EXCLUSIONS
+-    }
+-    package_unchanged = actual_files_after == actual_files
++    actual_files_after, forbidden_files_after, forbidden_directories_after = scan_package(
++        package_root, MANIFEST_EXCLUSIONS,
++        FORBIDDEN_CODEX_PATHS, FORBIDDEN_CODEX_DIRECTORIES,
++    )
++    package_unchanged = (actual_files_after == actual_files
++                         and forbidden_files_after == forbidden_files
++                         and forbidden_directories_after == forbidden_directories)
++    for value in sorted(forbidden_files_after - forbidden_files):
++        errors.append(f"Forbidden file appeared during validation: {value}")
++    for value in sorted(forbidden_directories_after - forbidden_directories):
++        errors.append(f"Forbidden directory appeared during validation: {value}")
+     checks["packageUnchangedDuringValidation"] = package_unchanged
+     if not package_unchanged:
+         for value in sorted(actual_files_after - actual_files):

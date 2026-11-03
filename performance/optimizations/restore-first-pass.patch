@@ -1,9 +1,9 @@
 diff --git a/benchmarks/compare_restore.py b/benchmarks/compare_restore.py
 new file mode 100644
-index 0000000..ab0c863
+index 0000000..5038aff
 --- /dev/null
 +++ b/benchmarks/compare_restore.py
-@@ -0,0 +1,146 @@
+@@ -0,0 +1,174 @@
 +"""Pinned baseline/candidate comparison in separate Windows processes.
 +
 +Only synthetic profiles under the explicitly created test root are accepted.
@@ -20,6 +20,33 @@ index 0000000..ab0c863
 +import tempfile
 +import time
 +from unittest.mock import patch
++
++
++def text_case(candidate):
++    spec = importlib.util.spec_from_file_location('candidate_text',
++        Path(candidate)/'codex_transfer/text_replace.py')
++    module = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(module)
++    pairs = [(f'C:/source/Project{i}/', f'D:/target/Project{i}/') for i in range(120)]
++    pairs.sort(key=lambda pair: len(pair[0]), reverse=True)
++    lines = [('narrative ' * 150) + (f'C:/source/Project{i%120}/file' if i%10==0 else '')
++             for i in range(4000)]
++    def original(value):
++        for old, new in pairs:
++            value = value.replace(old, new)
++        return value
++    candidate_replace = module.OrderedPathReplacer(pairs)
++    expected = [original(line) for line in lines]
++    samples = []
++    for variant in ('baseline', 'candidate', 'candidate', 'baseline'):
++        function = original if variant == 'baseline' else candidate_replace
++        started = time.perf_counter()
++        actual = [function(line) for line in lines]
++        elapsed = time.perf_counter()-started
++        assert actual == expected
++        samples.append(dict(variant=variant, seconds=elapsed))
++    return dict(samples=samples, equivalent=True, lines=len(lines), mappings=len(pairs),
++                note='CPU-only synthetic rewrite microcase; 90% of lines have no mapped path.')
 +
 +
 +def save(path, data):
@@ -120,6 +147,7 @@ index 0000000..ab0c863
 +        limitations='Synthetic Windows fixtures. ABBA order mitigates but does not remove cache bias. '
 +        'Preparation includes full source validation. No extrapolation to 88 GiB or 5 million files. '
 +        'No reviewed-plan interaction in timing cases; official regression covers conflict plans.', profiles={})
++    report['text_rewrite'] = text_case(args.candidate)
 +    for profile in ('small', 'large'):
 +        fixture = root / profile
 +        fixture.mkdir()
@@ -418,6 +446,125 @@ index 0000000..fddb2ce
 +            self.assertEqual(before[0], after[0])
 +            self.assertNotEqual(before[2], after[2])
 +
++
++
++if __name__ == '__main__':
++    unittest.main()
+diff --git a/benchmarks/test_windows_optimization.py b/benchmarks/test_windows_optimization.py
+new file mode 100644
+index 0000000..7c5dfcd
+--- /dev/null
++++ b/benchmarks/test_windows_optimization.py
+@@ -0,0 +1,113 @@
++"""Failure injection against the actual Windows restore transaction."""
++import argparse
++import importlib
++import json
++import os
++from pathlib import Path
++import shutil
++import sys
++import sqlite3
++import tempfile
++import unittest
++from unittest.mock import patch
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
++
++
++@unittest.skipUnless(os.name == 'nt', 'Actual Windows restore integration')
++class WindowsRestoreTests(unittest.TestCase):
++    def setUp(self):
++        from codex_transfer import backup, restore, selftest
++        self.backup, self.restore, self.fixture = backup, restore, selftest
++        self.temp = tempfile.TemporaryDirectory(prefix='lb-opt-', dir='C:/')
++        self.addCleanup(self.temp.cleanup)
++        self.root = root = Path(self.temp.name)
++        environment = {k: str(root/k) for k in ('LOCALAPPDATA', 'APPDATA')}
++        for value in environment.values():
++            Path(value).mkdir()
++        self.env = patch.dict(os.environ, environment)
++        self.env.start()
++        self.addCleanup(self.env.stop)
++        source = root/'source'
++        codex, _ = selftest._write_source(source)
++        config = root/'config.json'
++        config.write_text(json.dumps(dict(configVersion=1, includeAttachments=True,
++            projects=[], additionalPortablePaths=[], excludeDirectoryNames=[],
++            projectRegistryPath=str(root/'registry.json'),
++            lineageStatePath=str(root/'lineage.json'), deviceStatePath=str(root/'device.json'))))
++        self.package = backup.build_backup(argparse.Namespace(config=str(config),
++            destination=str(root/'packages'), source_profile=str(source),
++            source_codex_home=str(codex), allow_running_test=True))
++        self.target = root/'target'
++        selftest._write_target(self.target, 'BEFORE')
++        self.before = self.target_snapshot()
++
++    def target_snapshot(self):
++        # SQLite backup preserves data, not necessarily the physical header.
++        # Managed recovery journals are intentionally kept outside active data.
++        codex = self.fixture._hash_tree(self.target/'.codex')
++        for name in ('state_5.sqlite', 'state_5.sqlite-wal', 'state_5.sqlite-shm'):
++            codex.pop(name, None)
++        with sqlite3.connect(self.target/'.codex/state_5.sqlite') as connection:
++            database = tuple(connection.iterdump())
++        project = self.fixture._hash_tree(self.target/'Documents/DemoProject')
++        return codex, database, project
++
++    def run_restore(self):
++        prepared = self.restore.prepare_restore(self.package, self.target, allow_running_test=True)
++        return self.restore.restore_backup(self.package, self.target, Path(prepared['safetyRoot']))
++
++    def test_parallel_worker_failure_restores_original_target(self):
++        from codex_transfer.parallel_copy import copy_staging_tree
++        def failure(source, target):
++            raise OSError('injected parallel copy failure')
++        def stage(source, target, probe):
++            return copy_staging_tree(source, target, probe, copy=failure)
++        with patch.object(self.restore, 'copy_staging_tree', stage):
++            with self.assertRaisesRegex(OSError, 'injected parallel'):
++                self.run_restore()
++        self.assertEqual(self.before, self.target_snapshot())
++
++    def test_staging_corruption_is_detected_and_rolled_back(self):
++        from codex_transfer.parallel_copy import copy_staging_tree
++        def corrupt(source, target):
++            shutil.copy2(source, target)
++            if Path(target).name == 'README.md':
++                data = Path(target).read_bytes()
++                Path(target).write_bytes(b'X' + data[1:])
++        def stage(source, target, probe):
++            return copy_staging_tree(source, target, probe, copy=corrupt)
++        with patch.object(self.restore, 'copy_staging_tree', stage):
++            with self.assertRaisesRegex(self.restore.RestoreError, 'hash differs'):
++                self.run_restore()
++        self.assertEqual(self.before, self.target_snapshot())
++
++    def test_later_write_cannot_bypass_final_verification(self):
++        original = self.restore._restore_attachments
++        def mutate(package, translator):
++            count = original(package, translator)
++            file = self.target/'Documents/DemoProject/README.md'
++            data = file.read_bytes()
++            file.write_bytes(b'X' + data[1:])
++            return count
++        with patch.object(self.restore, '_restore_attachments', mutate):
++            with self.assertRaisesRegex(self.restore.RestoreError, 'Final verification failed'):
++                self.run_restore()
++        self.assertEqual(self.before, self.target_snapshot())
++
++    def test_new_empty_runtime_directory_is_detected(self):
++        validator = importlib.import_module('codex_transfer.validate')
++        inserted = False
++        def progress(*args):
++            nonlocal inserted
++            if not inserted and str(args[-1]).startswith('Validating backup:'):
++                (self.package/'codex/cache').mkdir()
++                inserted = True
++        result = validator.validate(self.package, False, progress=progress)
++        self.assertTrue(inserted)
++        self.assertFalse(result['valid'])
++        self.assertFalse(result['checks']['packageUnchangedDuringValidation'])
 +
 +
 +if __name__ == '__main__':

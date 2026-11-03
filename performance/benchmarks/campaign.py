@@ -91,7 +91,7 @@ class Trace:
             self.timed(backup, name)
         for name in ('prepare_restore','restore_backup','_restore_projects','_verify_staged_project',
                      '_restore_portable_profile','_restore_sessions','_restore_attachments',
-                     '_build_database','verify_restored'):
+                     '_build_restored_database','verify_restored','_ensure_restore_space','_project_manifest_entries'):
             if hasattr(restore, name):
                 self.timed(restore, name)
         self.track(backup, 'sha256_file', 'hash', 0)
@@ -139,26 +139,53 @@ def restore_case(root, profile, smoke):
     args = argparse.Namespace(config=str(config), destination=str(root/'packages'),
         source_profile=str(source), source_codex_home=str(codex), allow_running_test=True)
     results = []
-    with Trace() as trace:
+    with Trace() as backup_trace:
         started = time.perf_counter()
         package = backup.build_backup(args)
         backup_seconds = time.perf_counter()-started
-        for variant in ('baseline','indexed'):
-            target = root / variant
-            selftest._write_target(target,'TEST')
-            start = time.perf_counter()
-            with ExitStack() as stack:
-                if variant == 'indexed':
-                    index = stack.enter_context(ManifestIndex(package, directory=root))
-                    # Experimental staging selection only. Final validation unchanged.
-                    stack.enter_context(patch.object(restore, '_project_manifest_entries', lambda package, item:index.select(item)))
-                prepared = restore.prepare_restore(package, target, allow_running_test=True)
-                restored = restore.restore_backup(package,target,Path(prepared['safetyRoot']))
-            results.append(dict(variant=variant, seconds=time.perf_counter()-start,
-                valid=bool(restored['verification']['valid']),
-                verification=restored['verification']['checks']))
+    collision_check = None
+    if profile == 'overlap':
+        collision_target = root / 'collision-target'
+        selftest._write_target(collision_target, 'COLLISION')
+        before = selftest._hash_tree(collision_target)
+        try:
+            restore.prepare_restore(package, collision_target, allow_running_test=True)
+        except restore.RestoreError as error:
+            if 'collides or overlaps' not in str(error):
+                raise
+            collision_check = dict(rejected=True, target_unchanged=before == selftest._hash_tree(collision_target))
+        else:
+            raise AssertionError('Overlapping project targets were not rejected')
+        if not collision_check['target_unchanged']:
+            raise AssertionError('Rejected collision changed destination')
+        # Keep a nested directory within its parent, but no second project owns it.
+        # Retain the separately registered portable-profile project.
+        values = json.loads(config.read_text())
+        values['projects'] = extra[1:]
+        save(config, values)
+        args.destination = str(root / 'packages-safe')
+        with Trace() as second_backup_trace:
+            started = time.perf_counter()
+            package = backup.build_backup(args)
+            backup_seconds += time.perf_counter() - started
+    for variant in ('baseline','indexed'):
+        target = root / variant
+        selftest._write_target(target,'TEST')
+        start = time.perf_counter()
+        with Trace() as trace, ExitStack() as stack:
+            if variant == 'indexed':
+                index = stack.enter_context(ManifestIndex(package, directory=root))
+                # Experimental staging selection only. Final validation unchanged.
+                stack.enter_context(patch.object(restore, '_project_manifest_entries', lambda package, item:index.select(item)))
+            prepared = restore.prepare_restore(package, target, allow_running_test=True)
+            restored = restore.restore_backup(package,target,Path(prepared['safetyRoot']))
+        results.append(dict(variant=variant, seconds=time.perf_counter()-start,
+            valid=bool(restored['verification']['valid']),
+            operations=trace.summary(), verification=restored['verification']['checks']))
     return dict(passed=all(r['valid'] for r in results), profile=profile,
-                backup_seconds=backup_seconds, results=results, operations=trace.summary(),
+                backup_seconds=backup_seconds, results=results, backup_operations=backup_trace.summary(),
+                collision_check=collision_check,
+                secondary_backup_operations=second_backup_trace.summary() if profile == 'overlap' else None,
                 fixture=dict(added_files=count, added_bytes=count*size, additional_project_roots=len(extra)),
                 limitations='Same generated package; baseline runs first (cache bias). Indexed variant only replaces staging manifest selection. Official source/target fixtures include JSONL, ZST, attachment, SQLite and retained authentication.')
 
@@ -222,7 +249,7 @@ def worker(root, scenario, smoke):
     if scenario=='official-regression':
         from codex_transfer import selftest
         result=selftest.run_self_test(root/'official')
-        return dict(passed=result['passed'],checks=result['checks'],
+        return dict(passed=result['passed'],checks=result['checks'],git_available=bool(shutil.which('git')), 
                     limitations='Official suite on synthetic profiles. Packaged GUI check is skipped by upstream. Git-dependent checks require Git on PATH.')
     if scenario=='manifest':
         from manifest_benchmark import run_suite

@@ -1,0 +1,39 @@
+name: Restore optimization regression
+on:
+  push:
+    paths: ['performance/optimizations/**', '.github/workflows/restore-optimization.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: dkwolf1/Codex-Lifeboat
+          ref: 4fe9724ccb54422455544e56b54399fa2bc94bc3
+          path: upstream
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install zstandard==0.25.0
+      - name: Apply candidate
+        working-directory: upstream
+        run: git apply ../performance/optimizations/restore-first-pass.patch
+      - name: Component tests
+        working-directory: upstream
+        run: python -m unittest discover -s benchmarks -p test_restore_optimization.py -v
+      - name: Official source regression including GUI and rollback
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = "$pwd/upstream/src"
+          python -c "from pathlib import Path; from codex_transfer.selftest import run_self_test; r=run_self_test(Path('C:/lb-opt')); print(r['checks']); assert r['passed']"
+          if ($LASTEXITCODE -ne 0) { throw 'Restore regression failed' }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Restore-optimization-regression
+          path: C:/lb-opt/self-test-result.json

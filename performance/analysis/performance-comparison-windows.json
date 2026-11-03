@@ -1,0 +1,405 @@
+{
+  "passed": true,
+  "order": [
+    "baseline",
+    "candidate_serial_hash",
+    "candidate",
+    "candidate",
+    "candidate_serial_hash",
+    "baseline"
+  ],
+  "limitations": "Synthetic Windows fixtures. Mirrored variant order mitigates but does not remove cache bias. Preparation includes full source validation. No extrapolation to 88 GiB or 5 million files. No reviewed-plan interaction in timing cases; official regression covers conflict plans.",
+  "profiles": {
+    "small": {
+      "samples": [
+        {
+          "variant": "baseline",
+          "seconds": 25.828930100000036,
+          "prepare_seconds": 5.4425738000000194,
+          "restore_seconds": 20.386356300000017,
+          "phases": {
+            "_restore_projects": 17.21999180000003,
+            "_restore_portable_profile": 0.005442600000037601,
+            "_restore_sessions": 0.010364200000026358,
+            "verify_restored": 2.9249399999999923
+          },
+          "space_probes": 5049,
+          "valid": true,
+          "verification": {
+            "sqliteQuickCheck": "ok",
+            "threads": 3,
+            "expectedThreadIds": 3,
+            "recentIndexEntries": 2,
+            "projects": 40,
+            "projectDispositions": 0,
+            "pathPortability": {
+              "status": "portable",
+              "needsReviewReferences": 0,
+              "oldSourceReferences": 0,
+              "fieldsNeedingReview": 0
+            }
+          }
+        },
+        {
+          "variant": "candidate_serial_hash",
+          "seconds": 20.586885600000016,
+          "prepare_seconds": 4.691308300000003,
+          "restore_seconds": 15.895577300000014,
+          "phases": {
+            "_restore_projects": 12.699912299999994,
+            "_restore_portable_profile": 0.005230199999971319,
+            "_restore_sessions": 0.010142799999982799,
+            "verify_restored": 2.9101320999999984
+          },
+          "space_probes": 86,
+          "valid": true,
+          "verification": {
+            "sqliteQuickCheck": "ok",
+            "threads": 3,
+            "expectedThreadIds": 3,
+            "recentIndexEntries": 2,
+            "projects": 40,
+            "projectDispositions": 0,
+            "pathPortability": {
+              "status": "portable",
+              "needsReviewReferences": 0,
+              "oldSourceReferences": 0,
+              "fieldsNeedingReview": 0
+            }
+          }
+        },
+        {
+          "variant": "candidate",
+          "seconds": 18.712951199999964,
+          "prepare_seconds": 4.476838100000009,
+          "restore_seconds": 14.236113099999955,
+          "phases": {
+            "_restore_projects": 11.123386600000003,
+            "_restore_portable_profile": 0.005164200000024266,
+            "_restore_sessions": 0.010251400000015565,
+            "verify_restored": 2.851899500000002
+          },
+          "space_probes": 86,
+          "valid": true,
+          "verification": {
+            "sqliteQuickCheck": "ok",
+            "threads": 3,
+            "expectedThreadIds": 3,
+            "recentIndexEntries": 2,
+            "projects": 40,
+            "projectDispositions": 0,
+            "pathPortability": {
+              "status": "portable",
+              "needsReviewReferences": 0,
+              "oldSourceReferences": 0,
+              "fieldsNeedingReview": 0
+            }
+          }
+        },
+        {
+          "variant": "candidate",
+          "seconds": 20.00082900000001,
+          "prepare_seconds": 4.541903699999978,
+          "restore_seconds": 15.458925300000033,
+          "phases": {
+            "_restore_projects": 12.327309899999989,
+            "_restore_portable_profile": 0.004986000000030799,
+            "_restore_sessions": 0.010106799999960003,
+            "verify_restored": 2.8472950999999966
+          },
+          "space_probes": 86,
+          "valid": true,
+          "verification": {
+            "sqliteQuickCheck": "ok",
+            "threads": 3,
+            "expectedThreadIds": 3,
+            "recentIndexEntries": 2,
+            "projects": 40,
+            "projectDispositions": 0,
+            "pathPortability": {
+              "status": "portable",
+              "needsReviewReferences": 0,
+              "oldSourceReferences": 0,
+              "fieldsNeedingReview": 0
+            }
+          }
+        },
+        {
+          "variant": "candidate_serial_hash",
+          "seconds": 20.064664600000015,
+          "prepare_seconds": 4.601364199999978,
+          "restore_seconds": 15.463300400000037,
+          "phases": {
+            "_restore_projects": 12.315247200000044,
+            "_restore_portable_profile": 0.004925500000013017,
+            "_restore_sessions": 0.010127099999976963,
+            "verify_restored": 2.890590099999997
+          },
+          "space_probes": 86,
+          "valid": true,
+          "verification": {
+            "sqliteQuickCheck": "ok",
+            "threads": 3,
+            "expectedThreadIds": 3,
+            "recentIndexEntries": 2,
+            "projects": 40,
+            "projectDispositions": 0,
+            "pathPortability": {
+              "status": "portable",
+              "needsReviewReferences": 0,
+              "oldSourceReferences": 0,
+              "fieldsNeedingReview": 0
+            }
+          }
+        },
+        {
+          "variant": "baseline",
+          "seconds": 25.129295000000013,
+          "prepare_seconds": 5.347668999999996,
+          "restore_seconds": 19.781626000000017,
+          "phases": {
+            "_restore_projects": 16.624384299999974,
+            "_restore_portable_profile": 0.005030200000021523,
+            "_restore_sessions": 0.010236500000019078,
+            "verify_restored": 2.927300300000013
+          },
+          "space_probes": 5049,
+          "valid": true,
+          "verification": {
+            "sqliteQuickCheck": "ok",
+            "threads": 3,
+            "expectedThreadIds": 3,
+            "recentIndexEntries": 2,
+            "projects": 40,
+            "projectDispositions": 0,
+            "pathPortability": {
+              "status": "portable",
+              "needsReviewReferences": 0,
+              "oldSourceReferences": 0,
+              "fieldsNeedingReview": 0
+            }
+          }
+        }
+      ],
+      "median_seconds": {
+        "baseline": 25.479112550000025,
+        "candidate_serial_hash": 20.325775100000016,
+        "candidate": 19.356890099999987
+      },
+      "improvement_percent": 24.028397527527044
+    },
+    "large": {
+      "samples": [
+        {
+          "variant": "baseline",
+          "seconds": 0.7901598000000263,
+          "prepare_seconds": 0.23189680000001545,
+          "restore_seconds": 0.5582630000000108,
+          "phases": {
+            "_restore_projects": 0.27405190000001767,
+            "_restore_portable_profile": 0.005109699999991335,
+            "_restore_sessions": 0.010123200000009547,
+            "verify_restored": 0.1402112000000102
+          },
+          "space_probes": 18,
+          "valid": true,
+          "verification": {
+            "sqliteQuickCheck": "ok",
+            "threads": 3,
+            "expectedThreadIds": 3,
+            "recentIndexEntries": 2,
+            "projects": 1,
+            "projectDispositions": 0,
+            "pathPortability": {
+              "status": "portable",
+              "needsReviewReferences": 0,
+              "oldSourceReferences": 0,
+              "fieldsNeedingReview": 0
+            }
+          }
+        },
+        {
+          "variant": "candidate_serial_hash",
+          "seconds": 2.5435567000000106,
+          "prepare_seconds": 1.0769281999999976,
+          "restore_seconds": 1.466628500000013,
+          "phases": {
+            "_restore_projects": 0.22801110000000335,
+            "_restore_portable_profile": 0.004960999999980231,
+            "_restore_sessions": 0.010127699999998185,
+            "verify_restored": 0.8144844000000262
+          },
+          "space_probes": 8,
+          "valid": true,
+          "verification": {
+            "sqliteQuickCheck": "ok",
+            "threads": 3,
+            "expectedThreadIds": 3,
+            "recentIndexEntries": 2,
+            "projects": 1,
+            "projectDispositions": 0,
+            "pathPortability": {
+              "status": "portable",
+              "needsReviewReferences": 0,
+              "oldSourceReferences": 0,
+              "fieldsNeedingReview": 0
+            }
+          }
+        },
+        {
+          "variant": "candidate",
+          "seconds": 0.5705210999999508,
+          "prepare_seconds": 0.22374739999997928,
+          "restore_seconds": 0.34677369999997154,
+          "phases": {
+            "_restore_projects": 0.13664359999995668,
+            "_restore_portable_profile": 0.005038700000000063,
+            "_restore_sessions": 0.010433400000010806,
+            "verify_restored": 0.050670099999990725
+          },
+          "space_probes": 8,
+          "valid": true,
+          "verification": {
+            "sqliteQuickCheck": "ok",
+            "threads": 3,
+            "expectedThreadIds": 3,
+            "recentIndexEntries": 2,
+            "projects": 1,
+            "projectDispositions": 0,
+            "pathPortability": {
+              "status": "portable",
+              "needsReviewReferences": 0,
+              "oldSourceReferences": 0,
+              "fieldsNeedingReview": 0
+            }
+          }
+        },
+        {
+          "variant": "candidate",
+          "seconds": 0.6680870000000141,
+          "prepare_seconds": 0.22776229999999487,
+          "restore_seconds": 0.4403247000000192,
+          "phases": {
+            "_restore_projects": 0.14557550000000674,
+            "_restore_portable_profile": 0.005125799999973424,
+            "_restore_sessions": 0.009953999999993357,
+            "verify_restored": 0.050102700000024925
+          },
+          "space_probes": 8,
+          "valid": true,
+          "verification": {
+            "sqliteQuickCheck": "ok",
+            "threads": 3,
+            "expectedThreadIds": 3,
+            "recentIndexEntries": 2,
+            "projects": 1,
+            "projectDispositions": 0,
+            "pathPortability": {
+              "status": "portable",
+              "needsReviewReferences": 0,
+              "oldSourceReferences": 0,
+              "fieldsNeedingReview": 0
+            }
+          }
+        },
+        {
+          "variant": "candidate_serial_hash",
+          "seconds": 0.7252569999999992,
+          "prepare_seconds": 0.21671179999998458,
+          "restore_seconds": 0.5085452000000146,
+          "phases": {
+            "_restore_projects": 0.22956279999999651,
+            "_restore_portable_profile": 0.005115999999986798,
+            "_restore_sessions": 0.010104099999978189,
+            "verify_restored": 0.13819300000000112
+          },
+          "space_probes": 8,
+          "valid": true,
+          "verification": {
+            "sqliteQuickCheck": "ok",
+            "threads": 3,
+            "expectedThreadIds": 3,
+            "recentIndexEntries": 2,
+            "projects": 1,
+            "projectDispositions": 0,
+            "pathPortability": {
+              "status": "portable",
+              "needsReviewReferences": 0,
+              "oldSourceReferences": 0,
+              "fieldsNeedingReview": 0
+            }
+          }
+        },
+        {
+          "variant": "baseline",
+          "seconds": 0.7639767000000006,
+          "prepare_seconds": 0.2284754000000362,
+          "restore_seconds": 0.5355012999999644,
+          "phases": {
+            "_restore_projects": 0.25990730000000895,
+            "_restore_portable_profile": 0.004933300000004692,
+            "_restore_sessions": 0.010361900000020796,
+            "verify_restored": 0.1366042999999877
+          },
+          "space_probes": 18,
+          "valid": true,
+          "verification": {
+            "sqliteQuickCheck": "ok",
+            "threads": 3,
+            "expectedThreadIds": 3,
+            "recentIndexEntries": 2,
+            "projects": 1,
+            "projectDispositions": 0,
+            "pathPortability": {
+              "status": "portable",
+              "needsReviewReferences": 0,
+              "oldSourceReferences": 0,
+              "fieldsNeedingReview": 0
+            }
+          }
+        }
+      ],
+      "median_seconds": {
+        "baseline": 0.7770682500000134,
+        "candidate_serial_hash": 1.6344068500000049,
+        "candidate": 0.6193040499999825
+      },
+      "improvement_percent": 20.302489517494536
+    }
+  },
+  "text_rewrite": {
+    "samples": [
+      {
+        "variant": "baseline",
+        "seconds": 0.07478500000001986
+      },
+      {
+        "variant": "candidate",
+        "seconds": 0.013166799999993373
+      },
+      {
+        "variant": "candidate",
+        "seconds": 0.013138099999991937
+      },
+      {
+        "variant": "baseline",
+        "seconds": 0.07494140000000016
+      }
+    ],
+    "equivalent": true,
+    "lines": 4000,
+    "mappings": 120,
+    "note": "CPU-only synthetic rewrite microcase; 90% of lines have no mapped path."
+  },
+  "validation": {
+    "windows_component_tests": 23,
+    "upstream_flags_true": 97,
+    "upstream_flags_false": 0,
+    "workflow_url": "https://github.com/sylvainBGO/lifeboat-migration-report/actions/runs/41691504550",
+    "tested_report_repository_commit": "ab4ccfe70a5ad418270a53855243e9845c783573",
+    "production_source_commit": "690a9fb",
+    "local_test_harness_fix_commit": "541777b",
+    "baseline": "4fe9724ccb54422455544e56b54399fa2bc94bc3"
+  },
+  "environment_note": "Windows GitHub Actions runner; Defender state was not sampled or changed. Small synthetic fixtures and two observations per variant are not a real-backup completion-time guarantee."
+}

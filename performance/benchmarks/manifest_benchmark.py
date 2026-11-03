@@ -3,6 +3,7 @@ import argparse
 import csv
 import hashlib
 import json
+import os
 import platform
 from pathlib import Path
 import shutil
@@ -86,8 +87,28 @@ def run(directory, rows=100000, projects=40, repeats=3):
     return report
 
 
+def run_suite(directory, checkpoint, scenarios=((100000, 40, 3), (1000000, 40, 1))):
+    report = dict(schema=1, kind='manifest-suite', completed=False, scenarios=[])
+    checkpoint(report)
+    try:
+        for rows, projects, repeats in scenarios:
+            report['current_scenario'] = dict(rows=rows, projects=projects, repeats=repeats)
+            checkpoint(report)
+            report['scenarios'].append(run(directory, rows, projects, repeats))
+            checkpoint(report)
+    except (Exception, KeyboardInterrupt) as error:
+        report['error_type'] = type(error).__name__
+        checkpoint(report)
+        raise
+    report.pop('current_scenario', None)
+    report['completed'] = True
+    checkpoint(report)
+    return report
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--suite', action='store_true', help='Run both manifest scenarios in one report')
     parser.add_argument('--directory', default='results')
     parser.add_argument('--rows', type=int, default=100000)
     parser.add_argument('--projects', type=int, default=40)
@@ -98,10 +119,15 @@ def main():
     directory = Path(args.directory).resolve()
     directory.mkdir(parents=True, exist_ok=True)
     output = directory / f'manifest-benchmark-{time.time_ns()}.json'
+    def checkpoint(report):
+        temporary = output.with_suffix('.tmp')
+        temporary.write_text(json.dumps(report, indent=2), encoding='utf-8')
+        os.replace(temporary, output)
     try:
-        report = run(directory, args.rows, args.projects, args.repeats)
+        report = run_suite(directory, checkpoint) if args.suite else run(directory, args.rows, args.projects, args.repeats)
     except (Exception, KeyboardInterrupt) as error:
-        output.write_text(json.dumps(dict(completed=False, error_type=type(error).__name__)), encoding='utf-8')
+        if not output.exists():
+            checkpoint(dict(completed=False, error_type=type(error).__name__))
         print('Failed; report:', output, flush=True)
         return 1
     output.write_text(json.dumps(report, indent=2), encoding='utf-8')

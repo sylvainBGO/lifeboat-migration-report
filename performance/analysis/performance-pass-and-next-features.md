@@ -1,3 +1,5 @@
+> Historical milestone. The integrated Windows delivery and current acceptance results are in [community-recovery-delivery.md](community-recovery-delivery.md).
+
 # Current-format performance pass and remaining features
 
 ## Scope and source

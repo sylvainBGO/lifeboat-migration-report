@@ -1,0 +1,416 @@
+diff --git a/benchmarks/test_restore_optimization.py b/benchmarks/test_restore_optimization.py
+new file mode 100644
+index 0000000..53ef7c7
+--- /dev/null
++++ b/benchmarks/test_restore_optimization.py
+@@ -0,0 +1,108 @@
++"""Portable component tests; full restore integration must also run on Windows."""
++import csv
++import importlib.util
++from pathlib import Path, PureWindowsPath
++import tempfile
++import unittest
++
++SOURCE = Path(__file__).resolve().parents[1] / 'src' / 'codex_transfer'
++
++
++def module(name):
++    spec = importlib.util.spec_from_file_location(name, SOURCE / (name + '.py'))
++    result = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(result)
++    return result
++
++
++Budget = module('space_budget').CopySpaceBudget
++Index = module('manifest_index').ManifestIndex
++
++
++class SpaceTests(unittest.TestCase):
++    def budget(self, credit=10**9):
++        self.calls = []
++        self.now = 0
++        self.credit = credit
++
++        def probe(target, size, files):
++            self.calls.append((target, size, files))
++            if self.credit < size + 4096:
++                raise RuntimeError('insufficient space')
++            return self.credit, 4096
++
++        return Budget(probe, clock=lambda: self.now)
++
++    def copy(self, guard, size=1024, target='C:/output/file'):
++        guard(None, PureWindowsPath(target), size)
++
++    def test_small_files_are_batched(self):
++        guard = self.budget()
++        for _ in range(5003):
++            self.copy(guard)
++        self.assertEqual(len(self.calls), 5)
++
++    def test_credit_includes_allocation_and_reserve(self):
++        guard = self.budget(5120)
++        self.copy(guard)
++        self.credit = 0  # first file consumed the budget above the reserve
++        with self.assertRaisesRegex(RuntimeError, 'insufficient'):
++            self.copy(guard)
++        self.assertEqual(len(self.calls), 2)
++
++    def test_external_consumption_detected_on_time_sample(self):
++        guard = self.budget()
++        self.copy(guard)
++        self.now = 1.01
++        self.credit = 0
++        with self.assertRaises(RuntimeError):
++            self.copy(guard)
++
++    def test_large_pending_file_checked_before_write(self):
++        guard = self.budget(300 * 1024**2)
++        self.copy(guard)
++        self.credit = 200 * 1024**2
++        with self.assertRaises(RuntimeError):
++            self.copy(guard, size=256 * 1024**2)
++
++    def test_volume_change_checks_again(self):
++        guard = self.budget()
++        self.copy(guard)
++        self.copy(guard, target='D:/output/file')
++        self.assertEqual(len(self.calls), 2)
++
++
++class ManifestTests(unittest.TestCase):
++    def test_index_used_for_both_selectors_and_cleaned(self):
++        with tempfile.TemporaryDirectory() as folder:
++            root = Path(folder)
++            (root / 'manifest').mkdir()
++            manifest = root / 'manifest/sha256.csv'
++            with manifest.open('w', newline='', encoding='utf-8') as handle:
++                writer = csv.writer(handle)
++                writer.writerow(['relative_path', 'size', 'sha256'])
++                writer.writerows([
++                    ('projects/a/x', '1', 'AA'),
++                    ('projects/ab/x', '2', 'BB'),
++                    ('projects/a/x', '3', 'CC'),
++                    ('projects/a/é\n日本', '4', 'DD'),
++                ])
++            with Index(root, directory=root) as index:
++                manifest.unlink()  # no CSV reopen during either selection
++                project = {'backupRelativePath': 'projects/a'}
++                self.assertEqual(index.select(project),
++                                 {'x': (3, 'cc'), 'é\n日本': (4, 'dd')})
++                self.assertEqual(dict(index.hashes(project)),
++                                 {'x': 'cc', 'é\n日本': 'dd'})
++                self.assertEqual(index.select({'backupRelativePath': 'missing'}), {})
++            self.assertEqual(list(root.iterdir()), [root / 'manifest'])
++
++    def test_parse_failure_cleans_index(self):
++        with tempfile.TemporaryDirectory() as folder:
++            with self.assertRaises(FileNotFoundError):
++                Index(folder, directory=folder)
++            self.assertEqual(list(Path(folder).iterdir()), [])
++
++
++if __name__ == '__main__':
++    unittest.main()
+diff --git a/src/codex_transfer/manifest_index.py b/src/codex_transfer/manifest_index.py
+new file mode 100644
+index 0000000..23ca7dd
+--- /dev/null
++++ b/src/codex_transfer/manifest_index.py
+@@ -0,0 +1,66 @@
++"""Disposable per-operation index of the immutable backup manifest."""
++import csv
++import sqlite3
++import tempfile
++from pathlib import Path
++
++
++class ManifestIndex:
++    def __init__(self, package_root, directory=None):
++        self._temp = tempfile.TemporaryDirectory(prefix='lifeboat-index-', dir=directory)
++        self.connection = None
++        self.rows_read = 0
++        try:
++            self.connection = sqlite3.connect(str(Path(self._temp.name) / 'index.sqlite'))
++            self.connection.execute('PRAGMA cache_size=-8192')
++            # Disposable derived data, never a restore journal or a source database.
++            self.connection.execute('PRAGMA journal_mode=OFF')
++            self.connection.execute('PRAGMA synchronous=OFF')
++            self.connection.execute('CREATE TABLE entries(path TEXT PRIMARY KEY, size TEXT, hash TEXT) WITHOUT ROWID')
++            with (Path(package_root) / 'manifest' / 'sha256.csv').open(encoding='utf-8', newline='') as handle:
++                batch = []
++                for row in csv.DictReader(handle):
++                    batch.append((str(row['relative_path']), row['size'], str(row['sha256'])))
++                    self.rows_read += 1
++                    if len(batch) == 4096:
++                        self.connection.executemany('INSERT OR REPLACE INTO entries VALUES(?,?,?)', batch)
++                        batch.clear()
++                self.connection.executemany('INSERT OR REPLACE INTO entries VALUES(?,?,?)', batch)
++            self.connection.commit()
++        except BaseException:
++            self.close()
++            raise
++
++    def select(self, project):
++        prefix = str(project['backupRelativePath']).rstrip('/') + '/'
++        # '/' immediately precedes '0' in SQLite BINARY collation.
++        upper = prefix[:-1] + '0'
++        return {path[len(prefix):]: (int(size), digest.lower())
++                for path, size, digest in self.connection.execute(
++                    'SELECT path,size,hash FROM entries WHERE path >= ? AND path < ?',
++                    (prefix, upper))}
++
++    def hashes(self, project):
++        """Stream project hashes without loading the complete manifest into RAM."""
++        prefix = str(project['backupRelativePath']).rstrip('/') + '/'
++        upper = prefix[:-1] + '0'
++        for path, digest in self.connection.execute(
++                'SELECT path,hash FROM entries WHERE path >= ? AND path < ?',
++                (prefix, upper)):
++            yield path[len(prefix):], digest.lower()
++
++    @property
++    def disk_bytes(self):
++        return (Path(self._temp.name) / 'index.sqlite').stat().st_size
++
++    def close(self):
++        if self.connection is not None:
++            self.connection.close()
++            self.connection = None
++        self._temp.cleanup()
++
++    def __enter__(self):
++        return self
++
++    def __exit__(self, *args):
++        self.close()
+diff --git a/src/codex_transfer/restore.py b/src/codex_transfer/restore.py
+index 60397e5..403cd8c 100644
+--- a/src/codex_transfer/restore.py
++++ b/src/codex_transfer/restore.py
+@@ -13,6 +13,8 @@ from typing import Any, Callable
+ 
+ try:
+     from . import backup, lineage, location_mapper, path_model, portability_audit, project_identity, recovery, restore_plan, rollout as rollout_io, windows
++    from .manifest_index import ManifestIndex
++    from .space_budget import CopySpaceBudget
+     from .validate import validate
+ except ImportError:
+     import backup
+@@ -25,6 +27,8 @@ except ImportError:
+     import restore_plan
+     import rollout as rollout_io
+     import windows
++    from manifest_index import ManifestIndex
++    from space_budget import CopySpaceBudget
+     from validate import validate
+ 
+ 
+@@ -62,10 +66,9 @@ def _ensure_restore_space(
+     destination: Path,
+     pending_bytes: int = 0,
+     pending_files: int = 0,
+-) -> None:
+-    allocation_overhead = max(0, pending_files) * restore_plan.allocation_unit(
+-        destination
+-    )
++) -> tuple[int, int]:
++    unit = restore_plan.allocation_unit(destination)
++    allocation_overhead = max(0, pending_files) * unit
+     required = (
+         max(0, pending_bytes)
+         + allocation_overhead
+@@ -85,6 +88,8 @@ def _ensure_restore_space(
+             "Free space and start the restore again."
+         )
+ 
++    return free - restore_plan.RESTORE_SPACE_RESERVE_BYTES, unit
++
+ 
+ def _remove_path(path: Path) -> None:
+     if not path.exists() and not path.is_symlink():
+@@ -152,21 +157,7 @@ def plan_restore_locations(
+ 
+ def _copy_all(source: Path, destination: Path) -> tuple[int, int]:
+     warnings: list[str] = []
+-    files_since_check = 0
+-    bytes_since_check = 0
+-
+-    def check_space(_source: Path, target: Path, size: int) -> None:
+-        nonlocal files_since_check, bytes_since_check
+-        files_since_check += 1
+-        bytes_since_check += size
+-        if (
+-            files_since_check == 1
+-            or files_since_check >= 1024
+-            or bytes_since_check >= 256 * 1024 * 1024
+-        ):
+-            _ensure_restore_space(target, size, 1)
+-            files_since_check = 0
+-            bytes_since_check = 0
++    check_space = CopySpaceBudget(_ensure_restore_space)
+ 
+     return backup.copy_tree(
+         source,
+@@ -215,9 +206,11 @@ def _project_manifest_entries(
+ 
+ 
+ def _verify_staged_project(
+-    package_root: Path, project: dict[str, Any], staging: Path
++    package_root: Path, project: dict[str, Any], staging: Path,
++    manifest_index: ManifestIndex | None = None,
+ ) -> dict[str, int]:
+-    expected = _project_manifest_entries(package_root, project)
++    expected = (manifest_index.select(project) if manifest_index is not None
++                else _project_manifest_entries(package_root, project))
+     actual: dict[str, Path] = {}
+     for path in staging.rglob("*"):
+         if path.is_symlink():
+@@ -1246,6 +1239,7 @@ def _restore_projects(
+     comparison_plan: dict[str, Any] | None = None,
+     fail_after_quarantine_for_test: bool = False,
+     fail_after_activation_for_test: bool = False,
++    manifest_index: ManifestIndex | None = None,
+ ) -> int:
+     projects = backup.read_json(package_root / "manifest" / "projects.json")
+     copied = 0
+@@ -1327,7 +1321,7 @@ def _restore_projects(
+         record["status"] = "staged"
+         record["stagedAtUtc"] = backup.utc_now()
+         backup.write_json(safety_root / "restore-journal.json", journal)
+-        verified = _verify_staged_project(package_root, item, staging)
++        verified = _verify_staged_project(package_root, item, staging, manifest_index)
+         if files != verified["files"]:
+             raise RestoreError("Staged copy count differs from verified project count.")
+         record["stagedVerification"] = verified
+@@ -1576,6 +1570,22 @@ def verify_restored(
+     target_profile: Path,
+     translator: PathTranslator | None = None,
+     comparison_plan: dict[str, Any] | None = None,
++    manifest_index: ManifestIndex | None = None,
++) -> dict[str, Any]:
++    if manifest_index is not None:
++        return _verify_restored(package_root, target_profile, translator,
++                                comparison_plan, manifest_index)
++    with ManifestIndex(package_root) as index:
++        return _verify_restored(package_root, target_profile, translator,
++                                comparison_plan, index)
++
++
++def _verify_restored(
++    package_root: Path,
++    target_profile: Path,
++    translator: PathTranslator | None,
++    comparison_plan: dict[str, Any] | None,
++    manifest_index: ManifestIndex,
+ ) -> dict[str, Any]:
+     package_root = package_root.resolve()
+     target_profile = target_profile.resolve(strict=False)
+@@ -1661,12 +1671,6 @@ def verify_restored(
+     except Exception as exc:
+         errors.append(f"Database validation failed: {exc}")
+     projects = backup.read_json(package_root / "manifest" / "projects.json")
+-    expected_hashes: dict[str, str] = {}
+-    with (package_root / "manifest" / "sha256.csv").open(
+-        "r", encoding="utf-8", newline=""
+-    ) as handle:
+-        for row in csv.DictReader(handle):
+-            expected_hashes[row["relative_path"]] = row["sha256"].lower()
+     plan_project_items = {
+         str(item.get("key")): item
+         for item in (comparison_plan or {}).get("items", [])
+@@ -1710,11 +1714,8 @@ def verify_restored(
+             errors.append(f"File count differs for project {target}")
+         if size != int(item["totalBytes"]):
+             errors.append(f"Byteaantal wijkt af voor project {target}")
+-        prefix = str(item["backupRelativePath"]).rstrip("/") + "/"
+-        for relative_path, expected_hash in expected_hashes.items():
+-            if not relative_path.startswith(prefix):
+-                continue
+-            project_relative = PurePosixPath(relative_path[len(prefix) :])
++        for relative_path, expected_hash in manifest_index.hashes(item):
++            project_relative = PurePosixPath(relative_path)
+             target_file = target / Path(*project_relative.parts)
+             if not target_file.is_file():
+                 errors.append(f"Project file missing: {target_file}")
+@@ -1826,7 +1827,11 @@ def restore_backup(
+     auth_path = target_codex / "auth.json"
+     auth_hash_before = backup.sha256_file(auth_path)
+     temporary_database = safety_root / "state_5.restored.tmp.sqlite"
++    manifest_index = None
+     try:
++        if progress:
++            progress("Indexing backup manifest for project verification...")
++        manifest_index = ManifestIndex(package_root)
+         journal["status"] = "restoring"
+         journal["startedAtUtc"] = backup.utc_now()
+         backup.write_json(journal_path, journal)
+@@ -1839,6 +1844,7 @@ def restore_backup(
+             journal.get("comparisonPlan"),
+             fail_after_project_quarantine_for_test,
+             fail_after_project_activation_for_test,
++            manifest_index,
+         )
+         project_dispositions = _apply_destination_project_decisions(
+             safety_root,
+@@ -1932,6 +1938,7 @@ def restore_backup(
+             target_profile,
+             translator,
+             journal.get("comparisonPlan"),
++            manifest_index,
+         )
+         if not verification["valid"]:
+             raise RestoreError("Final verification failed: " + "; ".join(verification["errors"][:5]))
+@@ -2038,3 +2045,6 @@ def restore_backup(
+                 )
+             raise RestoreError("; ".join(details)) from original_error
+         raise
++    finally:
++        if manifest_index is not None:
++            manifest_index.close()
+diff --git a/src/codex_transfer/space_budget.py b/src/codex_transfer/space_budget.py
+new file mode 100644
+index 0000000..8f40724
+--- /dev/null
++++ b/src/codex_transfer/space_budget.py
+@@ -0,0 +1,40 @@
++"""Bounded free-space sampling for a sequential tree copy.
++
++This is an estimate, not a filesystem reservation. Other processes can consume
++space between samples; normal write-error handling and rollback remain required.
++"""
++import time
++
++
++class CopySpaceBudget:
++    def __init__(self, probe, clock=time.monotonic):
++        self.probe = probe
++        self.clock = clock
++        self.credit = 0
++        self.unit = 0
++        self.files = 0
++        self.bytes = 0
++        self.checked_at = None
++        self.volume = None
++
++    def __call__(self, source, target, size):
++        size = max(0, size)
++        now = self.clock()
++        volume = target.anchor.casefold()
++        cost = size + self.unit
++        if (self.checked_at is None or volume != self.volume
++                or now - self.checked_at >= 1.0
++                or self.files >= 1024
++                or self.bytes + size >= 256 * 1024 * 1024
++                or cost > self.credit):
++            # Probe checks the pending file plus allocation overhead and reserve.
++            # Credit is remaining free space ABOVE the existing safety reserve.
++            self.credit, self.unit = self.probe(target, size, 1)
++            self.checked_at = now
++            self.volume = volume
++            self.files = 0
++            self.bytes = 0
++            cost = size + self.unit
++        self.credit -= cost
++        self.files += 1
++        self.bytes += size

@@ -113,9 +113,10 @@ jobs:
           "$hash  Codex-Lifeboat-Community.exe" | Set-Content delivery/SHA256.txt
           Compress-Archive delivery/* Codex-Lifeboat-Community-Windows.zip
           Get-ChildItem upstream/src,upstream/benchmarks -Recurse -Directory -Filter __pycache__ | Remove-Item -Recurse -Force
-          Copy-Item performance/benchmarks benchmark-tool -Recurse
-          Get-ChildItem benchmark-tool -Recurse -Directory -Filter __pycache__ | Remove-Item -Recurse -Force
-          Compress-Archive upstream/src,upstream/benchmarks,upstream/docs,upstream/COMMUNITY-RECOVERY.md,upstream/LICENSE,upstream/THIRD-PARTY-NOTICES.txt,upstream/pyproject.toml,upstream/requirements-build.txt,upstream/requirements-dev.txt,upstream/build.ps1,upstream/version_info.txt,benchmark-tool Codex-Lifeboat-Community-Sources.zip
+          New-Item -ItemType Directory -Force source-package/performance | Out-Null
+          Copy-Item performance/benchmarks source-package/performance/ -Recurse
+          Get-ChildItem source-package -Recurse -Directory -Filter __pycache__ | Remove-Item -Recurse -Force
+          Compress-Archive upstream/src,upstream/benchmarks,upstream/docs,upstream/README.md,upstream/SECURITY.md,upstream/COMMUNITY-RECOVERY.md,upstream/LICENSE,upstream/THIRD-PARTY-NOTICES.txt,upstream/pyproject.toml,upstream/requirements-build.txt,upstream/requirements-dev.txt,upstream/build.ps1,upstream/version_info.txt,source-package/performance,delivery/BUILD.txt Codex-Lifeboat-Community-Sources.zip
           Compress-Archive benchmark-delivery/* Lifeboat-Benchmark-Windows.zip
           Get-FileHash Codex-Lifeboat-Community-*.zip,Lifeboat-Benchmark-Windows.zip -Algorithm SHA256 | ForEach-Object { "$($_.Hash)  $(Split-Path $_.Path -Leaf)" } | Set-Content SHA256.txt
       - name: Publish tested community prerelease

@@ -59,8 +59,8 @@ application ZIP, benchmark ZIP, source ZIP, build provenance and SHA-256 checksu
 The benchmark workflows remain available for explicitly requested supplementary
 campaigns rather than automatically repeating this acceptance gate.
 
-At the preparation of this commit, local Linux discovery ran 113 component tests:
-77 passed and 36 were skipped because they require Windows. This is not evidence
+At the preparation of this commit, local Linux discovery ran 116 component tests:
+79 passed and 37 were skipped because they require Windows. This is not evidence
 that the Windows executable has passed. The final Windows run, published release
 and measured results will be recorded below after completion.
 

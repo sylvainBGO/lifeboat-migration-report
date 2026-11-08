@@ -1,6 +1,6 @@
 {
   "schema": 2,
-  "fixture_version": "2026-11-final-1",
+  "fixture_version": "2026-11-final-2",
   "protocol_version": "2026-11-production-path-2",
   "upstream_commit": "4fe9724ccb54422455544e56b54399fa2bc94bc3",
   "restore_variants": ["baseline", "final"],
@@ -33,7 +33,7 @@
     "io": {"profiles": ["mixed", "incompressible", "compressible"], "files": 3000, "bytes_per_file": 4096, "strategies": 6}
   },
   "limits": [
-    "Synthetic profiles also include upstream JSONL/ZST, SQLite and target authentication fixtures.",
+    "Synthetic profiles also include upstream JSONL/ZST, SQLite and target authentication fixtures, plus a coherent destination-only rollout and active index retained by the reviewed plan.",
     "Fixture generation and backup construction are outside restore timing.",
     "Final restore timing includes durable plan and checkpoints.",
     "Earlier unversioned protocol measurements omitted the comparison plan and common process guards and are not interchangeable with this protocol.",

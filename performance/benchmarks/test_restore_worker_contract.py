@@ -2,13 +2,14 @@
 import json
 from pathlib import Path
 import subprocess
+import sqlite3
 import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
 
 from benchmark_report import PROTOCOL_VERSION
-from restore_worker import review_synthetic_plan
+from restore_worker import complete_target_fixture, review_synthetic_plan
 
 
 BENCHMARKS = Path(__file__).resolve().parent
@@ -62,6 +63,9 @@ worker.save(root/'contract.json', {'result':result,'guards':guards,'project_loca
                 self.assertEqual(evidence['project_locations'], ['known-folder'])
                 row = evidence['result']
                 self.assertTrue(row['valid'], row['checks'])
+                self.assertTrue(row['checks']['target_conversation_preserved'])
+                self.assertEqual(row['verification']['threads'], 4)
+                self.assertEqual(row['verification']['recentIndexEntries'], 3)
                 self.assertEqual(row['protocol_version'], PROTOCOL_VERSION)
                 self.assertIn({'kind': 'project', 'decision': 'keep-source'}, row['synthetic_plan_decisions'])
                 self.assertIn({'kind': 'conversation', 'decision': 'keep-target'}, row['synthetic_plan_decisions'])
@@ -69,6 +73,38 @@ worker.save(root/'contract.json', {'result':result,'guards':guards,'project_loca
                 self.assertAlmostEqual(row['total_seconds'], row['backup_seconds'] + row['seconds'])
                 for key in ('plan_seconds', 'prepare_seconds', 'restore_seconds', 'backup_seconds'):
                     self.assertGreater(row[key], 0)
+
+    def test_target_rollout_and_index_match_the_existing_database_without_changing_it(self):
+        with tempfile.TemporaryDirectory() as folder:
+            profile = Path(folder).resolve()
+            codex = profile / '.codex'
+            codex.mkdir()
+            project = profile / 'Documents' / 'DemoProject'
+            project.mkdir(parents=True)
+            database = codex / 'state_5.sqlite'
+            connection = sqlite3.connect(database)
+            try:
+                connection.execute('CREATE TABLE threads(id TEXT,rollout_path TEXT,cwd TEXT,cli_version TEXT,'
+                                   'first_user_message TEXT,title TEXT,created_at INTEGER,updated_at INTEGER,archived INTEGER)')
+                connection.execute('INSERT INTO threads VALUES(?,?,?,?,?,?,?,?,?)',
+                    ('old-SYNTHETIC', str(codex / 'sessions' / 'old.jsonl'), str(project),
+                     'target', 'old', 'Old', 1, 1, 0))
+                connection.commit()
+            finally:
+                connection.close()
+            original_database = database.read_bytes()
+            rollout, _ = complete_target_fixture(codex)
+            records = [json.loads(line) for line in rollout.read_text(encoding='utf-8').splitlines()]
+            self.assertEqual(records[0]['type'], 'session_meta')
+            self.assertEqual(records[0]['payload']['id'], 'old-SYNTHETIC')
+            self.assertEqual(records[0]['payload']['cwd'], str(project))
+            self.assertEqual(records[0]['payload']['cli_version'], 'target')
+            self.assertEqual(records[1]['payload'], {'type': 'user_message', 'message': 'old'})
+            self.assertEqual(json.loads((codex / 'session_index.jsonl').read_text(encoding='utf-8')),
+                             {'id': 'old-SYNTHETIC', 'title': 'Old'})
+            self.assertEqual(database.read_bytes(), original_database)
+            with self.assertRaisesRegex(RuntimeError, 'already exist'):
+                complete_target_fixture(codex)
 
     def test_deterministic_decisions_cannot_apply_outside_marked_fixture_paths(self):
         with tempfile.TemporaryDirectory() as folder:

@@ -5,12 +5,14 @@ sources. The final path must use RestoreOperation, including durable journals;
 there is deliberately no fallback to a checkpoint-free restore.
 """
 import argparse
+import datetime as dt
 import hashlib
 import importlib
 import json
 import os
 from pathlib import Path
 import re
+import sqlite3
 import sys
 import shutil
 import tempfile
@@ -18,6 +20,9 @@ import time
 
 from microbench import payload
 from benchmark_report import PROTOCOL_VERSION, _atomic_text
+
+
+FIXTURE_VERSION = '2026-11-final-2'
 
 
 def save(path, value):
@@ -108,11 +113,47 @@ def build_fixture(root, profile, mode):
                      projectRegistryPath=str(root / 'state' / 'registry.json'),
                      lineageStatePath=str(root / 'state' / 'lineage.json'),
                      deviceStatePath=str(root / 'state' / 'device.json')))
-    facts = dict(profile=profile, mode=mode, added_files=count,
+    facts = dict(fixture_version=FIXTURE_VERSION, profile=profile, mode=mode, added_files=count,
                  added_bytes=count * size, project_roots=len(roots) + int(profile == 'overlap'),
                  source_sha256=tree_hash(source), synthetic=True)
     save(root / 'fixture.json', facts)
     return facts
+
+
+def complete_target_fixture(codex):
+    """Give the upstream target's synthetic DB row a real, retainable rollout.
+
+    _write_target intentionally leaves old.jsonl absent for replacement tests.
+    Our reviewed plan retains that destination-only conversation instead.
+    """
+    codex = Path(codex).resolve()
+    connection = sqlite3.connect(codex / 'state_5.sqlite')
+    try:
+        rows = connection.execute('SELECT id,rollout_path,cwd,cli_version,first_user_message,title,'
+                                  'created_at,updated_at,archived FROM threads').fetchall()
+    finally:
+        connection.close()
+    if len(rows) != 1:
+        raise RuntimeError('Unexpected synthetic target conversation count')
+    thread_id, rollout_value, cwd, version, message, title, created, updated, archived = rows[0]
+    rollout = Path(rollout_value).resolve()
+    if (thread_id != 'old-SYNTHETIC' or rollout != codex / 'sessions' / 'old.jsonl' or archived
+            or Path(cwd).resolve() != codex.parent / 'Documents' / 'DemoProject'):
+        raise RuntimeError('Unexpected synthetic target conversation definition')
+    index = codex / 'session_index.jsonl'
+    if rollout.exists() or index.exists():
+        raise RuntimeError('Synthetic target conversation files already exist')
+    stamp = lambda value: dt.datetime.fromtimestamp(value, dt.timezone.utc).isoformat().replace('+00:00', 'Z')
+    records = [
+        {'timestamp': stamp(created), 'type': 'session_meta',
+         'payload': {'id': thread_id, 'cwd': cwd, 'originator': 'Codex Desktop', 'cli_version': version}},
+        {'timestamp': stamp(updated), 'type': 'event_msg',
+         'payload': {'type': 'user_message', 'message': message}},
+    ]
+    rollout.parent.mkdir(parents=True, exist_ok=True)
+    _atomic_text(rollout, ''.join(json.dumps(record, separators=(',', ':')) + '\n' for record in records))
+    _atomic_text(index, json.dumps({'id': thread_id, 'title': title}) + '\n')
+    return rollout, records
 
 
 def review_synthetic_plan(root, package, target, plan, plan_api):
@@ -199,6 +240,7 @@ def restore_trial(root, trial, variant):
     if target.exists():
         raise RuntimeError('Each trial requires a fresh target directory')
     codex, _ = selftest._write_target(target, 'SYNTHETIC')
+    target_rollout, target_records = complete_target_fixture(codex)
     original_auth = (codex / 'auth.json').read_bytes()
     original_installation = (codex / 'installation_id').read_bytes()
 
@@ -223,8 +265,12 @@ def restore_trial(root, trial, variant):
     valid = verification.get('valid') is True
     auth_preserved = (codex / 'auth.json').read_bytes() == original_auth
     installation_preserved = (codex / 'installation_id').read_bytes() == original_installation
+    conversation_preserved = target_rollout.is_file() and [
+        json.loads(line) for line in target_rollout.read_text(encoding='utf-8').splitlines() if line.strip()
+    ] == target_records
     checks = dict(final_verification=valid, target_authentication_preserved=auth_preserved,
                   target_installation_preserved=installation_preserved,
+                  target_conversation_preserved=conversation_preserved,
                   source_unchanged=tree_hash(source) == package_data['source_sha256'],
                   backup_unchanged=tree_hash(package) == package_hash)
     checkpoint = Path(prepared['safetyRoot']) / 'operation-checkpoints.sqlite'
@@ -243,7 +289,7 @@ def restore_trial(root, trial, variant):
                 valid=all(checks.values()), checks=checks,
                 durable_checkpoints=variant != 'baseline', source_version=version,
                 source_validation=True, final_verification=valid,
-                fixture={key: package_data[key] for key in ('profile', 'mode', 'added_files', 'added_bytes', 'project_roots')},
+                fixture={key: package_data[key] for key in ('fixture_version', 'profile', 'mode', 'added_files', 'added_bytes', 'project_roots')},
                 verification=verification.get('checks', {}))
 
 

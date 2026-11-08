@@ -49,8 +49,8 @@ pas l’invariance de toutes les métadonnées et peuvent réchauffer le cache.
 Le protocole **2026-11-production-path-2** figure dans les rapports, l’identité
 du build et `scenarios.json`. Les premières mesures sans ce numéro omettaient
 le plan comparatif et des contrôles de fermeture communs : leurs durées ne sont
-pas interchangeables avec celles du protocole actuel. Le jeu synthétique conserve
-sa version ; c’est le périmètre du chronométrage qui a changé.
+pas interchangeables avec celles du protocole actuel. La version du jeu
+synthétique figure dans `scenarios.json` et dans le détail des essais.
 
 **Copies et archives** est un ensemble de microtests. Le ZIP y est créé à partir
 des seules données synthétiques, et sa préparation est mesurée séparément.

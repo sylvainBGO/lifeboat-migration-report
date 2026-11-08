@@ -1,4 +1,11 @@
-# One-run Windows campaign
+# Historical version 4 campaign
+
+The current packaged benchmark is documented in [BENCHMARK-GUIDE.md](BENCHMARK-GUIDE.md).
+It compares the pinned original against the actual final code including durable
+checkpoints, offers quick/thorough modes, and writes JSON plus a readable report.
+The ten-scenario campaign below remains as a historical diagnostic source; its
+baseline-versus-index experiment and standalone resume concept must not be
+mistaken for measurements of the completed final build.
 
 Run `Lancer-Campagne.cmd` after extraction. Submit only the resulting
 `results/campagne-lifeboat-*.json`. No Python installation or administrator rights

@@ -1,0 +1,3988 @@
+diff --git a/COMMUNITY-RECOVERY.md b/COMMUNITY-RECOVERY.md
+index 4291922..39d5564 100644
+--- a/COMMUNITY-RECOVERY.md
++++ b/COMMUNITY-RECOVERY.md
+@@ -1,8 +1,9 @@
+ # Codex Lifeboat — Community Recovery
+ 
+ Version communautaire dérivée de dkwolf1/Codex-Lifeboat 3.4.11 (MIT), avec
+-optimisations et reprise persistante. Ce paquet n'est pas une publication officielle
+-de l'auteur original. Les formats de sauvegarde existants sont conservés.
++optimisations, reprise persistante et option d'archives des projets. Ce paquet
++n'est pas une publication officielle de l'auteur original. Les sauvegardes
++existantes restent lisibles ; l'option d'archives utilise le nouveau format 2.5.
+ 
+ ## Utilisation
+ 
+@@ -14,8 +15,12 @@ de l'auteur original. Les formats de sauvegarde existants sont conservés.
+ 3. Confirmer la restauration. Le chemin de `resume-plan.json` est inscrit dans
+    le journal d'activité, dans le point de récupération de cette opération.
+ 4. Pour arrêter proprement, cliquer sur **Pause**. Les écritures natives déjà
+-   admises finissent avant l'arrêt. Pour continuer, même après redémarrage,
+-   cliquer sur **Load resume plan** et sélectionner ce document.
++   admises finissent avant l'arrêt. Au redémarrage, le programme recherche les
++   plans inachevés dans ses points de récupération locaux et charge le plus récent
++   qui correspond au profil actuel. Cliquer sur **Resume** pour continuer.
++   **Load plan…** permet de choisir un autre document. Le chargement du plan ne
++   lance jamais la restauration automatiquement. Une sauvegarde débranchée reste
++   signalée ; il faut la reconnecter puis recharger son plan.
+ 5. Après réussite, lire le rapport normal dans **Documents / Codex Restore Reports**.
+    `MIGRATION-PATHS.md` fournit les chemins de la machine actuelle et les
+    instructions à ajouter dans Codex. Ne recréez pas l'ancien profil Windows.
+@@ -92,21 +97,58 @@ Pendant le travail, l'état est contrôlé une fois par heure. Si Windows réact
+ la protection après l'avoir signalée désactivée, une fenêtre non modale propose
+ une nouvelle demande. Le travail continue pendant votre décision. Aucune
+ désactivation répétée automatique et aucune réactivation automatique : un rappel
+-demande de **réactiver manuellement la protection à la fin**.
++demande de **réactiver manuellement la protection à la fin**, après annulation,
++erreur, pause et fermeture. La commande ne modifie pas les règles d'entreprise.
++Les tests de cette fonction simulent les réponses Windows et ne désactivent pas
++l'antivirus du poste de test.
++
++## Archives des projets
++
++L'option **Use archives for project files** est facultative. Elle regroupe les
++fichiers des projets en blocs d'archives ZIP. Elle est désactivée par défaut et
++ne transforme pas une ancienne sauvegarde en place. Il faut utiliser cette
++édition Community pour restaurer une sauvegarde créée avec cette option.
++
++Les archives sont lues directement vers les dossiers de préparation de la
++restauration. Les contrôles SHA-256, les métadonnées prises en charge, les dossiers
++vides, les contrôles d'espace et les points de reprise sont conservés. Les
++conversations et le profil portable gardent leur traitement habituel, notamment
++la réécriture des chemins. Les fichiers spéciaux ou métadonnées non pris en charge
++sont refusés plutôt que perdus silencieusement. Voir `docs/archive-blocks.md`.
++
++L'intérêt dépend du stockage, du nombre de fichiers et de leur compressibilité.
++La création des archives a un coût ; le benchmark sépare création de sauvegarde
++et restauration, et rapporte aussi leur somme. Aucun gain de durée universel
++n'est garanti par le choix de ce format.
+ 
+ ## Conversations et performances
+ 
+ Les chemins stockés dans les données sont adaptés, mais les anciennes phrases des
+ conversations peuvent encore citer l'ancien PC. Le guide généré explique comment
+-centraliser cette information. L'ouverture successive de conversations récentes
+-reste une piste expérimentale, documentée : aucun préchargement garanti de 50
+-conversations et aucun envoi automatique de messages ne sont annoncés.
++centraliser cette information.
++
++Le bouton **Read recent chats into disk cache…** effectue, sur demande explicite,
++une prélecture locale d'au plus 50 conversations récentes. Il prépare uniquement
++le cache disque temporaire du système : il ne remplit pas le cache applicatif de
++Codex et ne supprime pas son travail de décompression, d'analyse ou d'affichage.
++Il ne lance aucun agent, n'envoie aucun message et ne modifie pas les conversations
++ni leur index d'origine. Une copie temporaire bornée de l'index sert à choisir les
++conversations ; elle est supprimée. À défaut, le programme utilise les dates des
++fichiers et signale cette sélection approximative.
++
++La prélecture est annulable et bornée par défaut à 60 secondes, 256 Mio de données
++de conversations et 64 Mio de métadonnées. Elle ne tourne pas en parallèle d'une
++restauration. Le bénéfice dépend du cache système ; il n'est pas garanti et ne
++persiste pas après redémarrage. Voir `docs/conversation-warmup.md`.
+ 
+ Les optimisations ont été mesurées sur scénarios synthétiques Windows : environ
+ 24–32 % de réduction sur les scénarios de petits fichiers et 20–38 % sur le scénario
+ court de gros fichiers, avant ajout des checkpoints. **Un délai de deux heures
+ pour 88 Go et 5,15 millions de fichiers n'est pas démontré.** Ce paquet conserve
+ les contrôles d'intégrité ; il ne les supprime pas pour afficher un meilleur temps.
++La campagne de comparaison actuelle mesure le parcours complet avec reprise
++durable. Les résultats de cette campagne doivent être utilisés pour évaluer la
++version actuelle, plutôt que réattribuer les anciens pourcentages à ce build.
+ 
+ Sources, tests et résultats : https://github.com/sylvainBGO/lifeboat-migration-report
+ 
+@@ -125,3 +167,9 @@ Le test de reprise de l'exécutable s'exécute avec `--recovery-self-test --work
+ suivi d'un **nouveau dossier** réservé à des données synthétiques. Les résultats
+ sont enregistrés dans `recovery-self-test-result.json`. Les captures synthétiques
+ de l'interface utilisent Pillow ; elles sont indépendantes de la restauration.
++Le même parcours avec sauvegarde archivée se teste avec `--archive-self-test`.
++
++La prélecture peut aussi être lancée avec `--warm-recent 50 --codex-home` suivi
++du dossier `.codex` réel. `--report` désigne un nouveau fichier JSON situé hors de
++ce dossier ; aucun fichier existant n'est remplacé. Le résultat décrit seulement
++les données lues, pas des conversations chargées par l'application.
+diff --git a/benchmarks/run_completion_tests.py b/benchmarks/run_completion_tests.py
+new file mode 100644
+index 0000000..a018ccf
+--- /dev/null
++++ b/benchmarks/run_completion_tests.py
+@@ -0,0 +1,28 @@
++"""Run the single component gate and preserve machine-readable evidence."""
++import argparse
++import json
++from pathlib import Path
++import sys
++import unittest
++
++
++def main():
++    parser = argparse.ArgumentParser()
++    parser.add_argument('--output', required=True)
++    args = parser.parse_args()
++    suite = unittest.defaultTestLoader.discover(str(Path(__file__).parent), pattern='*optimization*.py')
++    result = unittest.TextTestRunner(verbosity=2).run(suite)
++    output = Path(args.output)
++    output.parent.mkdir(parents=True, exist_ok=True)
++    output.write_text(json.dumps({
++        'passed': result.wasSuccessful(), 'testsRun': result.testsRun,
++        'skipped': [{'test': test.id(), 'reason': reason} for test, reason in result.skipped],
++        'failures': [{'test': test.id(), 'traceback': detail} for test, detail in result.failures],
++        'errors': [{'test': test.id(), 'traceback': detail} for test, detail in result.errors],
++        'hostProtectionChanged': False,
++    }, indent=2), encoding='utf-8')
++    return 0 if result.wasSuccessful() else 1
++
++
++if __name__ == '__main__':
++    sys.exit(main())
+diff --git a/benchmarks/test_archive_optimization.py b/benchmarks/test_archive_optimization.py
+new file mode 100644
+index 0000000..ca93513
+--- /dev/null
++++ b/benchmarks/test_archive_optimization.py
+@@ -0,0 +1,438 @@
++"""Archive format safety, metadata and durable extraction acceptance tests."""
++import argparse
++import csv
++import hashlib
++import json
++import os
++from pathlib import Path
++import shutil
++import sqlite3
++import stat
++import struct
++import sys
++import tempfile
++import threading
++import unittest
++from unittest.mock import patch
++import zipfile
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
++from codex_transfer import project_archives as archives
++from codex_transfer.restore_checkpoint import CopyCheckpoint, RestorePaused
++from codex_transfer.manifest_index import ManifestIndex
++
++
++class ArchiveTests(unittest.TestCase):
++    def setUp(self):
++        self.temp = tempfile.TemporaryDirectory(prefix="lb-archives-")
++        self.addCleanup(self.temp.cleanup)
++        self.root = Path(self.temp.name)
++        self.source = self.root / "source"
++        self.source.mkdir()
++        (self.source / "folder" / "empty").mkdir(parents=True)
++        (self.source / "zero.txt").write_bytes(b"")
++        (self.source / "readonly.bin").write_bytes(b"a\x00b" * 200)
++        (self.source / "folder" / "François-Łyjak.txt").write_text("data\n" * 50, encoding="utf-8")
++        os.chmod(self.source / "readonly.bin", 0o444)
++        self.stamp = 1_700_000_000_123_456_700
++        for item in [*self.source.rglob("*"), self.source]:
++            os.utime(item, ns=(self.stamp, self.stamp))
++        self.package = self.root / "package"
++        self.package.mkdir()
++        self.destination = self.root / "staging"
++        self.project = None
++
++    def pack(self, **kwargs):
++        count, size, storage = archives.pack_project(
++            self.source, self.package, "projects/root-test", **kwargs)
++        self.project = {"id": "test", "backupRelativePath": "projects/root-test",
++                        "fileCount": count, "totalBytes": size, "storage": storage}
++        self.rows = list(archives.logical_rows(self.package, [self.project]))
++        self.write_manifest()
++        return self.project
++
++    def write_manifest(self):
++        rows = list(self.rows)
++        for relative in archives.block_paths(self.project):
++            path = self.package / relative
++            rows.append({"relative_path": relative, "size": path.stat().st_size,
++                         "sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
++        folder = self.package / "manifest"
++        folder.mkdir(exist_ok=True)
++        with (folder / "sha256.csv").open("w", encoding="utf-8", newline="") as handle:
++            writer = csv.DictWriter(handle, fieldnames=["relative_path", "size", "sha256"])
++            writer.writeheader()
++            writer.writerows(rows)
++        self.hashes = {row["relative_path"]: (row["size"], row["sha256"]) for row in rows}
++
++    def probe(self, *_):
++        return 10**12, 4096
++
++    def extract(self, **kwargs):
++        return archives.extract_project(self.package, self.project, self.destination, self.probe, **kwargs)
++
++    def rewrite_block(self, change, block=0):
++        path = self.package / archives.block_paths(self.project)[block]
++        with zipfile.ZipFile(path) as archive:
++            data = {info.filename: archive.read(info) for info in archive.infolist()}
++        index = json.loads(data[archives.INDEX_NAME])
++        change(index, data)
++        data[archives.INDEX_NAME] = json.dumps(index, ensure_ascii=False).encode("utf-8")
++        with zipfile.ZipFile(path, "w", zipfile.ZIP_STORED) as archive:
++            for name, content in data.items():
++                archive.writestr(name, content)
++        self.write_manifest()
++
++    def test_roundtrip_preserves_content_modes_exact_mtime_and_empty_directories(self):
++        self.pack(block_entries=2, block_bytes=256)
++        self.assertGreater(len(self.project["storage"]["blocks"]), 1)
++        self.assertFalse((self.package / self.project["backupRelativePath"]).exists())
++        count, size = self.extract()
++        self.assertEqual((count, size), (self.project["fileCount"], self.project["totalBytes"]))
++        for source in self.source.rglob("*"):
++            target = self.destination / source.relative_to(self.source)
++            self.assertEqual(target.is_dir(), source.is_dir())
++            self.assertEqual(target.stat().st_mtime_ns, source.stat().st_mtime_ns)
++            if source.is_file():
++                self.assertEqual(target.read_bytes(), source.read_bytes())
++                mask = 0o222 if os.name == "nt" else 0o777
++                self.assertEqual(stat.S_IMODE(target.stat().st_mode) & mask,
++                                 stat.S_IMODE(source.stat().st_mode) & mask)
++        archives.verify_metadata(self.package, self.project, self.destination)
++
++    def test_empty_project_is_not_lost(self):
++        os.chmod(self.source / "readonly.bin", stat.S_IRUSR | stat.S_IWUSR)
++        shutil.rmtree(self.source)
++        (self.source / "still-empty").mkdir(parents=True)
++        self.pack()
++        self.assertEqual(self.extract(), (0, 0))
++        self.assertTrue((self.destination / "still-empty").is_dir())
++        archives.verify_metadata(self.package, self.project, self.destination)
++
++    def test_block_indexes_and_logical_hashes_validate_without_materializing_files(self):
++        self.pack(block_entries=2)
++        result = archives.inspect_package(self.package,
++            {"formatVersion": "2.5", "projectStorage": archives.STORAGE}, [self.project], self.hashes)
++        self.assertEqual(result["hashesChecked"], self.project["fileCount"])
++        self.assertEqual(result["files"], {row["relative_path"] for row in self.rows})
++        self.assertFalse(self.destination.exists())
++        self.assertFalse((self.package / "projects").exists())
++
++    def test_legacy_format_cannot_silently_accept_archive_extension(self):
++        self.pack()
++        with self.assertRaisesRegex(archives.ArchiveError, "requires package format"):
++            archives.inspect_package(self.package, {"formatVersion": "2.4"}, [self.project], self.hashes)
++        result = archives.inspect_package(self.package, {"formatVersion": "2.4"}, [], {})
++        self.assertEqual(result["files"], set())
++
++    def test_pause_records_completed_files_and_resume_does_not_extract_them_again(self):
++        self.pack(block_entries=2)
++        ledger = self.root / "copy.sqlite"
++        virtual = self.package / self.project["backupRelativePath"]
++        with CopyCheckpoint(ledger, virtual, self.destination) as checkpoint:
++            def progress(count, size):
++                if count == 1:
++                    checkpoint.request_pause()
++            with self.assertRaises(RestorePaused):
++                self.extract(checkpoint=checkpoint, on_progress=progress)
++            completed = {row[0] for row in checkpoint._db.execute("SELECT path FROM completed")}
++        self.assertEqual(len(completed), 1)
++        original = archives._member_chunks
++        seen = []
++        def read(archive, entry):
++            seen.append(entry["path"])
++            return original(archive, entry)
++        with CopyCheckpoint(ledger, virtual, self.destination) as checkpoint, \
++             patch.object(archives, "_member_chunks", read):
++            self.extract(checkpoint=checkpoint)
++        self.assertTrue(completed.isdisjoint(seen))
++        archives.verify_metadata(self.package, self.project, self.destination)
++
++    def test_space_guard_prevents_first_write_and_partial_file_is_not_checkpointed(self):
++        self.pack()
++        with self.assertRaises(RestorePaused):
++            archives.extract_project(self.package, self.project, self.destination,
++                                     lambda *_: (_ for _ in ()).throw(RestorePaused("low space")))
++        self.assertFalse(self.destination.exists())
++        ledger = self.root / "copy.sqlite"
++        virtual = self.package / self.project["backupRelativePath"]
++        with CopyCheckpoint(ledger, virtual, self.destination) as checkpoint, \
++             patch.object(archives.os, "fsync", side_effect=OSError(28, "disk full")):
++            with self.assertRaises(OSError):
++                self.extract(checkpoint=checkpoint)
++            self.assertEqual(checkpoint._db.execute("SELECT count(*) FROM completed").fetchone()[0], 0)
++        self.assertFalse(list(self.destination.rglob(archives.TEMP_PREFIX + "*")))
++        with CopyCheckpoint(ledger, virtual, self.destination) as checkpoint:
++            self.extract(checkpoint=checkpoint)
++        archives.verify_metadata(self.package, self.project, self.destination)
++
++    def test_pause_during_large_file_discards_partial_output_and_resumes(self):
++        large = self.source / "00-large.bin"
++        large.write_bytes(b"0123456789abcdef" * (archives.CHUNK_BYTES // 8))
++        self.pack()
++        ledger = self.root / "copy.sqlite"
++        virtual = self.package / self.project["backupRelativePath"]
++        original = archives._member_chunks
++        with CopyCheckpoint(ledger, virtual, self.destination) as checkpoint:
++            def pause_in_file(archive, entry):
++                for chunk in original(archive, entry):
++                    yield chunk
++                    checkpoint.request_pause()
++            with patch.object(archives, "_member_chunks", pause_in_file):
++                with self.assertRaises(RestorePaused):
++                    self.extract(checkpoint=checkpoint)
++            self.assertEqual(checkpoint.summary()["files"], 0)
++        self.assertFalse((self.destination / large.name).exists())
++        self.assertFalse(list(self.destination.rglob(archives.TEMP_PREFIX + "*")))
++        with CopyCheckpoint(ledger, virtual, self.destination) as checkpoint:
++            self.extract(checkpoint=checkpoint)
++        self.assertEqual((self.destination / large.name).read_bytes(), large.read_bytes())
++        archives.verify_metadata(self.package, self.project, self.destination)
++
++    def test_checkpoint_flush_failure_does_not_hide_original_pause(self):
++        self.pack()
++        with CopyCheckpoint(self.root / "copy.sqlite",
++                            self.package / self.project["backupRelativePath"], self.destination) as checkpoint:
++            checkpoint.request_pause()
++            with patch.object(checkpoint, "flush", side_effect=sqlite3.OperationalError("disk full")):
++                with self.assertRaises(RestorePaused):
++                    self.extract(checkpoint=checkpoint)
++
++    def test_indexed_manifest_avoids_reparsing_csv_for_each_project(self):
++        self.pack()
++        with ManifestIndex(self.package) as index:
++            (self.package / "manifest/sha256.csv").unlink()
++            self.extract(manifest_index=index)
++            archives.verify_metadata(self.package, self.project, self.destination, index)
++
++    def test_modified_block_is_rejected_before_destination_is_created(self):
++        self.pack()
++        path = self.package / archives.block_paths(self.project)[0]
++        data = bytearray(path.read_bytes())
++        data[40] ^= 1
++        path.write_bytes(data)
++        with self.assertRaisesRegex(archives.ArchiveError, "SHA-256"):
++            self.extract()
++        self.assertFalse(self.destination.exists())
++
++    def test_valid_zip_crc_does_not_replace_member_sha256_verification(self):
++        self.pack()
++        def change(index, data):
++            entry = next(entry for entry in index["entries"] if entry["kind"] == "file" and entry["size"])
++            data[entry["member"]] = b"x" * entry["size"]
++        self.rewrite_block(change)
++        with self.assertRaisesRegex(archives.ArchiveError, "SHA-256"):
++            self.extract()
++        self.assertFalse(list(self.destination.rglob(archives.TEMP_PREFIX + "*")))
++
++    def test_traversal_absolute_ads_reserved_names_and_windows_case_collisions_are_rejected(self):
++        for value in ("../escape", "/absolute", "C:/escape", "dir\\escape", "file:stream",
++                      "CON.txt", "dir/../escape", "name.", "name ", "a//b", "LPT¹.txt"):
++            with self.subTest(value=value), self.assertRaises(archives.ArchiveError):
++                archives.safe_relative(value)
++        self.pack()
++        def change(index, data):
++            entry = next(entry for entry in index["entries"] if entry["kind"] == "file")
++            entry["path"] = "../outside.txt"
++        self.rewrite_block(change)
++        with self.assertRaises(archives.ArchiveError):
++            self.extract()
++        self.assertFalse((self.root / "outside.txt").exists())
++        self.assertFalse(self.destination.exists())
++
++    def test_duplicate_paths_across_blocks_fail_closed(self):
++        self.pack(block_entries=1)
++        blocks = self.project["storage"]["blocks"]
++        first_path = None
++        change_block = None
++        for number, relative in enumerate(blocks):
++            with archives._open_block(self.package, relative) as (_, entries):
++                if entries[0]["kind"] == "file":
++                    if first_path is None:
++                        first_path = entries[0]["path"]
++                    else:
++                        change_block = number
++                        break
++        self.rewrite_block(lambda index, data: index["entries"][0].update(path=first_path.upper()), change_block)
++        with self.assertRaisesRegex(archives.ArchiveError, "case-colliding"):
++            list(archives.logical_rows(self.package, [self.project]))
++
++    def test_oversized_central_directory_is_rejected_before_zipfile_allocation(self):
++        self.pack()
++        path = self.package / archives.block_paths(self.project)[0]
++        content = bytearray(path.read_bytes())
++        end = list(struct.unpack("<4s4H2LH", content[-22:]))
++        end[3] = end[4] = archives.MAX_BLOCK_ENTRIES + 2
++        content[-22:] = struct.pack("<4s4H2LH", *end)
++        path.write_bytes(content)
++        self.write_manifest()
++        with self.assertRaisesRegex(archives.ArchiveError, "central directory"):
++            self.extract()
++
++    def test_special_zip_objects_are_rejected(self):
++        self.pack()
++        path = self.package / archives.block_paths(self.project)[0]
++        with zipfile.ZipFile(path) as archive:
++            contents = [(info, archive.read(info)) for info in archive.infolist()]
++        with zipfile.ZipFile(path, "w") as archive:
++            for info, content in contents:
++                if info.filename.startswith("files/"):
++                    info.external_attr = (stat.S_IFLNK | 0o777) << 16
++                archive.writestr(info, content)
++        self.write_manifest()
++        with self.assertRaisesRegex(archives.ArchiveError, "special"):
++            self.extract()
++
++    def test_source_symlink_and_hardlink_are_not_silently_dereferenced(self):
++        link = self.source / "link"
++        try:
++            link.symlink_to(self.source / "zero.txt")
++        except OSError:
++            self.skipTest("This account cannot create symbolic links")
++        with self.assertRaisesRegex(archives.ArchiveError, "Links"):
++            self.pack()
++        link.unlink()
++        shutil.rmtree(self.package)
++        self.package.mkdir()
++        os.link(self.source / "zero.txt", link)
++        with self.assertRaisesRegex(archives.ArchiveError, "Hard-linked"):
++            self.pack()
++
++    def test_target_link_cannot_redirect_extraction_outside_staging(self):
++        self.pack()
++        outside = self.root / "outside"
++        outside.mkdir()
++        self.destination.mkdir()
++        try:
++            (self.destination / "folder").symlink_to(outside, target_is_directory=True)
++        except OSError:
++            self.skipTest("This account cannot create symbolic links")
++        with self.assertRaisesRegex(archives.ArchiveError, "Links"):
++            self.extract()
++        self.assertEqual(list(outside.iterdir()), [])
++
++    def test_missing_empty_directory_and_changed_metadata_fail_verification(self):
++        self.pack()
++        self.extract()
++        (self.destination / "folder" / "empty").rmdir()
++        with self.assertRaises((archives.ArchiveError, OSError)):
++            archives.verify_metadata(self.package, self.project, self.destination)
++
++    @unittest.skipUnless(hasattr(os, "setxattr"), "Extended attributes are unavailable")
++    def test_unsupported_extended_attributes_fail_closed(self):
++        try:
++            os.setxattr(self.source / "zero.txt", "user.lifeboat-test", b"metadata")
++        except OSError:
++            self.skipTest("Temporary filesystem does not support user xattrs")
++        with self.assertRaisesRegex(archives.ArchiveError, "Extended attributes"):
++            self.pack()
++
++    @unittest.skipUnless(os.name == "nt", "NTFS alternate streams")
++    def test_ntfs_alternate_stream_is_rejected(self):
++        with open(str(self.source / "zero.txt") + ":private-stream", "wb") as handle:
++            handle.write(b"must not be silently discarded")
++        with self.assertRaisesRegex(archives.ArchiveError, "Alternate data streams"):
++            self.pack()
++
++
++@unittest.skipUnless(os.name == "nt", "Actual Windows backup/restore integration")
++class ArchiveWindowsTests(unittest.TestCase):
++    def setUp(self):
++        import test_windows_optimization as fixtures
++        fixtures.WindowsRestoreTests.setUp(self)
++        readonly = Path(self.build_args.source_profile) / "Documents/DemoProject/readonly.bin"
++        readonly.write_bytes(b"readonly source data")
++        os.chmod(readonly, stat.S_IRUSR)
++        self.package = self.backup.build_backup(argparse.Namespace(
++            **vars(self.build_args), project_storage=archives.STORAGE))
++
++    def target_snapshot(self):
++        import test_windows_optimization as fixtures
++        return fixtures.WindowsRestoreTests.target_snapshot(self)
++
++    def test_real_archive_backup_pause_reopen_and_final_verification(self):
++        from codex_transfer import restore_operation
++        from codex_transfer.validate import validate
++        report = validate(self.package, False)
++        self.assertTrue(report["valid"], report["errors"])
++        self.assertGreater(report["checks"]["archivedProjectFilesChecked"], 0)
++        prepared = self.restore.prepare_restore(self.package, self.target, allow_running_test=True)
++        document = restore_operation.create_document(prepared["safetyRoot"], self.package, self.target)
++        event = threading.Event()
++        def progress(value):
++            if value["phase"] == "restore sessions":
++                event.set()
++        paused = restore_operation.resume_from_document(document, event, progress)
++        self.assertEqual(paused["status"], "paused")
++        with patch.object(archives, "extract_project", side_effect=AssertionError("completed project extracted twice")):
++            complete = restore_operation.resume_from_document(document)
++        self.assertEqual(complete["status"], "complete")
++        self.assertTrue(complete["verification"]["valid"])
++
++    def test_real_staging_metadata_fault_triggers_rollback(self):
++        prepared = self.restore.prepare_restore(self.package, self.target, allow_running_test=True)
++        original = archives.extract_project
++        def corrupted(*args, **kwargs):
++            result = original(*args, **kwargs)
++            target = next(path for path in Path(args[2]).rglob("*") if path.is_file())
++            os.utime(target, ns=(target.stat().st_atime_ns, target.stat().st_mtime_ns + 10_000))
++            return result
++        with patch.object(archives, "extract_project", corrupted):
++            with self.assertRaisesRegex(archives.ArchiveError, "metadata"):
++                self.restore.restore_backup(self.package, self.target, Path(prepared["safetyRoot"]))
++        self.assertEqual(self.before, self.target_snapshot())
++        self.assertFalse(list((self.target / "Documents").glob(".codex-lifeboat-stage-*")))
++
++    def test_real_retention_removes_only_expired_readonly_payloads(self):
++        from codex_transfer import recovery, windows
++        points = windows.recovery_points_folder(self.target)
++        target = self.target / "Documents/DemoProject"
++        created = []
++        for number in range(3):
++            point = points / f"archive-test-{number}"
++            (point / "codex-before-restore").mkdir(parents=True)
++            shutil.copy2(self.target / ".codex/state_5.sqlite",
++                         point / "codex-before-restore/state_5.sqlite")
++            payload = target.parent / ".codex-lifeboat-recovery" / f"archive-test-{number}" / target.name
++            staging = target.parent / f".codex-lifeboat-stage-test-{number}"
++            for directory in (payload, staging):
++                directory.mkdir(parents=True)
++                readonly = directory / "readonly.bin"
++                readonly.write_bytes(b"managed recovery data")
++                os.chmod(readonly, stat.S_IRUSR)
++            journal = {
++                "status": "complete", "targetProfile": str(self.target), "safetyRoot": str(point),
++                "completedAtUtc": f"2026-01-0{number + 1}T00:00:00Z",
++                "projects": [{"strategy": "transactional-mirror", "target": str(target),
++                              "existedBefore": True, "previousTargetDisposition": "recovery",
++                              "quarantinePath": str(payload), "stagingPath": str(staging)}],
++            }
++            journal_path = point / "restore-journal.json"
++            journal_path.write_text(json.dumps(journal), encoding="utf-8")
++            os.chmod(journal_path, stat.S_IRUSR)
++            created.append((point, payload, staging))
++        report = recovery.enforce_retention(self.target, keep=2)
++        self.assertEqual(len(report["removedPoints"]), 1)
++        self.assertFalse(created[0][0].exists())
++        self.assertFalse(created[0][1].exists())
++        for point, payload, staging in created[1:]:
++            self.assertTrue(point.is_dir())
++            self.assertTrue(payload.is_dir())
++        self.assertTrue(all(not staging.exists() for _, _, staging in created))
++        self.assertEqual(self.before, self.target_snapshot())
++
++    def test_source_archive_corruption_is_rejected_before_restore(self):
++        from codex_transfer.validate import validate
++        projects = self.backup.read_json(self.package / "manifest/projects.json")
++        block = self.package / archives.block_paths(projects[0])[0]
++        data = bytearray(block.read_bytes())
++        data[40] ^= 1
++        block.write_bytes(data)
++        self.assertFalse(validate(self.package, False)["valid"])
++        with self.assertRaises(Exception):
++            self.restore.prepare_restore(self.package, self.target, allow_running_test=True)
++        self.assertEqual(self.before, self.target_snapshot())
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/benchmarks/test_completion_optimization.py b/benchmarks/test_completion_optimization.py
+new file mode 100644
+index 0000000..aed29d7
+--- /dev/null
++++ b/benchmarks/test_completion_optimization.py
+@@ -0,0 +1,183 @@
++"""Recovery discovery and terminal reminders; never changes host protection."""
++import json
++import os
++from pathlib import Path
++import sys
++import tempfile
++import threading
++import unittest
++from unittest.mock import patch
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
++from codex_transfer.resume_discovery import discover_resume_plans, inspect_resume_plan
++
++
++class ResumeDiscoveryTests(unittest.TestCase):
++    def setUp(self):
++        self.temp = tempfile.TemporaryDirectory()
++        self.addCleanup(self.temp.cleanup)
++        self.root = Path(self.temp.name)
++        self.profile = self.root / 'new-profile'
++        self.profile.mkdir()
++        self.backup = self.root / 'backup'
++        self.backup.mkdir()
++        self.points = self.root / 'points'
++        self.points.mkdir()
++
++    def plan(self, name='first', *, status='paused', target=None, package=None):
++        folder = self.points / name
++        folder.mkdir()
++        common = dict(package=str(package or self.backup), targetProfile=str(target or self.profile))
++        doc = dict(resumeVersion=1, externalRoots={}, **common)
++        journal = dict(status=status, safetyRoot=str(folder), resumeExternalRoots={}, **common)
++        (folder / 'resume-plan.json').write_text(json.dumps(doc), encoding='utf-8')
++        (folder / 'restore-journal.json').write_text(json.dumps(journal), encoding='utf-8')
++        return folder / 'resume-plan.json'
++
++    def test_only_unfinished_matching_plans_loaded_without_writing(self):
++        eligible = self.plan()
++        self.plan('complete', status='complete')
++        self.plan('rolledback', status='rolled-back')
++        self.plan('different-user', target=self.root / 'old-profile')
++        before = {str(p): p.read_bytes() for p in self.points.rglob('*.json')}
++        found, issues = discover_resume_plans(self.profile, recovery_root=self.points)
++        self.assertEqual([item.document for item in found], [eligible.resolve()])
++        self.assertTrue(found[0].source_available)
++        self.assertEqual(len(issues), 3)
++        self.assertEqual(before, {str(p): p.read_bytes() for p in self.points.rglob('*.json')})
++        self.assertFalse(list(self.points.rglob('*.sqlite')))
++
++    def test_newest_plan_selected_and_offline_source_kept_visible(self):
++        self.plan('older')
++        latest = self.plan('newer', package=self.root / 'offline')
++        os.utime(latest.parent / 'restore-journal.json', ns=(9_000_000_000, 9_000_000_000))
++        os.utime(self.points / 'older' / 'restore-journal.json', ns=(1_000_000_000, 1_000_000_000))
++        found, issues = discover_resume_plans(self.profile, recovery_root=self.points)
++        self.assertFalse(issues)
++        self.assertEqual(found[0].document, latest.resolve())
++        self.assertFalse(found[0].source_available)
++
++    def test_mismatched_journal_and_oversized_or_invalid_documents_rejected(self):
++        document = self.plan()
++        original = json.loads(document.read_text())
++        document.write_text(json.dumps(dict(original, package=str(self.root / 'different'))))
++        with self.assertRaises(ValueError):
++            inspect_resume_plan(document, expected_profile=self.profile)
++        document.write_bytes(b' ' * (1_048_576 + 1))
++        with self.assertRaises(ValueError):
++            inspect_resume_plan(document, expected_profile=self.profile)
++        document.write_text('[]')
++        with self.assertRaises(ValueError):
++            inspect_resume_plan(document, expected_profile=self.profile)
++
++    def test_symlinked_metadata_not_followed(self):
++        document = self.plan()
++        target = self.root / 'outside.json'
++        target.write_bytes(document.read_bytes())
++        document.unlink()
++        try:
++            document.symlink_to(target)
++        except OSError:
++            self.skipTest('Host cannot create symlinks')
++        with self.assertRaises(ValueError):
++            inspect_resume_plan(document, expected_profile=self.profile)
++
++    def test_missing_managed_directory_is_an_empty_read_only_result(self):
++        path = self.root / 'not-created'
++        self.assertEqual(discover_resume_plans(self.profile, recovery_root=path), ([], []))
++        self.assertFalse(path.exists())
++
++    def test_bounded_scan_reports_limit(self):
++        self.plan('one')
++        self.plan('two')
++        found, issues = discover_resume_plans(self.profile, recovery_root=self.points, max_points=1)
++        self.assertEqual(len(found), 1)
++        self.assertTrue(any('limit' in issue for issue in issues))
++
++
++@unittest.skipUnless(os.name == 'nt', 'Windows Tk terminal workflow')
++class CompletionUITests(unittest.TestCase):
++    def setUp(self):
++        from codex_transfer.gui import TransferApp
++        self.startup = patch.object(TransferApp, '_discover_resume_at_startup')
++        self.startup.start()
++        self.addCleanup(self.startup.stop)
++        self.app = TransferApp()
++        self.app.withdraw()
++        self.addCleanup(self.close_app)
++        self.app.defender_requested = True
++
++    def close_app(self):
++        try:
++            self.app.destroy()
++        except Exception:
++            pass
++
++    def test_error_and_cancel_have_visible_reminders_without_changing_defender(self):
++        from codex_transfer import defender_control
++        with patch.object(defender_control, 'request_disable', side_effect=AssertionError('automatic disable')), \
++             patch('codex_transfer.gui.messagebox.showerror'), \
++             patch('codex_transfer.recovery_ui.messagebox.showwarning') as warning:
++            self.app.messages.put(('error', RuntimeError('injected error')))
++            self.app._drain_messages()
++            self.assertEqual(warning.call_count, 1)
++            self.app.messages.put(('done', (lambda result: None, {'cancelled': True})))
++            self.app._drain_messages()
++            self.assertEqual(warning.call_count, 2)
++            self.assertIn('reactivate', warning.call_args.args[1])
++
++    def test_pause_and_success_include_reminder(self):
++        with patch('codex_transfer.recovery_ui.messagebox.showinfo') as show:
++            self.app._resume_done({'status': 'paused'})
++            self.assertIn('reactivate', show.call_args.args[1])
++            self.app._resume_done({'status': 'complete'})
++            self.assertIn('reactivate', show.call_args.args[1])
++
++    def test_idle_close_and_close_after_pause_remind_before_destroy(self):
++        with patch.object(self.app, 'destroy') as destroy, \
++             patch('codex_transfer.recovery_ui.messagebox.showwarning') as warning:
++            self.app.busy = False
++            self.app._close_recovery_window()
++            self.assertTrue(warning.called)
++            self.assertTrue(destroy.called)
++            warning.reset_mock()
++            self.app.close_after_pause = True
++            self.app.messages.put(('done', (lambda result: None, {'status': 'paused'})))
++            self.app._drain_messages()
++            self.assertTrue(warning.called)
++
++    def test_discovery_loads_plan_but_never_starts_restoration(self):
++        from codex_transfer.resume_discovery import ResumeCandidate
++        candidate = ResumeCandidate(Path('C:/recovery/resume-plan.json'), Path('C:/backup'),
++                                    Path.home(), 'paused', 1, True)
++        with patch.object(self.app, '_run', side_effect=AssertionError('auto-restore')):
++            self.app._recovery_message('resume_discovered', ([candidate], []))
++        self.assertEqual(self.app.resume_document, candidate.document)
++        self.assertEqual(str(self.app.resume_ready_button['state']), 'normal')
++
++    def test_startup_discovery_during_warmup_cannot_enable_or_start_restore(self):
++        from codex_transfer.resume_discovery import ResumeCandidate
++        self.app.warmup_cancel = threading.Event()
++        candidate = ResumeCandidate(Path('C:/recovery/resume-plan.json'), Path('C:/backup'),
++                                    Path.home(), 'paused', 1, True)
++        self.app._recovery_message('resume_discovered', ([candidate], []))
++        self.assertEqual(str(self.app.resume_ready_button['state']), 'disabled')
++        with patch.object(self.app, '_run', side_effect=AssertionError('concurrent restore')):
++            self.app._start_loaded_resume()
++        with patch.object(self.app, '_begin_operation', side_effect=AssertionError('concurrent operation')):
++            self.app._run(lambda: None, lambda result: None, 'restore')
++
++    def test_new_operation_replaces_offline_startup_candidate(self):
++        from codex_transfer.resume_discovery import ResumeCandidate
++        old = ResumeCandidate(Path('C:/old/resume-plan.json'), Path('C:/offline'),
++                              Path.home(), 'paused', 1, False)
++        self.app._select_resume(old)
++        self.app._recovery_message('resume_document', 'C:/new/resume-plan.json')
++        self.app._set_busy(False)
++        self.assertIsNone(self.app.resume_candidate)
++        self.assertEqual(str(self.app.resume_ready_button['state']), 'normal')
++        self.assertIn('new', self.app.resume_notice['text'])
++
++
++if __name__ == '__main__':
++    unittest.main()
+diff --git a/benchmarks/test_feature_ui_optimization.py b/benchmarks/test_feature_ui_optimization.py
+index 3959b42..20e1847 100644
+--- a/benchmarks/test_feature_ui_optimization.py
++++ b/benchmarks/test_feature_ui_optimization.py
+@@ -11,6 +11,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
+ @unittest.skipUnless(os.name == 'nt', 'Windows Tk UI')
+ class FeatureUITests(unittest.TestCase):
+     def setUp(self):
++        self.defender_status = patch('codex_transfer.defender_control.status', return_value={
++            'available': True, 'RealTimeProtectionEnabled': True})
++        self.defender_status.start()
++        self.addCleanup(self.defender_status.stop)
+         from codex_transfer.gui import TransferApp
+         self.app = TransferApp()
+         self.app.withdraw()
+diff --git a/benchmarks/test_warmup_optimization.py b/benchmarks/test_warmup_optimization.py
+new file mode 100644
+index 0000000..a0b50e6
+--- /dev/null
++++ b/benchmarks/test_warmup_optimization.py
+@@ -0,0 +1,351 @@
++"""Local warmup contracts, on synthetic profiles only."""
++
++from __future__ import annotations
++
++import hashlib
++import json
++import os
++from pathlib import Path
++import sqlite3
++import sys
++import tempfile
++import threading
++import unittest
++from unittest.mock import patch
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
++from codex_transfer import conversation_warmup as warmup
++
++
++class ConversationWarmupTests(unittest.TestCase):
++    def setUp(self):
++        self.temp = tempfile.TemporaryDirectory(prefix="warmup-test-")
++        self.addCleanup(self.temp.cleanup)
++        self.root = Path(self.temp.name)
++        self.home = self.root / "profile" / ".codex"
++        self.sessions = self.home / "sessions" / "2026" / "11" / "08"
++        self.sessions.mkdir(parents=True)
++        self.database = self.home / "state_5.sqlite"
++        self.sensitive = "DO-NOT-EXPORT-THIS-TITLE-OR-CONTENT"
++
++    def rollout(self, name: str, size: int = 100, *, mtime: int = 100) -> Path:
++        path = self.sessions / f"rollout-{name}.jsonl"
++        path.write_bytes((self.sensitive.encode() * (1 + size // len(self.sensitive)))[:size])
++        os.utime(path, ns=(mtime * 10**9, mtime * 10**9))
++        return path
++
++    def connect(self, *, wal: bool = False):
++        connection = sqlite3.connect(self.database)
++        if wal:
++            connection.execute("PRAGMA journal_mode=WAL")
++            connection.execute("PRAGMA wal_autocheckpoint=0")
++        connection.execute(
++            "CREATE TABLE threads (id TEXT PRIMARY KEY, rollout_path TEXT, "
++            "updated_at INTEGER, archived INTEGER, title TEXT)"
++        )
++        connection.commit()
++        return connection
++
++    def add(self, connection, name, path, updated, archived=0):
++        connection.execute(
++            "INSERT INTO threads VALUES (?,?,?,?,?)",
++            (name, str(path), updated, archived, self.sensitive),
++        )
++        connection.commit()
++
++    def signature(self):
++        return {
++            str(path.relative_to(self.home)): (
++                path.stat().st_mtime_ns,
++                hashlib.sha256(path.read_bytes()).hexdigest(),
++            )
++            for path in self.home.rglob("*")
++            if path.is_file() and not path.is_symlink()
++        }
++
++    def test_selects_latest_database_update_and_does_not_change_source(self):
++        old = self.rollout("old", 11, mtime=999)
++        recent = self.rollout("recent", 37, mtime=100)
++        archived = self.rollout("archived", 90, mtime=1000)
++        with self.connect() as connection:
++            self.add(connection, "old-id", old, 10)
++            self.add(connection, "recent-id", recent, 20)
++            self.add(connection, "archive-id", archived, 30, archived=1)
++        connection.close()
++        (self.home / "auth.json").write_text(self.sensitive)
++        before = self.signature()
++        progress = []
++        result = warmup.warm_recent_conversations(self.home, limit=1, progress=progress.append)
++        self.assertEqual(result["status"], "completed")
++        self.assertEqual(result["selectionSource"], "state_db_snapshot_updated_at")
++        self.assertEqual((result["selected"], result["filesRead"], result["bytesRead"]), (1, 1, 37))
++        self.assertEqual(self.signature(), before)
++        serialized = json.dumps([result, progress])
++        for private in (self.sensitive, "recent-id", str(self.home), "rollout-recent"):
++            self.assertNotIn(private, serialized)
++        self.assertFalse(result["applicationPreloadSupported"])
++        self.assertFalse(result["applicationCacheLoaded"])
++        self.assertFalse(result["persistentCache"])
++        self.assertFalse(result["speedupMeasured"])
++
++    def test_active_wal_is_captured_without_writing_source_shm(self):
++        old = self.rollout("old", 13)
++        recent = self.rollout("wal-only", 41)
++        connection = self.connect(wal=True)
++        self.addCleanup(connection.close)
++        self.add(connection, "old", old, 10)
++        connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
++        self.add(connection, "recent-wal", recent, 20)
++        self.assertGreater((self.home / "state_5.sqlite-wal").stat().st_size, 0)
++        before = self.signature()
++        result = warmup.warm_recent_conversations(self.home, limit=1)
++        self.assertEqual(result["selectionSource"], "state_db_snapshot_updated_at")
++        self.assertEqual(result["bytesRead"], 41)
++        self.assertEqual(self.signature(), before)
++
++    def test_closed_wal_database_creates_no_original_sidecars(self):
++        item = self.rollout("closed-wal", 29)
++        connection = self.connect(wal=True)
++        self.add(connection, "id", item, 20)
++        connection.close()
++        self.assertFalse((self.home / "state_5.sqlite-wal").exists())
++        before = self.signature()
++        result = warmup.warm_recent_conversations(self.home)
++        self.assertEqual(result["bytesRead"], 29)
++        self.assertEqual(self.signature(), before)
++
++    def test_snapshot_is_cleaned_and_uses_no_source_shm(self):
++        item = self.rollout("snapshot", 19)
++        connection = self.connect(wal=True)
++        self.addCleanup(connection.close)
++        self.add(connection, "id", item, 20)
++        private_temp = self.root / "private-temp"
++        private_temp.mkdir()
++        opened = []
++        original = warmup._reader
++
++        def inspect(home, value):
++            opened.append(value.path.name)
++            return original(home, value)
++
++        with patch.object(warmup.tempfile, "gettempdir", return_value=str(private_temp)), patch.object(
++            warmup, "_reader", side_effect=inspect
++        ):
++            result = warmup.warm_recent_conversations(self.home)
++        self.assertEqual(result["status"], "completed")
++        self.assertEqual(list(private_temp.iterdir()), [])
++        self.assertNotIn("state_5.sqlite-shm", opened)
++        self.assertNotIn("auth.json", opened)
++
++    def test_changed_snapshot_falls_back_with_explicit_reason(self):
++        self.rollout("fallback", 17)
++        connection = self.connect()
++        connection.close()
++        original = warmup._copy_index_file
++
++        def change_source(*args):
++            original(*args)
++            with self.database.open("ab") as handle:
++                handle.write(b"changed-during-copy")
++
++        with patch.object(warmup, "_copy_index_file", side_effect=change_source):
++            result = warmup.warm_recent_conversations(self.home)
++        self.assertEqual(result["selectionSource"], "sessions_file_mtime")
++        self.assertIn("index_changed_during_snapshot", result["warnings"])
++        self.assertIn("file_mtime_is_not_conversation_recency", result["warnings"])
++        self.assertEqual(result["bytesRead"], 17)
++
++    def test_index_size_budget_falls_back_without_copying_metadata(self):
++        self.rollout("fallback", 23)
++        connection = self.connect()
++        connection.close()
++        result = warmup.warm_recent_conversations(self.home, max_index_bytes=1)
++        self.assertEqual(result["selectionSource"], "sessions_file_mtime")
++        self.assertEqual(result["metadataBytesRead"], 0)
++        self.assertIn("index_byte_budget", result["warnings"])
++
++    def test_file_fallback_orders_by_mtime_and_excludes_archived(self):
++        self.rollout("older", 11, mtime=10)
++        self.rollout("newer", 37, mtime=20)
++        archive = self.home / "archived_sessions"
++        archive.mkdir()
++        (archive / "rollout-archived.jsonl").write_bytes(b"x" * 1000)
++        result = warmup.warm_recent_conversations(self.home, limit=1)
++        self.assertEqual(result["selectionSource"], "sessions_file_mtime")
++        self.assertEqual(result["bytesRead"], 37)
++
++    def test_reads_at_most_the_50_latest_conversations(self):
++        connection = self.connect()
++        for index in range(60):
++            self.add(connection, str(index), self.rollout(str(index), index + 1), index)
++        connection.close()
++        result = warmup.warm_recent_conversations(self.home)
++        self.assertEqual(result["selected"], 50)
++        self.assertEqual(result["filesRead"], 50)
++        self.assertEqual(result["bytesRead"], sum(range(11, 61)))
++
++    def test_rejects_escape_old_profile_and_traversal(self):
++        valid = self.rollout("valid", 7)
++        outside = self.root / "old-profile" / ".codex" / "sessions" / "rollout-old.jsonl"
++        outside.parent.mkdir(parents=True)
++        outside.write_bytes(b"outside content")
++        with self.connect() as connection:
++            self.add(connection, "old-profile", outside, 100)
++            self.add(connection, "escape", "../outside.jsonl", 90)
++            self.add(connection, "traversal", "sessions/../auth.jsonl", 80)
++            self.add(connection, "valid", valid, 70)
++        connection.close()
++        result = warmup.warm_recent_conversations(self.home)
++        self.assertEqual((result["selected"], result["bytesRead"]), (1, 7))
++        self.assertEqual(result["rejectedCandidates"], 3)
++
++    def test_rejects_symlink_in_session_tree(self):
++        external = self.root / "external.jsonl"
++        external.write_bytes(b"secret outside root")
++        linked = self.sessions / "rollout-linked.jsonl"
++        try:
++            linked.symlink_to(external)
++        except (OSError, NotImplementedError):
++            self.skipTest("Symlink creation is not permitted on this test host")
++        result = warmup.warm_recent_conversations(self.home)
++        self.assertEqual(result["bytesRead"], 0)
++        self.assertGreaterEqual(result["rejectedCandidates"], 1)
++
++    def test_rejects_reparse_points_even_when_reported_as_regular_files(self):
++        class Reparse:
++            st_mode = 0o100644
++            st_file_attributes = 0x400
++
++        self.assertTrue(warmup._linked(Reparse()))
++
++    def test_compressed_rollout_is_read_as_bounded_raw_bytes(self):
++        path = self.sessions / "rollout-compressed.jsonl.zst"
++        path.write_bytes(b"compressed-data-does-not-need-to-be-parsed" * 10)
++        with self.connect() as connection:
++            self.add(connection, "id", str(path)[:-4], 50)
++        connection.close()
++        result = warmup.warm_recent_conversations(self.home, max_file_bytes=31)
++        self.assertEqual(result["bytesRead"], 31)
++        self.assertEqual(result["partialFiles"], 1)
++        self.assertEqual(result["status"], "limited")
++
++    def test_global_read_budget_is_fair_and_hard(self):
++        for index in range(3):
++            self.rollout(str(index), 100, mtime=index + 1)
++        result = warmup.warm_recent_conversations(self.home, max_bytes=30, max_file_bytes=100)
++        self.assertEqual(result["bytesRead"], 30)
++        self.assertEqual(result["filesRead"], 3)
++        self.assertEqual(result["partialFiles"], 3)
++        self.assertEqual(result["status"], "limited")
++
++    def test_cancel_before_discovery_does_no_io(self):
++        event = threading.Event()
++        event.set()
++        with patch.object(warmup, "_home_path", side_effect=AssertionError("must not read")):
++            result = warmup.warm_recent_conversations(self.home, cancel=event)
++        self.assertEqual(result["status"], "cancelled")
++        self.assertEqual((result["bytesRead"], result["metadataBytesRead"]), (0, 0))
++
++    def test_cancel_during_read_stops_between_bounded_chunks(self):
++        self.rollout("long", warmup._CHUNK * 5)
++        event = threading.Event()
++
++        def progress(value):
++            if value["bytesRead"]:
++                event.set()
++
++        result = warmup.warm_recent_conversations(self.home, cancel=event, progress=progress)
++        self.assertEqual(result["status"], "cancelled")
++        self.assertEqual(result["bytesRead"], warmup._CHUNK)
++        self.assertEqual(result["partialFiles"], 1)
++
++    def test_cancel_during_snapshot_cleans_private_copy(self):
++        connection = self.connect()
++        connection.close()
++        event = threading.Event()
++        private_temp = self.root / "cancel-temp"
++        private_temp.mkdir()
++        original = warmup._copy_index_file
++        before = self.signature()
++
++        def cancel_after_copy(*args):
++            original(*args)
++            event.set()
++
++        with patch.object(warmup.tempfile, "gettempdir", return_value=str(private_temp)), patch.object(
++            warmup, "_copy_index_file", side_effect=cancel_after_copy
++        ):
++            result = warmup.warm_recent_conversations(self.home, cancel=event)
++        self.assertEqual(result["status"], "cancelled")
++        self.assertEqual(list(private_temp.iterdir()), [])
++        self.assertEqual(self.signature(), before)
++        self.assertEqual(result["bytesRead"], 0)
++
++    def test_time_budget_includes_discovery(self):
++        with patch.object(warmup.time, "monotonic", side_effect=[0.0, 2.0, 2.0]):
++            result = warmup.warm_recent_conversations(self.home, max_seconds=1)
++        self.assertEqual(result["status"], "limited")
++        self.assertIn("time_budget", result["limitingFactors"])
++        self.assertEqual(result["metadataBytesRead"], 0)
++
++    def test_discovery_is_bounded_even_without_an_index(self):
++        for number in range(20):
++            self.rollout(str(number), 10)
++        result = warmup.warm_recent_conversations(self.home, max_scan_entries=5)
++        self.assertIn("discovery_entry_limit", result["warnings"])
++        self.assertLessEqual(result["selected"], 5)
++
++    def test_file_disappearing_after_discovery_is_reported_without_paths(self):
++        path = self.rollout("remove", 9)
++
++        def progress(value):
++            if value["phase"] == "reading" and value["selected"]:
++                path.unlink(missing_ok=True)
++
++        result = warmup.warm_recent_conversations(self.home, progress=progress)
++        self.assertEqual(result["skipped"], 1)
++        self.assertEqual(result["bytesRead"], 0)
++        self.assertNotIn(str(path), json.dumps(result))
++
++    def test_invalid_limits_fail_before_io(self):
++        for arguments in ({"limit": 51}, {"max_bytes": 0}, {"max_seconds": -1}):
++            with self.subTest(arguments=arguments), self.assertRaises(ValueError):
++                warmup.warm_recent_conversations(self.home, **arguments)
++
++    def test_report_cannot_replace_source_or_any_existing_destination(self):
++        report = self.root / "already-exists.json"
++        report.write_text("keep existing report")
++        for path in (self.home, self.home / "auth.json", self.home / "sessions" / "new.json", report):
++            with self.subTest(path=path), self.assertRaises(ValueError):
++                warmup.validate_report_destination(self.home, path)
++        self.assertEqual(report.read_text(), "keep existing report")
++        self.assertFalse((self.home / "auth.json").exists())
++
++    def test_report_parent_symlink_cannot_enter_codex_home(self):
++        link = self.root / "report-alias"
++        try:
++            link.symlink_to(self.home, target_is_directory=True)
++        except (OSError, NotImplementedError):
++            self.skipTest("Symlink creation is not permitted on this test host")
++        with self.assertRaises(ValueError):
++            warmup.validate_report_destination(self.home, link / "new-report.json")
++        self.assertFalse((self.home / "new-report.json").exists())
++
++    def test_report_rejects_dangling_destination_symlink(self):
++        link = self.root / "dangling-report.json"
++        try:
++            link.symlink_to(self.root / "absent.json")
++        except (OSError, NotImplementedError):
++            self.skipTest("Symlink creation is not permitted on this test host")
++        with self.assertRaises(ValueError):
++            warmup.validate_report_destination(self.home, link)
++
++    def test_report_allows_new_local_path_without_creating_parents(self):
++        report = self.root / "new-directory" / "warmup-report.json"
++        result = warmup.validate_report_destination(self.home, report)
++        self.assertEqual(result, report.resolve(strict=False))
++        self.assertFalse(report.parent.exists())
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/docs/archive-blocks.md b/docs/archive-blocks.md
+new file mode 100644
+index 0000000..100949f
+--- /dev/null
++++ b/docs/archive-blocks.md
+@@ -0,0 +1,230 @@
++# Project archives, version 1
++
++This optional storage mode groups project files into independently readable ZIP
++blocks. It is part of the normal backup, validation and transactional restoration
++paths. It does not change the storage of conversations, attachments or the
++portable Codex profile. Ordinary file backups remain the default.
++
++## Enabling the mode
++
++Select the project archive option in the backup screen, or set this value in the
++backup configuration:
++
++```json
++{
++  "projectStorage": "archive-blocks-v1"
++}
++```
++
++The backup module also accepts `--project-storage archive-blocks-v1`; explicitly
++passing `--project-storage files` selects the original layout. The Python backup
++entry point reads `args.project_storage` first, then `projectStorage` from the
++configuration, then defaults to `files`. Other values are rejected.
++
++Archive backups declare package `formatVersion: "2.5"` and
++`projectStorage: "archive-blocks-v1"`. Existing file backups still declare version
++2.4. This reader accepts the previous 2.0–2.4 versions. An older reader that does
++not support 2.5 must reject the new package rather than mistake absent project
++directories for empty projects. Changing a manifest version does not convert a
++backup. Recreate a backup in the desired mode.
++
++The archive option is applied to every included project in a 2.5 package. It does
++not convert or delete existing backups, and no automatic change of storage mode
++is made during restoration.
++
++## On-disk contract
++
++`manifest/projects.json` retains each project's logical `backupRelativePath`,
++`fileCount` and `totalBytes`. An archived project adds this descriptor:
++
++```json
++{
++  "backupRelativePath": "projects/root-example",
++  "fileCount": 1,
++  "totalBytes": 5,
++  "storage": {
++    "kind": "archive-blocks-v1",
++    "metadata": "mode-mtime-ns-v1",
++    "blocks": ["project-archives/<project-key>/block-000000.zip"]
++  }
++}
++```
++
++`<project-key>` is the first 24 lowercase hexadecimal characters of SHA-256 of
++the UTF-8 logical `backupRelativePath`. Block names are consecutive, six-digit
++indexes starting at zero, in the exact order recorded in `blocks`. Each project
++has at least one block, including a project containing only empty directories.
++There is no simultaneous physical `projects/root-example` payload tree.
++
++A block contains `lifeboat-index.json` plus generated file objects. ZIP names do
++not contain user paths. A representative index is:
++
++```json
++{
++  "archiveVersion": 1,
++  "entries": [
++    {"path": "", "kind": "directory", "mode": 493, "mtimeNs": 1700000000000000000},
++    {"path": "hello.txt", "kind": "file", "mode": 420, "mtimeNs": 1700000000000000000,
++     "size": 5,
++     "sha256": "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
++     "member": "files/00000001"}
++  ]
++}
++```
++
++The example file object contains the five UTF-8 bytes `hello`. `member` identifies
++the zero-based position of that entry within its block, padded to eight digits.
++Directories have no ZIP payload member. The project root is the unique directory
++entry with an empty path; every parent directory precedes its descendants across
++the ordered blocks. Empty files and empty directories are explicit entries.
++Unknown entry metadata, duplicate JSON keys, duplicate paths and case collisions
++are rejected. This version does not accept links or implicit directories.
++
++Writer and reader limits are:
++
++| Property | Limit or behavior |
++| --- | --- |
++| Entries per block | At most 1,024, counting files and directories |
++| Uncompressed file data per block | Target/max 128 MiB; a single larger file is allowed in its own block |
++| Index size | At most 4 MiB uncompressed |
++| File I/O buffer | At most 1 MiB per streaming read |
++| ZIP central directory | At most 1,025 entries and 262,400 bytes, checked before `ZipFile` allocates its inventory |
++| ZIP representation | Stored index, DEFLATE file data at level 1; ZIP64 for large files/offsets |
++| Accepted compression on read | Stored or DEFLATE only |
++| ZIP extras | No encryption, split volumes, archive comments, trailing data or undeclared members |
++| Project path inventory | Temporary SQLite registry, with a 2 MiB page cache, for cross-block collision detection |
++
++The implementation never invokes `extractall` or trusts ZIP filenames as output
++paths. Each output path is derived from the validated index. Canonical paths use
++`/` and cannot be absolute, contain `..`, empty components, alternate stream
++syntax, Windows reserved device names, forbidden characters, trailing spaces or
++periods, or the internal `.lifeboat-archive-` temporary-file prefix. Component
++and total path lengths are checked against portable Windows name limits. Case
++collisions are rejected on every platform. Existing links, reparse points and
++nonregular nodes in the extraction tree are rejected.
++
++## Integrity and metadata
++
++`manifest/sha256.csv` contains both physical archive block rows and the original
++logical `projects/root-example/hello.txt` file rows. The logical rows preserve
++project fingerprints and lineage comparison. Package `hashedFiles` counts both
++sets; `payloadBytes` counts physical stored bytes only. The validator reconciles
++the two inventories and verifies member SHA-256 while streaming decompression,
++without creating an intermediate project tree. Physical block SHA-256 includes
++the directory and file metadata indexes as well as file bytes.
++
++Normal restoration verifies the physical blocks against the manifest, bounds
++each decompression by its declared size, verifies each file SHA-256, and then
++performs the existing staged and final project hash checks. Metadata checks are
++also bound to the manifest's block hashes. A valid ZIP CRC alone does not satisfy
++integrity verification. These checks detect corruption relative to the supplied
++manifest; the package format is not a signed provenance format.
++
++The `mode-mtime-ns-v1` contract is deliberately specific:
++
++| Property | Contract |
++| --- | --- |
++| File contents | Exact bytes, including empty files, verified by SHA-256 |
++| Directory structure | Explicit root, nested directories and empty directories; final set checked |
++| Modification time | Exact `st_mtime_ns` for files and directories; verified after writes |
++| POSIX mode | The ordinary `0o777` permission bits |
++| Windows mode | Read-only/writable bits exposed by Python; not POSIX executable semantics |
++| Last access time | Not promised: required integrity reads can update it |
++| Creation time, owner, Windows ACLs, other Windows attributes | Not preserved by this mode; normal destination inheritance applies |
++| Alternate data streams and EFS | Rejected before archiving; no silent loss of stream contents or EFS state |
++| Extended attributes, including POSIX ACL xattrs | Rejected where the platform exposes them |
++| Symlinks, junctions/reparse points, hardlinked regular files, devices and other special files | Rejected |
++| Setuid/setgid/sticky permission bits | Rejected |
++
++This is not a disk image or a complete copy of NTFS metadata. Windows stream
++enumeration is mandatory: if it cannot establish that a source has no unsupported
++streams, archiving fails with a readable reason. Source files are checked before
++and after reading so a changing file is not silently presented as a coherent
++copy. Configured exclusions and the existing explicitly reported reconstructable
++cache exception still apply. An unsupported source tree can be backed up using
++the original file mode, whose own supported-metadata behavior is unchanged.
++
++Exact timestamp and mode verification requires a destination filesystem that can
++represent the source values. For example, NTFS timestamps have 100 ns granularity;
++an arbitrary nanosecond timestamp from another filesystem may not be representable.
++A mismatch fails verification before an unverified staged project is committed.
++No approximate timestamp comparison is substituted. Source or destination trees
++must not be changed concurrently during a backup or restore.
++
++## Restoration, disk space and resume
++
++The archive is written directly from its source during backup; there is no second
++fully expanded project payload in the backup. The existing backup preflight space
++estimate remains conservative, based on source bytes. While writing blocks,
++available space is checked at least once per second of streaming I/O, with a
++100 MiB reserve in addition to the next buffer. Actual I/O failures still abort
++the backup. Backup creation itself does not acquire a new pause/resume protocol.
++
++Restoration extracts directly into the existing private project staging tree.
++It retains the same destination, rollback and commit rules as file-mode restore.
++Archive compression reduces backup storage when data compresses; the destination
++still needs enough room for expanded files, the current destination where kept
++for rollback, temporary files, and the existing restore reserve. The normal
++restore space probe runs before writes and is repeated during a large file.
++
++For each file the extractor writes a reserved temporary sibling, verifies data,
++flushes and fsyncs it, and closes the content-writing handle. It then applies
++metadata and atomically replaces its staged target. The timestamp is applied
++after closing the writing handle so Windows cannot replace it on that close.
++Only then is the file entered in the existing durable copy checkpoint.
++If a file is interrupted, its temporary output is removed when possible; on
++resume it is recreated and checked. Recorded completed files are not decompressed
++again. They remain subject to final content and metadata verification. A completed
++project is skipped by the normal durable restore operation when a later phase is
++resumed.
++
++Pause checks run between entries, during block hashing, during streamed file
++decompression and while applying directory metadata. Directory modes and mtimes
++are applied after their descendants, deepest first. A graceful pause flushes the
++checkpoint. An abrupt termination can replay the uncommitted checkpoint batch;
++it does not turn a partial file into verified progress. If saving a checkpoint
++also fails during another error, the original error is retained and uncommitted
++files are safely replayed. Blocking filesystem calls cannot be interrupted in the
++middle by the cooperative pause mechanism.
++
++Rollback and managed recovery-point retention can remove restored read-only
++files. The existing path-authorization checks still select the deletion scope.
++Only a Windows access-denied error on an ordinary node with the read-only
++attribute triggers a retry after clearing that attribute; reparse points and
++other permission/sharing failures are not treated as read-only exceptions.
++
++When the destination has the same file content but differs in archived timestamps,
++modes or empty directories, comparison requests the normal explicit source/target
++decision. It does not silently overwrite those differences. Source Git-worktree
++inspection is unavailable until an archived project has been materialized;
++the comparison reports that limitation and keeps content/lineage checks.
++
++## Acceptance checks and performance status
++
++`benchmarks/test_archive_optimization.py` covers multi-block round trips, exact
++metadata, empty projects, logical inventory, manifest indexes, pause/reopen,
++space failures, corrupted blocks and file objects, unsafe paths, special files,
++duplicate names, oversized ZIP inventories and unsupported metadata. The Windows
++cases use the real backup/restore pipeline, exercise rollback on a staging
++metadata fault, and prove a project completed before pause is not extracted a
++second time. Windows also checks rejection of an NTFS alternate data stream.
++The rollback fixture contains a read-only archived file, and a separate Windows
++retention case removes read-only data only from the expired approved point while
++keeping the two retained points and the active destination.
++
++Run the portable and platform-specific tests with:
++
++```text
++python -m unittest discover -s benchmarks -p test_archive_optimization.py -v
++```
++
++The release build's packaged check is `--archive-self-test --work <empty-work-dir>`.
++It runs backup, validation, pause, resume and final verification from the packaged
++executable with archive storage enabled. Source tests on another operating system
++do not replace this Windows gate.
++
++Grouping files is an opt-in storage strategy, not a measured throughput promise.
++The version performs compression, block hashing, per-file hashing and final
++verification; CPU cost and repeated reads can outweigh fewer directory operations
++on some datasets. Compare complete runs on the intended Windows machine, including
++these integrity checks, before claiming a gain or changing the default.
+diff --git a/docs/conversation-warmup.md b/docs/conversation-warmup.md
+new file mode 100644
+index 0000000..76f825f
+--- /dev/null
++++ b/docs/conversation-warmup.md
+@@ -0,0 +1,87 @@
++# Local conversation pre-reading
++
++This optional action reads files for up to 50 recent local conversations so the
++operating system can reuse recently read file pages. It does not start Codex or an
++agent. No message is sent, no tool or MCP server is started, and no conversation
++or original index is written.
++
++## What this feature establishes
++
++- Recent conversations are selected by `updated_at` from a bounded temporary
++  snapshot of `.codex/state_5.sqlite` and its WAL, excluding archived rows.
++- The original database is never opened by SQLite. A read-only SQLite connection
++  can still create WAL/SHM files or update SHM read marks; the snapshot keeps that
++  activity in a private temporary directory. The original SHM and credentials are
++  not copied. The temporary directory is deleted before file pre-reading.
++- Source sizes, modification times and file identities are checked around the
++  snapshot. This is not a guaranteed atomic view of a running Codex application.
++- If the index is absent, unsupported, changing or over budget, selection falls
++  back to file modification times only below `.codex/sessions`. The result reports
++  that fallback; file recency is not guaranteed to equal conversation recency.
++- Only ordinary files inside the selected Codex home are eligible. Parent
++  traversal, old-profile paths, symbolic links, junctions/reparse points,
++  hard-linked files, UNC roots and mapped network drives are rejected.
++- Plain JSONL and compressed JSONL are read as raw bytes. No parsing,
++  decompression, database checkpoint or history projection is performed.
++- Default limits are 50 files, 256 MiB of conversation data, 16 MiB per file,
++  64 MiB of metadata, 20,000 discovery entries and 60 seconds. The read budget is
++  shared among selected files. A partial read covers the beginning and end.
++- Cancellation is checked between chunks. A currently blocking OS read must
++  finish before cancellation can be observed.
++- Reports and progress contain only aggregate counts, durations and fixed reason
++  codes. They contain no titles, thread IDs, conversation text, credentials or
++  filesystem paths. The module makes no network calls and launches no process.
++
++## What it does not establish
++
++The result reports `mode: os_file_cache`, `applicationPreloadSupported: false`,
++`applicationCacheLoaded: false`, `persistentCache: false`, and
++`speedupMeasured: false`. `filesRead` counts files from which bytes were read (and
++empty files successfully opened); `partialFiles` counts incomplete pre-reads.
++These numbers do not mean Codex loaded a conversation or retained cache pages.
++
++The operating system controls eviction. Any benefit is temporary, depends on the
++machine and workload, and is not guaranteed after memory pressure or reboot. This
++does not avoid Codex's subsequent decompression, parsing, rendering, migration or
++model-context preparation. No application opening-time improvement is claimed
++without a measurement on the user's actual Codex application and profile.
++
++## Why no app-server warmup is invoked
++
++The official app-server documentation says `thread/read` reads stored metadata
++without resuming or subscribing, and explicitly says it does not load the thread
++into memory. `thread/turns/list` and `thread/items/list` can read history without
++resuming it. Full-history `includeTurns: true` is deprecated for paginated threads.
++`thread/resume` reopens a live thread and may initialize configured MCP servers.
++None of these contracts promises that a separate process can populate the Windows
++desktop application's persistent cache.
++
++The inspected OpenAI implementation also notes that legacy history pagination
++replays the rollout on each request; paginated histories use the thread store.
++That does not establish a supported cross-process desktop preloading contract.
++This feature therefore does not call app-server, `thread/resume`, `turn/start`,
++read-state updates, or internal history-store writes.
++
++Official references, inspected 8 November 2026:
++
++- [App-server: read a stored thread, list turns/items and resume](https://learn.chatgpt.com/docs/app-server)
++- [OpenAI Codex thread processor source](https://github.com/openai/codex/blob/main/codex-rs/app-server/src/request_processors/thread_processor.rs)
++- [Official ThreadReadParams schema](https://github.com/openai/codex/blob/main/codex-rs/app-server-protocol/schema/json/v2/ThreadReadParams.json)
++- [Official ThreadListParams schema](https://github.com/openai/codex/blob/main/codex-rs/app-server-protocol/schema/json/v2/ThreadListParams.json)
++
++## Integration
++
++```python
++from codex_transfer.conversation_warmup import warm_recent_conversations
++
++result = warm_recent_conversations(
++    actual_codex_home,
++    limit=50,
++    cancel=cancel_event,
++    progress=lambda aggregate: ui_queue.put(aggregate),
++)
++```
++
++Call it only after an explicit user action, on a worker thread. Do not use this
++operation while restoration is still changing the profile. The result is a local
++diagnostic summary, not a recovery plan or a record of application-loaded threads.
+diff --git a/src/codex_transfer/backup.py b/src/codex_transfer/backup.py
+index be019ba..a5b8aaa 100644
+--- a/src/codex_transfer/backup.py
++++ b/src/codex_transfer/backup.py
+@@ -25,7 +25,7 @@ import urllib.parse
+ from pathlib import Path, PurePosixPath
+ from typing import Any, Callable, Iterable
+ 
+-from . import atomic_io, lineage, path_model, project_identity, rollout as rollout_io, windows
++from . import atomic_io, lineage, path_model, project_identity, project_archives, rollout as rollout_io, windows
+ 
+ 
+ FORMAT_ID = "codex-portable-backup"
+@@ -2027,6 +2027,7 @@ def copy_projects(
+     exclude_fragments: list[str],
+     warnings: list[str],
+     skipped_reconstructable_cache: list[dict[str, Any]] | None = None,
++    project_storage: str = "files",
+ ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+     projects: list[dict[str, Any]] = []
+     mappings: list[dict[str, Any]] = []
+@@ -2096,14 +2097,26 @@ def copy_projects(
+             raise BackupError(
+                 f"The temporary backup directory is inside project source {source}; this would recurse."
+             )
+-        log(f"Copying project: {source}")
+-        file_count, byte_count = copy_tree(
+-            source,
+-            package_root / relative,
+-            exclude_fragments,
+-            warnings,
+-            skipped_reconstructable_cache,
+-        )
++        storage = None
++        if project_storage == project_archives.STORAGE:
++            log(f"Archiving project into verified blocks: {source}")
++            file_count, byte_count, storage = project_archives.pack_project(
++                source, package_root, relative, exclude_fragments, warnings,
++                skip_unreadable=lambda path, error: record_skipped_reconstructable_cache(
++                    path, package_root / relative / path.relative_to(source), error,
++                    warnings, skipped_reconstructable_cache),
++                on_progress=lambda count, size: report_status(
++                    size, 0, f"Archiving project: {count:,} files, {size / 1048576:.1f} MiB"),
++            )
++        else:
++            log(f"Copying project: {source}")
++            file_count, byte_count = copy_tree(
++                source,
++                package_root / relative,
++                exclude_fragments,
++                warnings,
++                skipped_reconstructable_cache,
++            )
+         projects.append(
+             {
+                 "id": root_id,
+@@ -2119,6 +2132,8 @@ def copy_projects(
+                 "totalBytes": byte_count,
+             }
+         )
++        if storage is not None:
++            projects[-1]["storage"] = storage
+     return projects, mappings, identities
+ 
+ 
+@@ -2641,6 +2656,7 @@ def build_lineage_items(
+ def create_hash_manifest(
+     package_root: Path,
+     finalize: Callable[[list[dict[str, Any]]], Path | None] | None = None,
++    archive_projects: list[dict[str, Any]] | None = None,
+ ) -> tuple[int, int, str]:
+     excluded = {
+         "manifest/package.json",
+@@ -2707,6 +2723,12 @@ def create_hash_manifest(
+                 last_update = now
+             if index % 1000 == 0 or index == len(paths):
+                 log(f"  ... hashed {index}/{len(paths)} files ({total_bytes / 1073741824:.2f} GiB)")
++        # Archived files retain their original logical rows for content/lineage
++        # verification. Physical ZIP blocks above protect their metadata too.
++        # payloadBytes remains physical package bytes, not double-counted output.
++        for row in project_archives.logical_rows(package_root, archive_projects or []):
++            writer.writerow((row["relative_path"], row["size"], row["sha256"]))
++            hash_rows.append(row)
+         if finalize:
+             report_status(
+                 0,
+@@ -2841,6 +2863,8 @@ def build_backup(args: argparse.Namespace) -> Path:
+     toolkit_root = script_path.parent.parent
+     config_path = Path(args.config).resolve() if args.config else toolkit_root / "backup-config.json"
+     config = load_config(config_path)
++    project_storage = project_archives.storage_option(
++        getattr(args, "project_storage", None) or config.get("projectStorage", "files"))
+     source_profile = (
+         clean_windows_path(args.source_profile)
+         if args.source_profile
+@@ -3274,6 +3298,7 @@ def build_backup(args: argparse.Namespace) -> Path:
+             excludes,
+             warnings,
+             skipped_reconstructable_cache,
++            project_storage=project_storage,
+         )
+         unresolved = unresolved_cwds(database_info["threads"], candidates)
+         for cwd in unresolved:
+@@ -3589,13 +3614,14 @@ def build_backup(args: argparse.Namespace) -> Path:
+         current_phase = "integrity-manifest"
+         report_status(0, 0, "Step 4/6 — Preparing file-integrity verification...")
+         hashed_count, payload_bytes, hash_manifest_sha = create_hash_manifest(
+-            building, finalize_lineage
++            building, finalize_lineage, projects
+         )
+         if lineage_manifest is None:
+             raise BackupError("Lineage manifest was not created.")
+         package = {
+             "formatId": FORMAT_ID,
+-            "formatVersion": FORMAT_VERSION,
++            "formatVersion": project_archives.FORMAT_VERSION if project_storage == project_archives.STORAGE else FORMAT_VERSION,
++            "projectStorage": project_storage,
+             "generatorVersion": GENERATOR_VERSION,
+             "backupComplete": False,
+             "createdAtUtc": created_at_utc,
+@@ -3779,6 +3805,8 @@ def parse_arguments() -> argparse.Namespace:
+     parser.add_argument("--destination")
+     parser.add_argument("--source-profile")
+     parser.add_argument("--source-codex-home")
++    parser.add_argument("--project-storage", choices=["files", project_archives.STORAGE],
++                        help="Opt-in archive blocks for project payloads (format 2.5)")
+     parser.add_argument("--allow-running-test", action="store_true", help=argparse.SUPPRESS)
+     return parser.parse_args()
+ 
+diff --git a/src/codex_transfer/conversation_warmup.py b/src/codex_transfer/conversation_warmup.py
+new file mode 100644
+index 0000000..c569814
+--- /dev/null
++++ b/src/codex_transfer/conversation_warmup.py
+@@ -0,0 +1,564 @@
++"""Bounded, opt-in pre-reading of local Codex conversation files.
++
++This prepares *only* ordinary OS file-cache pages. It does not initialize Codex,
++hydrate its application cache, start a thread, acknowledge read state, or promise
++a faster opening. No conversation bytes, titles, IDs or paths leave this module.
++
++SQLite is queried on a short-lived private DB+WAL copy: even ``mode=ro`` can
++create WAL sidecars or change SHM read marks on the original database. Snapshot
++stability is checked, but does not establish an atomic view of a live application.
++"""
++
++from __future__ import annotations
++
++from contextlib import contextmanager
++from dataclasses import dataclass
++import heapq
++import os
++from pathlib import Path
++import sqlite3
++import stat
++import tempfile
++import time
++from typing import Any, Callable, Iterator
++
++
++DEFAULT_TOTAL_BYTES = 256 * 1024 * 1024
++DEFAULT_FILE_BYTES = 16 * 1024 * 1024
++DEFAULT_INDEX_BYTES = 64 * 1024 * 1024
++DEFAULT_SECONDS = 60.0
++_CHUNK = 256 * 1024
++_MAX_THREADS = 50
++_MAX_SCAN_ENTRIES = 20000
++_MAX_SCAN_DEPTH = 8
++_REPARSE = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
++
++
++class _Stop(Exception):
++    def __init__(self, reason: str):
++        self.reason = reason
++
++
++class _IndexUnavailable(Exception):
++    def __init__(self, reason: str):
++        self.reason = reason
++
++
++@dataclass(frozen=True)
++class _File:
++    path: Path
++    size: int
++    mtime_ns: int
++    device: int
++    inode: int
++
++
++class _Control:
++    def __init__(self, cancel: Any, seconds: float):
++        self.cancel = cancel
++        self.started = time.monotonic()
++        self.deadline = self.started + seconds
++
++    def reason(self) -> str | None:
++        if self.cancel is not None:
++            cancelled = (
++                self.cancel() if callable(self.cancel) else self.cancel.is_set()
++            )
++            if cancelled:
++                return "cancelled"
++        if time.monotonic() >= self.deadline:
++            return "time_budget"
++        return None
++
++    def check(self) -> None:
++        reason = self.reason()
++        if reason:
++            raise _Stop(reason)
++
++
++def _local_path(path: Path) -> bool:
++    text = str(path)
++    if text.startswith(("\\\\", "//")):
++        return False
++    if os.name == "nt":
++        import ctypes
++
++        # Reject mapped network drives as well as explicit UNC paths.
++        return ctypes.windll.kernel32.GetDriveTypeW(str(path.anchor)) in (2, 3, 6)
++    return True
++
++
++def validate_report_destination(codex_home: Path | str, report: Path | str) -> Path:
++    """Validate a new local report path without creating directories or files.
++
++    Resolve existing parent links before checking the source boundary. An
++    existing destination (including a dangling link) is never a valid report.
++    Call again immediately before writing if work occurred since validation;
++    the writer should also use exclusive creation to handle competing writers.
++    """
++    home = Path(codex_home).expanduser().absolute().resolve(strict=False)
++    original = Path(report).expanduser().absolute()
++    if not _local_path(original):
++        raise ValueError("The report destination must be local")
++    destination = original.resolve(strict=False)
++    if not _local_path(destination):
++        raise ValueError("The report destination must be local")
++    if destination == home or destination.is_relative_to(home):
++        raise ValueError("A warmup report must be outside the Codex directory")
++    for path in (original, destination):
++        try:
++            path.lstat()
++        except FileNotFoundError:
++            continue
++        except OSError:
++            raise ValueError("The report destination cannot be validated") from None
++        raise ValueError("The report destination already exists")
++    return destination
++
++
++def _linked(info: os.stat_result) -> bool:
++    return stat.S_ISLNK(info.st_mode) or bool(
++        getattr(info, "st_file_attributes", 0) & _REPARSE
++    )
++
++
++def _home_path(value: Path | str) -> Path:
++    path = Path(value).absolute()
++    if ".." in path.parts or not _local_path(path):
++        raise ValueError("A local Codex directory is required")
++    for part in reversed((path, *path.parents)):
++        info = part.lstat()
++        if _linked(info) or not stat.S_ISDIR(info.st_mode):
++            raise ValueError("A directory without symbolic links is required")
++    return path
++
++
++def _file(home: Path, path: Path, *, conversation: bool = False) -> _File:
++    """Admit regular files inside the selected home, without following links."""
++    home_info = home.lstat()
++    if _linked(home_info) or not stat.S_ISDIR(home_info.st_mode):
++        raise ValueError("Codex directory changed")
++    if not path.is_absolute():
++        path = home / path
++    relative = path.relative_to(home)
++    if not relative.parts or any(
++        part in (".", "..") or ":" in part for part in relative.parts
++    ):
++        raise ValueError("Invalid relative file")
++    if conversation:
++        if relative.parts[0] != "sessions" or not path.name.casefold().endswith(
++            (".jsonl", ".jsonl.zst")
++        ):
++            raise ValueError("Only active local rollout files are eligible")
++    current = home
++    for index, part in enumerate(relative.parts):
++        current /= part
++        info = current.lstat()
++        if _linked(info):
++            raise ValueError("Linked files are not eligible")
++        if index < len(relative.parts) - 1 and not stat.S_ISDIR(info.st_mode):
++            raise ValueError("Invalid parent directory")
++    if not stat.S_ISREG(info.st_mode) or info.st_nlink > 1:
++        raise ValueError("Only unlinked regular files are eligible")
++    return _File(path, info.st_size, info.st_mtime_ns, info.st_dev, info.st_ino)
++
++
++def _unchanged(info: os.stat_result, item: _File) -> bool:
++    return (
++        stat.S_ISREG(info.st_mode)
++        and not _linked(info)
++        and info.st_dev == item.device
++        and info.st_ino == item.inode
++        and info.st_size == item.size
++        and info.st_mtime_ns == item.mtime_ns
++    )
++
++
++@contextmanager
++def _reader(home: Path, item: _File) -> Iterator[Any]:
++    # Recheck the directory chain and the opened file, including replacement
++    # between discovery and open. O_NOFOLLOW also protects the final component.
++    if _file(home, item.path) != item:
++        raise ValueError("File changed before reading")
++    flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
++    descriptor = os.open(item.path, flags)
++    try:
++        if not _unchanged(os.fstat(descriptor), item) or _file(home, item.path) != item:
++            raise ValueError("File changed while opening")
++        with os.fdopen(descriptor, "rb", buffering=0) as handle:
++            descriptor = -1
++            yield handle
++    finally:
++        if descriptor >= 0:
++            os.close(descriptor)
++
++
++def _warn(result: dict[str, Any], code: str) -> None:
++    if code not in result["warnings"]:
++        result["warnings"].append(code)
++
++
++def _emit(
++    result: dict[str, Any], control: _Control, callback: Callable | None, phase: str
++) -> None:
++    if callback:
++        callback(
++            {
++                "phase": phase,
++                "selected": result["selected"],
++                "filesRead": result["filesRead"],
++                "skipped": result["skipped"],
++                "bytesRead": result["bytesRead"],
++                "metadataBytesRead": result["metadataBytesRead"],
++                "elapsedSeconds": round(time.monotonic() - control.started, 3),
++            }
++        )
++
++
++def _copy_index_file(
++    home: Path, item: _File, target: Path, control: _Control, result: dict[str, Any]
++) -> None:
++    with _reader(home, item) as source, target.open("xb") as output:
++        remaining = item.size
++        while remaining:
++            control.check()
++            chunk = source.read(min(_CHUNK, remaining))
++            if not chunk:
++                raise _IndexUnavailable("index_changed_during_snapshot")
++            output.write(chunk)
++            result["metadataBytesRead"] += len(chunk)
++            remaining -= len(chunk)
++        if not _unchanged(os.fstat(source.fileno()), item):
++            raise _IndexUnavailable("index_changed_during_snapshot")
++
++
++def _database_candidates(
++    home: Path,
++    limit: int,
++    max_index_bytes: int,
++    control: _Control,
++    result: dict[str, Any],
++) -> list[_File]:
++    database = home / "state_5.sqlite"
++    wal = home / "state_5.sqlite-wal"
++    journal = home / "state_5.sqlite-journal"
++    control.check()
++    try:
++        source = _file(home, database)
++        if journal.exists():
++            raise _IndexUnavailable("index_has_rollback_journal")
++        source_wal = _file(home, wal) if wal.exists() else None
++        items = [source] + ([source_wal] if source_wal else [])
++        if sum(item.size for item in items) > max_index_bytes:
++            raise _IndexUnavailable("index_byte_budget")
++        temp_root = _home_path(tempfile.gettempdir())
++        if not _local_path(temp_root):
++            raise _IndexUnavailable("temporary_directory_not_local")
++        # Only DB and WAL are copied. Auth files and the original SHM are never
++        # opened. SQLite may create its own SHM solely in this private directory.
++        with tempfile.TemporaryDirectory(
++            prefix="lifeboat-warmup-", dir=temp_root
++        ) as directory:
++            snapshot = Path(directory) / "state_5.sqlite"
++            for item in items:
++                _copy_index_file(
++                    home, item, Path(directory) / item.path.name, control, result
++                )
++            control.check()
++            if (
++                _file(home, database) != source
++                or wal.exists() != (source_wal is not None)
++                or (source_wal is not None and _file(home, wal) != source_wal)
++                or journal.exists()
++            ):
++                raise _IndexUnavailable("index_changed_during_snapshot")
++            connection = sqlite3.connect(
++                snapshot.as_uri() + "?mode=ro", uri=True, timeout=0.1
++            )
++            try:
++                connection.execute("PRAGMA query_only=ON")
++                connection.execute("PRAGMA trusted_schema=OFF")
++                connection.execute("PRAGMA temp_store=MEMORY")
++                connection.execute("PRAGMA cache_size=-2048")
++                connection.set_progress_handler(
++                    lambda: int(control.reason() is not None), 500
++                )
++                table = connection.execute(
++                    "SELECT type FROM sqlite_master WHERE name='threads'"
++                ).fetchone()
++                columns = {
++                    row[1] for row in connection.execute('PRAGMA table_info("threads")')
++                }
++                if not table or table[0] != "table" or not {
++                    "id", "rollout_path", "updated_at", "archived"
++                } <= columns:
++                    raise _IndexUnavailable("index_schema_unsupported")
++                # Titles, messages, accounts, auth and read receipts are never
++                # selected. LIMIT also bounds candidate materialization.
++                rows = connection.execute(
++                    'SELECT "id","rollout_path" FROM "threads" '
++                    'WHERE "archived"=0 ORDER BY "updated_at" DESC,"id" ASC LIMIT ?',
++                    (limit * 8,),
++                ).fetchall()
++            finally:
++                connection.close()
++        control.check()
++    except _Stop:
++        raise
++    except _IndexUnavailable:
++        raise
++    except (OSError, ValueError, sqlite3.Error):
++        control.check()
++        raise _IndexUnavailable("index_snapshot_unavailable") from None
++    selected: list[_File] = []
++    seen_ids: set[str] = set()
++    seen_paths: set[Path] = set()
++    for thread_id, stored in rows:
++        control.check()
++        if not isinstance(thread_id, str) or not isinstance(stored, str):
++            result["rejectedCandidates"] += 1
++            continue
++        if thread_id in seen_ids:
++            continue
++        try:
++            path = Path(stored)
++            try:
++                item = _file(home, path, conversation=True)
++            except FileNotFoundError:
++                if not stored.casefold().endswith(".jsonl"):
++                    raise
++                item = _file(home, Path(stored + ".zst"), conversation=True)
++            if item.path in seen_paths:
++                continue
++        except (OSError, ValueError):
++            result["rejectedCandidates"] += 1
++            continue
++        selected.append(item)
++        seen_ids.add(thread_id)
++        seen_paths.add(item.path)
++        if len(selected) >= limit:
++            break
++    result["selectionSource"] = "state_db_snapshot_updated_at"
++    _warn(result, "snapshot_is_not_atomic_live_state")
++    return selected
++
++
++def _filesystem_candidates(
++    home: Path, limit: int, max_entries: int, control: _Control, result: dict[str, Any]
++) -> list[_File]:
++    """Bounded fallback confined to sessions; recency means file mtime here."""
++    root = home / "sessions"
++    info = root.lstat()
++    if _linked(info) or not stat.S_ISDIR(info.st_mode):
++        raise ValueError("Sessions must be an ordinary directory")
++    pending = [(root, 0)]
++    heap: list[tuple[int, int, _File]] = []
++    inspected = 0
++    while pending and inspected < max_entries:
++        control.check()
++        directory, depth = pending.pop()
++        try:
++            with os.scandir(directory) as entries:
++                for entry in entries:
++                    control.check()
++                    inspected += 1
++                    if inspected > max_entries:
++                        break
++                    try:
++                        info = entry.stat(follow_symlinks=False)
++                        if _linked(info):
++                            result["rejectedCandidates"] += 1
++                            continue
++                        if stat.S_ISDIR(info.st_mode):
++                            if depth < _MAX_SCAN_DEPTH:
++                                pending.append((Path(entry.path), depth + 1))
++                            else:
++                                _warn(result, "discovery_depth_limit")
++                            continue
++                        if not entry.name.casefold().endswith((".jsonl", ".jsonl.zst")):
++                            continue
++                        item = _file(home, Path(entry.path), conversation=True)
++                        value = (item.mtime_ns, inspected, item)
++                        if len(heap) < limit:
++                            heapq.heappush(heap, value)
++                        elif value[:2] > heap[0][:2]:
++                            heapq.heapreplace(heap, value)
++                    except (OSError, ValueError):
++                        result["rejectedCandidates"] += 1
++        except OSError:
++            _warn(result, "sessions_directory_unreadable")
++    if pending or inspected >= max_entries:
++        _warn(result, "discovery_entry_limit")
++    result["selectionSource"] = "sessions_file_mtime"
++    _warn(result, "file_mtime_is_not_conversation_recency")
++    return [value[2] for value in sorted(heap, reverse=True)]
++
++
++def _prefetch(
++    home: Path,
++    item: _File,
++    allowance: int,
++    control: _Control,
++    result: dict[str, Any],
++    progress: Callable | None,
++) -> None:
++    count = 0
++    complete = False
++    changed = False
++    try:
++        with _reader(home, item) as handle:
++            if item.size <= allowance:
++                ranges = [(0, item.size)]
++            else:
++                # Share the budget fairly across the 50 selections; for a long
++                # history, read its beginning and end rather than only the prefix.
++                first = (allowance + 1) // 2
++                ranges = [(0, first), (item.size - (allowance - first), allowance - first)]
++            for offset, length in ranges:
++                handle.seek(offset)
++                remaining = length
++                while remaining:
++                    control.check()
++                    chunk = handle.read(min(_CHUNK, remaining))
++                    if not chunk:
++                        changed = True
++                        break
++                    count += len(chunk)
++                    result["bytesRead"] += len(chunk)
++                    remaining -= len(chunk)
++                    _emit(result, control, progress, "reading")
++            changed |= not _unchanged(os.fstat(handle.fileno()), item)
++            complete = not changed and count == item.size
++    finally:
++        if complete or count:
++            result["filesRead"] += 1
++            if not complete:
++                result["partialFiles"] += 1
++        if changed:
++            result["changedFiles"] += 1
++            if not count:
++                result["skipped"] += 1
++
++
++def warm_recent_conversations(
++    codex_home: Path | str,
++    *,
++    limit: int = 50,
++    cancel: Any = None,
++    progress: Callable[[dict[str, Any]], None] | None = None,
++    max_bytes: int = DEFAULT_TOTAL_BYTES,
++    max_file_bytes: int = DEFAULT_FILE_BYTES,
++    max_index_bytes: int = DEFAULT_INDEX_BYTES,
++    max_seconds: float = DEFAULT_SECONDS,
++    max_scan_entries: int = _MAX_SCAN_ENTRIES,
++) -> dict[str, Any]:
++    """Pre-read recent local files after an explicit user action.
++
++    ``cancel`` accepts a threading.Event or a zero-argument predicate. Progress and
++    results are aggregate dictionaries, safe to show without redacting paths or
++    conversation content. Bounds include discovery time; cancellation is checked
++    between metadata/read chunks (a blocking OS read cannot be preempted).
++
++    The optional local snapshot includes DB+WAL, never SHM or credentials, and is
++    removed before conversation reading. If it cannot be stabilized within its
++    bound, fallback selection uses file mtimes and reports this limitation.
++    """
++    if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= _MAX_THREADS:
++        raise ValueError("limit must be between 1 and 50")
++    for value in (max_bytes, max_file_bytes, max_index_bytes, max_scan_entries):
++        if not isinstance(value, int) or isinstance(value, bool) or value < 1:
++            raise ValueError("All size and discovery limits must be positive integers")
++    if not 0 < max_seconds <= 3600:
++        raise ValueError("max_seconds must be between 0 and 3600")
++    if cancel is not None and not callable(cancel) and not callable(
++        getattr(cancel, "is_set", None)
++    ):
++        raise TypeError("cancel must be a predicate or an Event")
++    control = _Control(cancel, max_seconds)
++    result: dict[str, Any] = {
++        "schemaVersion": 1,
++        "mode": "os_file_cache",
++        "applicationPreloadSupported": False,
++        "applicationCacheLoaded": False,
++        "persistentCache": False,
++        "speedupMeasured": False,
++        "sourceReadOnly": True,
++        "status": "completed",
++        "selected": 0,
++        "filesRead": 0,
++        "partialFiles": 0,
++        "changedFiles": 0,
++        "skipped": 0,
++        "rejectedCandidates": 0,
++        "bytesRead": 0,
++        "metadataBytesRead": 0,
++        "selectionSource": "none",
++        "warnings": [],
++        "limitingFactors": [],
++        "limits": {
++            "conversations": limit,
++            "readBytes": max_bytes,
++            "bytesPerFile": max_file_bytes,
++            "indexBytes": max_index_bytes,
++            "seconds": max_seconds,
++            "discoveryEntries": max_scan_entries,
++        },
++    }
++    try:
++        control.check()
++        home = _home_path(codex_home)
++        _emit(result, control, progress, "discovering")
++        try:
++            candidates = _database_candidates(
++                home, limit, max_index_bytes, control, result
++            )
++        except _IndexUnavailable as exc:
++            _warn(result, exc.reason)
++            candidates = _filesystem_candidates(
++                home, limit, max_scan_entries, control, result
++            )
++        result["selected"] = len(candidates)
++        if not candidates:
++            _warn(result, "no_eligible_conversations")
++        _emit(result, control, progress, "reading")
++        for index, item in enumerate(candidates):
++            control.check()
++            remaining = max_bytes - result["bytesRead"]
++            if remaining <= 0:
++                raise _Stop("byte_budget")
++            allowance = min(
++                max_file_bytes, remaining, max(1, remaining // (len(candidates) - index))
++            )
++            if item.size > allowance:
++                reason = "per_file_byte_budget" if allowance == max_file_bytes else "byte_budget"
++                if reason not in result["limitingFactors"]:
++                    result["limitingFactors"].append(reason)
++            files_read_before = result["filesRead"]
++            try:
++                _prefetch(home, item, allowance, control, result, progress)
++            except (OSError, ValueError):
++                if result["filesRead"] == files_read_before:
++                    result["skipped"] += 1
++                _warn(result, "conversation_unreadable_or_changed")
++            _emit(result, control, progress, "reading")
++    except _Stop as exc:
++        result["status"] = "cancelled" if exc.reason == "cancelled" else "limited"
++        if exc.reason != "cancelled" and exc.reason not in result["limitingFactors"]:
++            result["limitingFactors"].append(exc.reason)
++    except (OSError, ValueError):
++        result["status"] = "unavailable"
++        _warn(result, "local_codex_directory_unavailable")
++    if result["status"] == "completed" and (
++        result["partialFiles"]
++        or result["changedFiles"]
++        or result["skipped"]
++        or result["limitingFactors"]
++        or any(
++            reason in result["warnings"]
++            for reason in ("discovery_entry_limit", "discovery_depth_limit")
++        )
++    ):
++        result["status"] = "limited"
++    result["elapsedSeconds"] = round(time.monotonic() - control.started, 3)
++    _emit(result, control, progress, "finished")
++    return result
+diff --git a/src/codex_transfer/gui.py b/src/codex_transfer/gui.py
+index b6cab11..8fae074 100644
+--- a/src/codex_transfer/gui.py
++++ b/src/codex_transfer/gui.py
+@@ -3373,9 +3373,12 @@ class TransferApp(RecoveryUI, tk.Tk):
+                     self._finish_operation(True)
+                 self._set_busy(False)
+                 if self.close_after_pause:
++                    self._remind_defender()
+                     self.destroy()
+                     return
+                 callback(result)
++                if cancelled:
++                    self._remind_defender()
+             elif kind == "error":
+                 self.close_after_pause = False
+                 self.phase_progress.stop()
+@@ -3386,15 +3389,22 @@ class TransferApp(RecoveryUI, tk.Tk):
+                 if not self.details_visible:
+                     self._toggle_details()
+                 messagebox.showerror(self.t("error"), str(value), parent=self)
++                self._remind_defender()
+         self.after(100, self._drain_messages)
+ 
+     def _set_busy(self, value: bool) -> None:
+         self.busy = value
+-        self.resume_button.configure(state="disabled" if value else "normal")
++        controls_busy = value or self.warmup_cancel is not None or self.selection_in_progress
++        self.resume_button.configure(state="disabled" if controls_busy else "normal")
++        ready = (not controls_busy and self.resume_document
++                 and (self.resume_candidate is None or self.resume_candidate.source_available))
++        self.resume_ready_button.configure(state="normal" if ready else "disabled")
++        self.archive_checkbox.configure(state="disabled" if controls_busy else "normal")
++        self.warmup_button.configure(state="normal" if not controls_busy else "disabled")
+         self.status_dot.configure(fg=self.BLUE if value else self.SUCCESS)
+         for button in self.action_buttons:
+             button.configure(
+-                state="disabled" if value or self.launch_blocked else "normal"
++                state="disabled" if controls_busy or self.launch_blocked else "normal"
+             )
+         if not value:
+             self.phase_started_at = None
+@@ -3405,7 +3415,7 @@ class TransferApp(RecoveryUI, tk.Tk):
+         if self.launch_blocked:
+             self._show_extract_required()
+             return
+-        if self.busy:
++        if self.busy or self.warmup_cancel is not None or self.selection_in_progress:
+             return
+         self._begin_operation(operation)
+         self._set_busy(True)
+@@ -3498,20 +3508,22 @@ class TransferApp(RecoveryUI, tk.Tk):
+         dependency_blockers = list(dependency_scan.get("blockingIssues", []))
+         if dependency_exclusions or dependency_blockers:
+             dependency_dialog = DependencyPreflightDialog(self, dependency_scan)
+-            self.wait_window(dependency_dialog)
++            self._wait_for_decision(dependency_dialog)
+             if not dependency_dialog.approved:
+                 for button in self.action_buttons:
+                     button.configure(
+                         state="disabled" if self.launch_blocked else "normal"
+                     )
++                self._remind_defender()
+                 return
+         dialog = BackupSelectionDialog(self, preview)
+-        self.wait_window(dialog)
++        self._wait_for_decision(dialog)
+         for button in self.action_buttons:
+             button.configure(
+                 state="disabled" if self.launch_blocked else "normal"
+             )
+         if not dialog.approved:
++            self._remind_defender()
+             return
+         initial_destination = self._initial_destination()
+         while True:
+@@ -3521,6 +3533,7 @@ class TransferApp(RecoveryUI, tk.Tk):
+                 initial_destination,
+             )
+             if not selected:
++                self._remind_defender()
+                 return
+             path_report = backup.destination_path_budget(
+                 Path(selected),
+@@ -3573,8 +3586,11 @@ class TransferApp(RecoveryUI, tk.Tk):
+             ),
+             parent=self,
+         ):
++            self._remind_defender()
+             return
+ 
++        project_storage = "archive-blocks-v1" if self.project_storage.get() else "files"
++
+         def work():
+             config_root = Path(tempfile.gettempdir()) / "Codex-Lifeboat"
+             config_root.mkdir(parents=True, exist_ok=True)
+@@ -3583,6 +3599,7 @@ class TransferApp(RecoveryUI, tk.Tk):
+                 config_path,
+                 {
+                     "configVersion": 1,
++                    "projectStorage": project_storage,
+                     "destinationRoot": selected,
+                     "includeAttachments": True,
+                     "projects": [],
+@@ -3805,18 +3822,22 @@ class TransferApp(RecoveryUI, tk.Tk):
+     def _restore(self) -> None:
+         messagebox.showinfo(self.t("restore"), self.t("restore_intro"), parent=self)
+         if not self._version_permission():
++            self._remind_defender()
+             return
+         package = self._choose_package()
+         if not package:
++            self._remind_defender()
+             return
+         external_roots = self._map_project_locations(package)
+         if external_roots is None:
++            self._remind_defender()
+             return
+ 
+         def preview_done(plan):
+             dialog = RestorePlanDialog(self, plan)
+-            self.wait_window(dialog)
++            self._wait_for_decision(dialog)
+             if not dialog.approved:
++                self._remind_defender()
+                 return
+             self._execute_restore(package, external_roots, dialog.plan)
+ 
+diff --git a/src/codex_transfer/main.py b/src/codex_transfer/main.py
+index 3f6c96a..e2365c8 100644
+--- a/src/codex_transfer/main.py
++++ b/src/codex_transfer/main.py
+@@ -15,6 +15,10 @@ def parse_args() -> argparse.Namespace:
+     parser = argparse.ArgumentParser(description="Codex Lifeboat")
+     parser.add_argument("--self-test", action="store_true")
+     parser.add_argument("--recovery-self-test", action="store_true")
++    parser.add_argument("--archive-self-test", action="store_true")
++    parser.add_argument("--warm-recent", type=int, nargs="?", const=50)
++    parser.add_argument("--codex-home")
++    parser.add_argument("--report")
+     parser.add_argument("--resume-plan")
+     parser.add_argument("--work")
+     parser.add_argument("--validate")
+@@ -27,14 +31,29 @@ def main() -> int:
+     # PyInstaller one-file apps can be launched from transient Windows locations
+     # (for example, directly from a ZIP). Preserve a stable copy while the launch
+     # path still exists so a later backup can include the restore application.
+-    backup.stage_runtime_executable()
+     args = parse_args()
+-    if args.recovery_self_test:
++    if args.warm_recent is None:
++        backup.stage_runtime_executable()
++    if args.recovery_self_test or args.archive_self_test:
+         from .recovery_selftest import run
+         if not args.work:
+             raise ValueError('--recovery-self-test requires a new --work directory')
+-        result = run(Path(args.work))
++        result = run(Path(args.work), project_storage='archive-blocks-v1' if args.archive_self_test else 'files')
+         return 0 if result['passed'] else 1
++    if args.warm_recent is not None:
++        from .conversation_warmup import warm_recent_conversations, validate_report_destination
++        codex_home = Path(args.codex_home) if args.codex_home else Path.home() / '.codex'
++        report = validate_report_destination(codex_home, Path(args.report)) if args.report else None
++        result = warm_recent_conversations(codex_home, limit=args.warm_recent)
++        if report is not None:
++            report = validate_report_destination(codex_home, report)
++            report.parent.mkdir(parents=True, exist_ok=True)
++            with report.open('x', encoding='utf-8') as handle:
++                json.dump(result, handle, ensure_ascii=False, indent=2)
++                handle.write('\n')
++        if sys.stdout is not None:
++            print(json.dumps(result, ensure_ascii=False, indent=2))
++        return 0 if result.get('status') == 'completed' else 2
+     if args.resume_plan:
+         from .restore_operation import resume_from_document
+         result = resume_from_document(Path(args.resume_plan))
+diff --git a/src/codex_transfer/owned_paths.py b/src/codex_transfer/owned_paths.py
+new file mode 100644
+index 0000000..ad13a53
+--- /dev/null
++++ b/src/codex_transfer/owned_paths.py
+@@ -0,0 +1,39 @@
++"""Remove already-authorized restore payloads, including Windows readonly files.
++
++Callers own path authorization. This helper never expands the deletion scope or
++retries ACL/sharing errors on ordinary writable objects.
++"""
++import os
++from pathlib import Path
++import shutil
++import stat
++
++
++def _retry_readonly(function, value, error):
++    if (os.name != "nt" or not isinstance(error, PermissionError)
++            or getattr(error, "winerror", None) != 5
++            or function not in {os.unlink, os.remove, os.rmdir}):
++        raise error
++    info = Path(value).lstat()
++    attributes = getattr(info, "st_file_attributes", 0)
++    if (not attributes & 0x1 or attributes & 0x400
++            or not (stat.S_ISREG(info.st_mode) or stat.S_ISDIR(info.st_mode))):
++        raise error
++    os.chmod(value, stat.S_IMODE(info.st_mode) | stat.S_IWUSR)
++    function(value)
++
++
++def remove_path(path):
++    """Delete one previously approved path; propagate all non-readonly failures."""
++    path = Path(path)
++    if not path.exists() and not path.is_symlink():
++        return
++    if path.is_symlink() or path.is_file():
++        try:
++            os.unlink(path)
++        except OSError as exc:
++            _retry_readonly(os.unlink, path, exc)
++    else:
++        def onerror(function, value, exception_info):
++            _retry_readonly(function, value, exception_info[1])
++        shutil.rmtree(path, onerror=onerror)
+diff --git a/src/codex_transfer/project_archives.py b/src/codex_transfer/project_archives.py
+new file mode 100644
+index 0000000..470d2d0
+--- /dev/null
++++ b/src/codex_transfer/project_archives.py
+@@ -0,0 +1,794 @@
++"""Opt-in, versioned project archives with streaming verification and extraction.
++
++The ordinary backup format remains unchanged. Format 2.5 replaces only project
++payload trees with bounded ZIP blocks; conversations and portable Codex data
++remain ordinary files. Every project file still has a logical SHA-256 row in the
++package manifest. Each physical block is hashed by that same manifest as well.
++
++ZIP filenames are generated object identifiers, never destination paths. A small
++bounded index records regular files/directories, their exact mtime_ns and their
++portable permission mode. ACLs, ADS, ownership, xattrs and links are not part of
++this storage contract. No ZIP extraction API is used.
++"""
++
++from __future__ import annotations
++
++from contextlib import contextmanager, suppress
++import csv
++import errno
++import hashlib
++import json
++import os
++from pathlib import Path
++import re
++import shutil
++import sqlite3
++import stat
++import struct
++import tempfile
++import time
++import zipfile
++import zlib
++
++STORAGE = "archive-blocks-v1"
++FORMAT_VERSION = "2.5"
++INDEX_NAME = "lifeboat-index.json"
++MAX_BLOCK_ENTRIES = 1024
++MAX_BLOCK_BYTES = 128 * 1024 * 1024
++MAX_INDEX_BYTES = 4 * 1024 * 1024
++CHUNK_BYTES = 1024 * 1024
++TEMP_PREFIX = ".lifeboat-archive-"
++_DIGEST = re.compile(r"[0-9a-f]{64}\Z")
++_RESERVED = {"con", "prn", "aux", "nul", "clock$", "conin$", "conout$"}
++_RESERVED.update(f"{prefix}{number}" for prefix in ("com", "lpt")
++                 for number in ("1", "2", "3", "4", "5", "6", "7", "8", "9", "¹", "²", "³"))
++
++
++class ArchiveError(ValueError):
++    pass
++
++
++def storage_option(value=None):
++    value = "files" if value is None else value
++    if value not in {"files", STORAGE}:
++        raise ArchiveError("projectStorage must be 'files' or 'archive-blocks-v1'")
++    return value
++
++
++def is_archived(project):
++    return isinstance(project.get("storage"), dict) and project["storage"].get("kind") == STORAGE
++
++
++def _integer(value, label, minimum=0, maximum=(1 << 63) - 1):
++    if type(value) is not int or not minimum <= value <= maximum:
++        raise ArchiveError(f"Invalid archive {label}")
++    return value
++
++
++def safe_relative(value, allow_root=False):
++    if not isinstance(value, str) or (not value and not allow_root):
++        raise ArchiveError("Archive path must be a nonempty relative string")
++    if value == "" and allow_root:
++        return value
++    if "\\" in value or value.startswith("/") or value.endswith("/"):
++        raise ArchiveError(f"Noncanonical archive path: {value!r}")
++    try:
++        if len(value.encode("utf-16-le")) > 65520:
++            raise ArchiveError("Archive path exceeds the portable path limit")
++        value.encode("utf-8", "strict")
++    except UnicodeError as exc:
++        raise ArchiveError("Invalid Unicode in archive path") from exc
++    for part in value.split("/"):
++        if (part in {"", ".", ".."} or part.endswith((" ", "."))
++                or any(ord(char) < 32 or ord(char) == 127 or char in '<>:"|?*' for char in part)
++                or part.split(".", 1)[0].casefold() in _RESERVED
++                or part.casefold().startswith(TEMP_PREFIX)
++                or len(part.encode("utf-16-le")) > 510):
++            raise ArchiveError(f"Unsafe or reserved archive path component: {part!r}")
++    return value
++
++
++def _reparse(info):
++    return bool(getattr(info, "st_file_attributes", 0) & 0x400)
++
++
++def _regular_info(path, directory=False):
++    info = Path(path).lstat()
++    expected = stat.S_ISDIR(info.st_mode) if directory else stat.S_ISREG(info.st_mode)
++    if not expected or _reparse(info):
++        raise ArchiveError(f"Links and special files are not supported in archives: {path}")
++    if not directory and getattr(info, "st_nlink", 1) > 1:
++        raise ArchiveError(f"Hard-linked files are not supported in archives: {path}")
++    if stat.S_IMODE(info.st_mode) & ~0o777:
++        raise ArchiveError(f"Special permission bits are not supported in archives: {path}")
++    return info
++
++
++def _windows_streams(path):
++    """Enumerate NTFS streams without opening or copying their contents."""
++    import ctypes
++    from ctypes import wintypes
++
++    class StreamData(ctypes.Structure):
++        _fields_ = [("size", ctypes.c_longlong), ("name", wintypes.WCHAR * 296)]
++
++    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
++    first = kernel.FindFirstStreamW
++    first.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, ctypes.POINTER(StreamData), wintypes.DWORD]
++    first.restype = wintypes.HANDLE
++    next_stream = kernel.FindNextStreamW
++    next_stream.argtypes = [wintypes.HANDLE, ctypes.POINTER(StreamData)]
++    next_stream.restype = wintypes.BOOL
++    close = kernel.FindClose
++    close.argtypes = [wintypes.HANDLE]
++    close.restype = wintypes.BOOL
++    absolute = os.path.abspath(path)
++    if not absolute.startswith("\\\\?\\"):
++        absolute = "\\\\?\\UNC\\" + absolute[2:] if absolute.startswith("\\\\") else "\\\\?\\" + absolute
++    data = StreamData()
++    handle = first(absolute, 0, ctypes.byref(data), 0)
++    if handle == ctypes.c_void_p(-1).value:
++        error = ctypes.get_last_error()
++        if error == 38:  # ERROR_HANDLE_EOF: no named/default streams.
++            return []
++        raise ArchiveError(f"Cannot verify that the source has no alternate data streams (Windows error {error}): {path}")
++    result = []
++    try:
++        while True:
++            result.append(data.name)
++            if not next_stream(handle, ctypes.byref(data)):
++                error = ctypes.get_last_error()
++                if error != 38:
++                    raise ArchiveError(f"Cannot finish alternate-stream inspection (Windows error {error}): {path}")
++                break
++    finally:
++        close(handle)
++    return result
++
++
++def _supported_source_metadata(path, info):
++    if getattr(info, "st_file_attributes", 0) & 0x4000:  # FILE_ATTRIBUTE_ENCRYPTED
++        raise ArchiveError(f"EFS-encrypted files/directories cannot be archived with this metadata contract: {path}")
++    if os.name == "nt" and any(name != "::$DATA" for name in _windows_streams(path)):
++        raise ArchiveError(f"Alternate data streams are not supported in project archives: {path}")
++    if hasattr(os, "listxattr"):
++        try:
++            attributes = os.listxattr(path, follow_symlinks=False)
++        except OSError as exc:
++            if exc.errno in {errno.ENOTSUP, errno.EOPNOTSUPP}:
++                attributes = []
++            else:
++                raise
++        if attributes:
++            raise ArchiveError(f"Extended attributes/ACLs are not supported in project archives: {path}")
++
++
++def _metadata(path, relative, kind, info=None):
++    info = info or _regular_info(path, directory=kind == "directory")
++    return {"path": safe_relative(relative, allow_root=kind == "directory"),
++            "kind": kind, "mode": stat.S_IMODE(info.st_mode), "mtimeNs": info.st_mtime_ns}
++
++
++def _physical_path(root, relative):
++    """Resolve a package member without following links/reparse points."""
++    safe_relative(relative)
++    root = Path(root)
++    current = root
++    for number, component in enumerate(relative.split("/")):
++        current = current / component
++        info = current.lstat()
++        if _reparse(info) or stat.S_ISLNK(info.st_mode):
++            raise ArchiveError(f"Archive package path contains a link: {current}")
++        if number < len(relative.split("/")) - 1 and not stat.S_ISDIR(info.st_mode):
++            raise ArchiveError(f"Archive package parent is not a directory: {current}")
++    if not stat.S_ISREG(info.st_mode):
++        raise ArchiveError(f"Archive block is not a regular file: {current}")
++    return current
++
++
++def _prefix(project):
++    value = safe_relative(project.get("backupRelativePath"))
++    if len(value.split("/")) != 2 or not value.startswith("projects/root-"):
++        raise ArchiveError("Archived projects must use distinct projects/root-* payload roots")
++    return value
++
++
++def _block_prefix(prefix):
++    return "project-archives/" + hashlib.sha256(prefix.encode("utf-8")).hexdigest()[:24]
++
++
++def block_paths(project):
++    prefix = _prefix(project)
++    storage = project.get("storage")
++    if not isinstance(storage, dict) or set(storage) != {"kind", "blocks", "metadata"}:
++        raise ArchiveError("Invalid archived-project storage descriptor")
++    if storage["kind"] != STORAGE or storage["metadata"] != "mode-mtime-ns-v1":
++        raise ArchiveError("Unsupported project archive storage or metadata version")
++    blocks = storage["blocks"]
++    if not isinstance(blocks, list) or not blocks or len(blocks) > 1_000_000:
++        raise ArchiveError("Invalid archive block list")
++    for number, path in enumerate(blocks):
++        if path != f"{_block_prefix(prefix)}/block-{number:06d}.zip":
++            raise ArchiveError("Archive block names must be canonical, ordered and bound to their project")
++    return blocks
++
++
++class _PathRegistry:
++    """Detect duplicates and Windows case/type collisions using bounded RAM."""
++    def __enter__(self):
++        self.folder = tempfile.TemporaryDirectory(prefix="lb-archive-names-")
++        try:
++            self.db = sqlite3.connect(Path(self.folder.name) / "names.sqlite")
++            self.db.execute("PRAGMA cache_size=-2048")
++            self.db.execute("CREATE TABLE names (key TEXT PRIMARY KEY, path TEXT NOT NULL, kind TEXT NOT NULL)")
++        except BaseException:
++            self.folder.cleanup()
++            raise
++        return self
++
++    def add(self, entry):
++        path, kind = entry["path"], entry["kind"]
++        safe_relative(path, allow_root=kind == "directory")
++        if path:
++            parent = path.rpartition("/")[0]
++            row = self.db.execute("SELECT path,kind FROM names WHERE key=?", (parent.casefold(),)).fetchone()
++            if row != (parent, "directory"):
++                raise ArchiveError(f"Archive parent is missing, differently cased or not a directory: {path}")
++        elif kind != "directory":
++            raise ArchiveError("Archive root must be a directory")
++        try:
++            self.db.execute("INSERT INTO names VALUES (?,?,?)", (path.casefold(), path, kind))
++        except sqlite3.IntegrityError as exc:
++            raise ArchiveError(f"Duplicate or case-colliding archive path: {path}") from exc
++
++    def __exit__(self, *_):
++        self.db.close()
++        self.folder.cleanup()
++
++
++def _walk_source(source, excludes, warnings):
++    source = Path(source)
++    stack = [(source, "")]
++    excluded = [str(value).replace("\\", "/").casefold() for value in excludes]
++    while stack:
++        current, relative = stack.pop()
++        info = _regular_info(current, directory=True)
++        _supported_source_metadata(current, info)
++        yield current, _metadata(current, relative, "directory", info)
++        with os.scandir(current) as scan:
++            children = sorted(scan, key=lambda entry: (entry.name.casefold(), entry.name))
++        directories = []
++        for entry in children:
++            rel = f"{relative}/{entry.name}" if relative else entry.name
++            if any(fragment and fragment in rel.casefold() for fragment in excluded):
++                warnings.append(f"Excluded by configuration: {entry.path}")
++                continue
++            safe_relative(rel)
++            path = Path(entry.path)
++            info = path.lstat()
++            if stat.S_ISDIR(info.st_mode) and not _reparse(info):
++                directories.append((path, rel))
++            else:
++                info = _regular_info(path)
++                yield path, _metadata(path, rel, "file", info)
++        stack.extend(reversed(directories))
++
++
++def _source_unchanged(before, after):
++    return all(getattr(before, field) == getattr(after, field)
++               for field in ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_mode"))
++
++
++def _space_for_archive(path, pending=CHUNK_BYTES):
++    free = shutil.disk_usage(Path(path).parent).free
++    if free < pending + 100 * 1024 * 1024:
++        raise OSError(28, "Insufficient free space while writing a project archive")
++
++
++def pack_project(source, package_root, logical_prefix, excludes=(), warnings=None,
++                 skip_unreadable=None, on_progress=None, block_bytes=MAX_BLOCK_BYTES,
++                 block_entries=MAX_BLOCK_ENTRIES):
++    """Archive a project directly; no intermediate file-by-file backup tree."""
++    _integer(block_bytes, "block byte limit", 1, MAX_BLOCK_BYTES)
++    _integer(block_entries, "block entry limit", 1, MAX_BLOCK_ENTRIES)
++    source, package_root = Path(source), Path(package_root)
++    _prefix({"backupRelativePath": logical_prefix})
++    if package_root.resolve().is_relative_to(source.resolve()):
++        raise ArchiveError("Archive destination must not be inside its source project")
++    warnings = warnings if warnings is not None else []
++    output = package_root / _block_prefix(logical_prefix)
++    output.mkdir(parents=True, exist_ok=False)
++    blocks, entries = [], []
++    archive = None
++    block_size = index_size = count = size = 0
++    last_probe = 0.0
++
++    def finish_block():
++        nonlocal archive, entries, block_size, index_size
++        if archive is None:
++            return
++        encoded = json.dumps({"archiveVersion": 1, "entries": entries},
++                             ensure_ascii=False, separators=(",", ":")).encode("utf-8")
++        if len(encoded) > MAX_INDEX_BYTES:
++            raise ArchiveError("Archive index exceeds its bounded size")
++        archive.writestr(INDEX_NAME, encoded, compress_type=zipfile.ZIP_STORED)
++        path = Path(archive.filename)
++        archive.close()
++        archive = None
++        with path.open("r+b") as handle:
++            handle.flush()
++            os.fsync(handle.fileno())
++        entries, block_size, index_size = [], 0, 0
++
++    try:
++        with _PathRegistry() as names:
++            for path, entry in _walk_source(source, excludes, warnings):
++                source_handle = None
++                before = None
++                if entry["kind"] == "file":
++                    before = _regular_info(path)
++                    _supported_source_metadata(path, before)
++                    if before.st_mtime_ns != entry["mtimeNs"] or stat.S_IMODE(before.st_mode) != entry["mode"]:
++                        raise ArchiveError(f"Project source changed before archiving: {path}")
++                    try:
++                        descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_BINARY", 0)
++                                             | getattr(os, "O_NOFOLLOW", 0))
++                        source_handle = os.fdopen(descriptor, "rb")
++                    except OSError as exc:
++                        if skip_unreadable and skip_unreadable(path, exc):
++                            continue
++                        raise
++                    if not _source_unchanged(before, os.fstat(source_handle.fileno())):
++                        source_handle.close()
++                        raise ArchiveError(f"Project source changed while opening: {path}")
++                    entry.update(size=before.st_size, sha256="0" * 64, member="files/00000000")
++                predicted = len(json.dumps(entry, ensure_ascii=False).encode("utf-8")) + 32
++                try:
++                    if archive is not None and (len(entries) >= block_entries
++                            or block_size + (entry.get("size", 0)) > block_bytes
++                            or index_size + predicted > MAX_INDEX_BYTES - 128):
++                        finish_block()
++                    if archive is None:
++                        block_relative = f"{_block_prefix(logical_prefix)}/block-{len(blocks):06d}.zip"
++                        archive = zipfile.ZipFile(package_root / block_relative, "x",
++                                                  zipfile.ZIP_DEFLATED, compresslevel=1, allowZip64=True)
++                        blocks.append(block_relative)
++                    names.add(entry)
++                    if entry["kind"] == "file":
++                        entry["member"] = f"files/{len(entries):08d}"
++                        digest, written = hashlib.sha256(), 0
++                        # A string member name lets ZipFile propagate its
++                        # configured compression level (a manual ZipInfo does not).
++                        with archive.open(entry["member"], "w", force_zip64=True) as target:
++                            while True:
++                                chunk = source_handle.read(CHUNK_BYTES)
++                                if not chunk:
++                                    break
++                                written += len(chunk)
++                                if written > entry["size"]:
++                                    raise ArchiveError(f"Project source grew during archiving: {path}")
++                                now = time.monotonic()
++                                if now - last_probe >= 1:
++                                    _space_for_archive(Path(archive.filename))
++                                    last_probe = now
++                                digest.update(chunk)
++                                target.write(chunk)
++                        if (written != entry["size"]
++                                or not _source_unchanged(before, os.fstat(source_handle.fileno()))
++                                or not _source_unchanged(before, path.lstat())):
++                            raise ArchiveError(f"Project source changed during archiving: {path}")
++                        entry["sha256"] = digest.hexdigest()
++                        count += 1
++                        size += written
++                        block_size += written
++                        if on_progress:
++                            on_progress(count, size)
++                    entries.append(entry)
++                    index_size += predicted
++                finally:
++                    if source_handle:
++                        source_handle.close()
++            finish_block()
++    finally:
++        if archive is not None:
++            archive.close()
++    return count, size, {"kind": STORAGE, "blocks": blocks, "metadata": "mode-mtime-ns-v1"}
++
++
++def _check_central_directory(handle):
++    """Bound ZIP central-directory allocation before ZipFile reads it (ZIP64 too)."""
++    handle.seek(0, os.SEEK_END)
++    length = handle.tell()
++    if length < 22:
++        raise ArchiveError("Truncated archive block")
++    handle.seek(length - 22)
++    end = handle.read(22)
++    sig, disk, cd_disk, disk_entries, entries, cd_size, cd_offset, comment = struct.unpack("<4s4H2LH", end)
++    if sig != b"PK\x05\x06" or comment or disk or cd_disk:
++        raise ArchiveError("Archive comments, split volumes and trailing data are not supported")
++    central_end = length - 22
++    if entries == 0xFFFF or cd_size == 0xFFFFFFFF or cd_offset == 0xFFFFFFFF:
++        if length < 98:
++            raise ArchiveError("Truncated ZIP64 archive")
++        handle.seek(length - 42)
++        locator, locator_disk, offset, disks = struct.unpack("<4sLQL", handle.read(20))
++        if locator != b"PK\x06\x07" or locator_disk or disks != 1 or offset > length - 98:
++            raise ArchiveError("Invalid ZIP64 locator")
++        handle.seek(offset)
++        record = struct.unpack("<4sQ2H2L4Q", handle.read(56))
++        if record[0] != b"PK\x06\x06" or record[1] != 44 or record[4] or record[5]:
++            raise ArchiveError("Unsupported ZIP64 end record")
++        disk_entries, entries, cd_size, cd_offset = record[6:10]
++        central_end = offset
++    if (entries < 1 or entries > MAX_BLOCK_ENTRIES + 1 or disk_entries != entries
++            or cd_size > (MAX_BLOCK_ENTRIES + 1) * 256
++            or cd_offset + cd_size != central_end):
++        raise ArchiveError("Archive central directory exceeds bounds or is inconsistent")
++    handle.seek(0)
++    if handle.read(4) != b"PK\x03\x04":
++        raise ArchiveError("Archive block has an unexpected prefix")
++    handle.seek(0)
++
++
++def _validated_entry(entry, number):
++    if not isinstance(entry, dict):
++        raise ArchiveError("Archive entry must be an object")
++    kind = entry.get("kind")
++    fields = {"path", "kind", "mode", "mtimeNs"}
++    if kind == "file":
++        fields |= {"size", "sha256", "member"}
++    elif kind != "directory":
++        raise ArchiveError("Archive entry is not a regular file or directory")
++    if set(entry) != fields:
++        raise ArchiveError("Archive entry has missing or unsupported metadata")
++    safe_relative(entry["path"], allow_root=kind == "directory")
++    _integer(entry["mode"], "permission mode", 0, 0o777)
++    _integer(entry["mtimeNs"], "mtime_ns", -(1 << 63))
++    if kind == "file":
++        _integer(entry["size"], "file size")
++        if not isinstance(entry["sha256"], str) or not _DIGEST.fullmatch(entry["sha256"]):
++            raise ArchiveError("Invalid archive member SHA-256")
++        if entry["member"] != f"files/{number:08d}":
++            raise ArchiveError("Invalid archive object identifier")
++    return entry
++
++
++def _unique_object(pairs):
++    result = {}
++    for key, value in pairs:
++        if key in result:
++            raise ArchiveError(f"Duplicate archive metadata key: {key}")
++        result[key] = value
++    return result
++
++
++@contextmanager
++def _open_block(root, relative, expected=None, check=None):
++    path = _physical_path(root, relative)
++    with path.open("rb") as handle:
++        if expected is not None:
++            if relative not in expected:
++                raise ArchiveError(f"Archive block is absent from the SHA-256 manifest: {relative}")
++            size, digest = expected[relative]
++            if os.fstat(handle.fileno()).st_size != size:
++                raise ArchiveError(f"Archive block size differs: {relative}")
++            actual = hashlib.sha256()
++            for chunk in iter(lambda: handle.read(CHUNK_BYTES), b""):
++                if check:
++                    check()
++                actual.update(chunk)
++            if actual.hexdigest() != digest:
++                raise ArchiveError(f"Archive block SHA-256 differs: {relative}")
++        _check_central_directory(handle)
++        try:
++            with zipfile.ZipFile(handle) as archive:
++                infos = archive.infolist()
++                if len({info.filename for info in infos}) != len(infos):
++                    raise ArchiveError("Duplicate ZIP member")
++                for info in infos:
++                    file_type = stat.S_IFMT(info.external_attr >> 16)
++                    if (info.flag_bits & ~0x808 or info.is_dir()
++                            or info.compress_type not in {zipfile.ZIP_STORED, zipfile.ZIP_DEFLATED}
++                            or file_type not in {0, stat.S_IFREG}):
++                        raise ArchiveError("Encrypted, special or unsupported ZIP member")
++                index_info = archive.getinfo(INDEX_NAME)
++                if index_info.file_size > MAX_INDEX_BYTES:
++                    raise ArchiveError("Archive index exceeds its size limit")
++                with archive.open(index_info) as stream:
++                    raw = stream.read(MAX_INDEX_BYTES + 1)
++                if len(raw) != index_info.file_size or len(raw) > MAX_INDEX_BYTES:
++                    raise ArchiveError("Archive index length differs")
++                index = json.loads(raw, object_pairs_hook=_unique_object)
++                if (not isinstance(index, dict) or set(index) != {"archiveVersion", "entries"}
++                        or type(index["archiveVersion"]) is not int or index["archiveVersion"] != 1
++                        or not isinstance(index["entries"], list)
++                        or not 1 <= len(index["entries"]) <= MAX_BLOCK_ENTRIES):
++                    raise ArchiveError("Invalid project archive index")
++                entries = [_validated_entry(entry, number) for number, entry in enumerate(index["entries"])]
++                files = [entry for entry in entries if entry["kind"] == "file"]
++                if len(files) > 1 and sum(entry["size"] for entry in files) > MAX_BLOCK_BYTES:
++                    raise ArchiveError("Archive block exceeds its uncompressed byte limit")
++                expected_members = {INDEX_NAME}
++                for entry in entries:
++                    if entry["kind"] == "file":
++                        member = archive.getinfo(entry["member"])
++                        if member.file_size != entry["size"]:
++                            raise ArchiveError("ZIP size differs from project metadata")
++                        expected_members.add(entry["member"])
++                if expected_members != {info.filename for info in infos}:
++                    raise ArchiveError("ZIP contains undeclared or missing objects")
++                yield archive, entries
++        except (zipfile.BadZipFile, KeyError, json.JSONDecodeError, UnicodeError, EOFError, zlib.error) as exc:
++            raise ArchiveError(f"Invalid project archive block {relative}: {exc}") from exc
++
++
++def _member_chunks(archive, entry):
++    remaining = entry["size"]
++    digest = hashlib.sha256()
++    with archive.open(entry["member"]) as handle:
++        while remaining:
++            chunk = handle.read(min(CHUNK_BYTES, remaining))
++            if not chunk:
++                raise ArchiveError("Truncated archived project file")
++            digest.update(chunk)
++            remaining -= len(chunk)
++            yield chunk
++        if handle.read(1):
++            raise ArchiveError("Archived project file exceeds its declared size")
++    if digest.hexdigest() != entry["sha256"]:
++        raise ArchiveError(f"Archived project file SHA-256 differs: {entry['path']}")
++
++
++def iter_project_entries(package_root, project, expected=None, verify_hashes=False, check=None):
++    """Yield bounded block indexes, rejecting cross-block path collisions."""
++    count = size = 0
++    with _PathRegistry() as names:
++        for relative in block_paths(project):
++            with _open_block(package_root, relative, expected, check) as (archive, entries):
++                for entry in entries:
++                    if check:
++                        check()
++                    names.add(entry)
++                    if entry["kind"] == "file":
++                        count += 1
++                        size += entry["size"]
++                        if verify_hashes:
++                            for _chunk in _member_chunks(archive, entry):
++                                pass
++                    yield entry
++    if count != project.get("fileCount") or size != project.get("totalBytes"):
++        raise ArchiveError("Archived project counts differ from projects.json")
++
++
++def logical_rows(package_root, projects):
++    for project in projects:
++        if not is_archived(project):
++            continue
++        prefix = _prefix(project)
++        for entry in iter_project_entries(package_root, project):
++            if entry["kind"] == "file":
++                yield {"relative_path": prefix + "/" + entry["path"],
++                       "size": entry["size"], "sha256": entry["sha256"]}
++
++
++def inspect_package(package_root, package, projects, hash_rows, verify_hashes=True, progress=None):
++    """Validate virtual project files; return membership for the normal validator."""
++    archived = [item for item in projects if isinstance(item, dict) and is_archived(item)]
++    if package.get("formatVersion") != FORMAT_VERSION:
++        if archived or package.get("projectStorage") not in (None, "files"):
++            raise ArchiveError("Archived project storage requires package format 2.5")
++        return {"files": set(), "projects": {}, "hashesChecked": 0, "bytes": 0}
++    if package.get("projectStorage") != STORAGE or len(archived) != len(projects):
++        raise ArchiveError("Format 2.5 requires archive-blocks-v1 for every project")
++    result = {"files": set(), "projects": {}, "hashesChecked": 0, "bytes": 0}
++    physical_blocks = set()
++    for project in archived:
++        prefix = _prefix(project)
++        if prefix in result["projects"] or (Path(package_root) / prefix).exists():
++            raise ArchiveError("Archived project root is duplicated or also exists as physical files")
++        physical_blocks.update(block_paths(project))
++        count = size = 0
++        for entry in iter_project_entries(package_root, project, None, verify_hashes):
++            if entry["kind"] != "file":
++                continue
++            logical = prefix + "/" + entry["path"]
++            if hash_rows.get(logical) != (entry["size"], entry["sha256"]):
++                raise ArchiveError(f"Logical project hash differs from archive metadata: {logical}")
++            result["files"].add(logical)
++            count += 1
++            size += entry["size"]
++            if progress and count % 256 == 0:
++                progress(count, project["fileCount"], "Validating archived project files")
++        result["projects"][prefix] = {"files": count, "bytes": size}
++        result["hashesChecked"] += count if verify_hashes else 0
++        result["bytes"] += size
++    if any(path.startswith("project-archives/") and path not in physical_blocks for path in hash_rows):
++        raise ArchiveError("Manifest contains an unreferenced project archive object")
++    if any(path not in hash_rows for path in physical_blocks):
++        raise ArchiveError("A project archive block is missing from the SHA-256 manifest")
++    return result
++
++
++def _block_hashes(package_root, project, manifest_index=None):
++    required = set(block_paths(project))
++    if manifest_index is not None:
++        prefix = _block_prefix(_prefix(project))
++        result = {prefix + "/" + path: value for path, value in
++                  manifest_index.select({"backupRelativePath": prefix}).items()}
++        if set(result) != required:
++            raise ArchiveError("Archive block hashes differ from the indexed manifest")
++        return result
++    result = {}
++    with (Path(package_root) / "manifest/sha256.csv").open(encoding="utf-8", newline="") as handle:
++        for row in csv.DictReader(handle):
++            if row["relative_path"] in required:
++                if row["relative_path"] in result:
++                    raise ArchiveError("Duplicate archive block hash")
++                digest = row["sha256"]
++                if not _DIGEST.fullmatch(digest):
++                    raise ArchiveError("Invalid archive block hash")
++                result[row["relative_path"]] = (int(row["size"]), digest)
++    if set(result) != required:
++        raise ArchiveError("Missing archive block hashes")
++    return result
++
++
++def _target_path(root, relative, directory=False):
++    safe_relative(relative, allow_root=directory)
++    root = Path(root)
++    if root.exists() or root.is_symlink():
++        _regular_info(root, directory=True)
++    else:
++        root.mkdir(parents=True)
++    current = root
++    parts = relative.split("/") if relative else []
++    for number, part in enumerate(parts):
++        current = current / part
++        is_directory = directory or number < len(parts) - 1
++        if current.exists() or current.is_symlink():
++            _regular_info(current, directory=is_directory)
++        elif is_directory:
++            current.mkdir()
++    return current
++
++
++def _set_metadata(path, entry):
++    _regular_info(path, directory=entry["kind"] == "directory")
++    chmod_options = {"follow_symlinks": False} if os.chmod in os.supports_follow_symlinks else {}
++    os.chmod(path, entry["mode"], **chmod_options)
++    # atime is intentionally not promised: mandatory integrity reads can alter it.
++    current_atime = Path(path).stat().st_atime_ns
++    utime_options = {"follow_symlinks": False} if os.utime in os.supports_follow_symlinks else {}
++    os.utime(path, ns=(current_atime, entry["mtimeNs"]), **utime_options)
++
++
++def _remove_temporary(path):
++    if path.exists() or path.is_symlink():
++        _regular_info(path)
++        os.chmod(path, stat.S_IRUSR | stat.S_IWUSR)
++        path.unlink()
++
++
++def extract_project(package_root, project, destination, probe, checkpoint=None, on_progress=None,
++                    manifest_index=None):
++    """Stream verified objects directly into an exclusively owned staging tree."""
++    from .space_budget import CopySpaceBudget
++    prefix = _prefix(project)
++    destination = Path(destination)
++    expected = _block_hashes(package_root, project, manifest_index)
++    budget = CopySpaceBudget(probe)
++    count = size = 0
++    completed = False
++    check = checkpoint.check if checkpoint else None
++    try:
++        with _PathRegistry() as names:
++            for relative in block_paths(project):
++                if checkpoint:
++                    checkpoint.check()
++                with _open_block(package_root, relative, expected, check) as (archive, entries):
++                    for entry in entries:
++                        names.add(entry)
++                        if checkpoint:
++                            checkpoint.check()
++                        if entry["kind"] == "directory":
++                            budget(None, destination / entry["path"], 0)
++                            _target_path(destination, entry["path"], directory=True)
++                            continue
++                        virtual_source = Path(package_root) / prefix / entry["path"]
++                        count += 1
++                        size += entry["size"]
++                        if checkpoint and checkpoint.done(virtual_source):
++                            if on_progress:
++                                on_progress(count, size)
++                            continue
++                        target = _target_path(destination, entry["path"])
++                        budget(virtual_source, target, entry["size"])
++                        temp = target.with_name(TEMP_PREFIX + hashlib.sha256(entry["path"].encode()).hexdigest()[:24] + ".tmp")
++                        _remove_temporary(temp)
++                        remaining = entry["size"]
++                        last_probe = time.monotonic()
++                        try:
++                            with temp.open("xb") as output:
++                                for chunk in _member_chunks(archive, entry):
++                                    if checkpoint:
++                                        checkpoint.check()
++                                    now = time.monotonic()
++                                    if now - last_probe >= 1:
++                                        probe(target, remaining, 1)
++                                        last_probe = now
++                                    output.write(chunk)
++                                    remaining -= len(chunk)
++                                output.flush()
++                                os.fsync(output.fileno())
++                            # Windows can finalize LastWriteTime when the last
++                            # content-writing handle closes. Apply the requested
++                            # timestamp only after that handle is closed.
++                            _set_metadata(temp, entry)
++                            if target.exists():
++                                _regular_info(target)
++                                os.chmod(target, stat.S_IRUSR | stat.S_IWUSR)
++                            os.replace(temp, target)
++                            if checkpoint:
++                                checkpoint.complete(virtual_source, entry["size"])
++                            if on_progress:
++                                on_progress(count, size)
++                        finally:
++                            _remove_temporary(temp)
++        if count != project["fileCount"] or size != project["totalBytes"]:
++            raise ArchiveError("Extracted project counts differ from the inventory")
++        # Children are written after parents. Restore directory mtimes/modes only
++        # after the complete tree exists, deepest first, without storing it in RAM.
++        for relative in reversed(block_paths(project)):
++            with _open_block(package_root, relative, expected, check) as (_archive, entries):
++                for entry in reversed(entries):
++                    if check:
++                        check()
++                    if entry["kind"] == "directory":
++                        _set_metadata(_target_path(destination, entry["path"], directory=True), entry)
++        completed = True
++        return count, size
++    finally:
++        if checkpoint:
++            if completed:
++                checkpoint.flush()
++            else:
++                # Preserve the original error/pause even if the ledger volume
++                # also fills. Uncommitted entries will safely be copied again.
++                with suppress(OSError, sqlite3.Error):
++                    checkpoint.flush()
++
++
++def verify_metadata(package_root, project, destination, manifest_index=None, check=None, hash_rows=None):
++    """Verify explicit directories and file metadata, in addition to final hashes."""
++    destination = Path(destination)
++    expected = hash_rows if hash_rows is not None else _block_hashes(package_root, project, manifest_index)
++    expected_directories = 0
++    expected_files = 0
++    for entry in iter_project_entries(package_root, project, expected, check=check):
++        path = destination / entry["path"]
++        info = _regular_info(path, directory=entry["kind"] == "directory")
++        # Windows exposes read-only versus writable bits; POSIX exposes all rwx.
++        mode_mask = 0o222 if os.name == "nt" else 0o777
++        if ((stat.S_IMODE(info.st_mode) & mode_mask) != (entry["mode"] & mode_mask)
++                or info.st_mtime_ns != entry["mtimeNs"]):
++            raise ArchiveError(f"Restored archive metadata differs: {entry['path'] or '(project root)'}")
++        expected_directories += int(entry["kind"] == "directory")
++        expected_files += int(entry["kind"] == "file")
++    actual_directories = actual_files = 0
++    stack = [destination]
++    while stack:
++        if check:
++            check()
++        directory = stack.pop()
++        _regular_info(directory, directory=True)
++        actual_directories += 1
++        with os.scandir(directory) as scan:
++            for entry in scan:
++                info = Path(entry.path).lstat()
++                if stat.S_ISDIR(info.st_mode) and not _reparse(info):
++                    stack.append(Path(entry.path))
++                else:
++                    _regular_info(entry.path)
++                    actual_files += 1
++    if (actual_directories, actual_files) != (expected_directories, expected_files):
++        raise ArchiveError("Restored archive directory/file set differs")
+diff --git a/src/codex_transfer/recovery.py b/src/codex_transfer/recovery.py
+index 8bc6d6d..737b952 100644
+--- a/src/codex_transfer/recovery.py
++++ b/src/codex_transfer/recovery.py
+@@ -3,11 +3,10 @@
+ from __future__ import annotations
+ 
+ import datetime as dt
+-import shutil
+ from pathlib import Path
+ from typing import Any, Callable
+ 
+-from . import backup, windows
++from . import backup, owned_paths, windows
+ 
+ 
+ RECOVERY_INDEX_VERSION = 1
+@@ -212,7 +211,7 @@ def _cleanup_staging(journal: dict[str, Any]) -> tuple[int, int]:
+         ):
+             continue
+         size = _tree_bytes(staging)
+-        shutil.rmtree(staging)
++        owned_paths.remove_path(staging)
+         removed += 1
+         freed += size
+     return removed, freed
+@@ -231,11 +230,11 @@ def _remove_old_point(path: Path, profile: Path) -> tuple[int, int]:
+     for payload in payloads:
+         if payload.is_dir():
+             freed += _tree_bytes(payload)
+-            shutil.rmtree(payload)
++            owned_paths.remove_path(payload)
+             _prune_empty_recovery_parents(payload)
+             removed_payloads += 1
+     freed += _tree_bytes(path)
+-    shutil.rmtree(path)
++    owned_paths.remove_path(path)
+     return removed_payloads, freed
+ 
+ 
+diff --git a/src/codex_transfer/recovery_selftest.py b/src/codex_transfer/recovery_selftest.py
+index 92b5e41..89b41dc 100644
+--- a/src/codex_transfer/recovery_selftest.py
++++ b/src/codex_transfer/recovery_selftest.py
+@@ -5,12 +5,13 @@ import os
+ from pathlib import Path
+ import threading
+ import traceback
++from contextlib import ExitStack
+ from unittest.mock import patch
+ 
+ from . import backup, restore, restore_operation, selftest
+ 
+ 
+-def run(root):
++def run(root, project_storage='files'):
+     root = Path(root).resolve()
+     root.mkdir(parents=True, exist_ok=False)
+     result = {'passed': False}
+@@ -25,7 +26,7 @@ def run(root):
+                 (project / f'synthetic-{number}.bin').write_bytes(b'fixture' * 128)
+             config = root / 'config.json'
+             config.write_text(json.dumps(dict(
+-                configVersion=1, includeAttachments=True, projects=[], additionalPortablePaths=[],
++                configVersion=1, projectStorage=project_storage, includeAttachments=True, projects=[], additionalPortablePaths=[],
+                 excludeDirectoryNames=[], projectRegistryPath=str(root/'registry.json'),
+                 lineageStatePath=str(root/'lineage.json'), deviceStatePath=str(root/'device.json'))))
+             package = backup.build_backup(argparse.Namespace(
+@@ -41,14 +42,19 @@ def run(root):
+                     event.set()
+             paused = restore_operation.resume_from_document(document, event, progress)
+             assert paused['status'] == 'paused'
+-            with patch.object(restore, 'copy_staging_tree', side_effect=AssertionError('project recopied')):
++            with ExitStack() as checks:
++                checks.enter_context(patch.object(restore, 'copy_staging_tree', side_effect=AssertionError('project recopied')))
++                if project_storage == 'archive-blocks-v1':
++                    from . import project_archives
++                    checks.enter_context(patch.object(project_archives, 'extract_project',
++                                                       side_effect=AssertionError('archive project extracted twice')))
+                 completed = restore_operation.resume_from_document(document)
+             assert completed['status'] == 'complete'
+             assert completed['verification']['valid']
+             assert 'recoveryRetention' in completed
+             assert (Path(prepared['safetyRoot'])/'shareable-operation-summary.json').is_file()
+             assert (target/'Documents/Codex Restore Reports/MIGRATION-PATHS.md').is_file()
+-            result = {'passed': True, 'pausedAndReopened': True,
++            result = {'passed': True, 'projectStorage': project_storage, 'pausedAndReopened': True,
+                       'completedProjectsNotRecopied': True, 'finalVerification': True,
+                       'reportsAndRetention': True, 'migrationGuide': True}
+     except Exception:
+diff --git a/src/codex_transfer/recovery_ui.py b/src/codex_transfer/recovery_ui.py
+index 5416d1a..6a4c4f0 100644
+--- a/src/codex_transfer/recovery_ui.py
++++ b/src/codex_transfer/recovery_ui.py
+@@ -5,7 +5,7 @@ import time
+ import tkinter as tk
+ from tkinter import ttk, filedialog, messagebox
+ 
+-from . import defender_control, restore_operation, backup
++from . import defender_control, restore_operation, backup, resume_discovery
+ 
+ PHASES = ['index backup manifest', 'restore projects', 'apply destination project decisions',
+           'build restored database', 'reset paginated history projection',
+@@ -25,14 +25,36 @@ class RecoveryUI:
+         self.defender_last_state = None
+         self.last_metric = None
+         self.close_after_pause = False
++        self.resume_candidate = None
++        self.warmup_cancel = None
++        self.close_after_warmup = False
++        self.selection_in_progress = False
++        self.decision_window = None
+         self.protocol('WM_DELETE_WINDOW', self._close_recovery_window)
+-        parent = self.restore_button.master
++        parent = tk.Frame(self.restore_card, bg=self.CARD)
++        parent.pack(fill='x', pady=(8, 0))
+         self.pause_button = ttk.Button(parent, text='Pause', command=self._request_pause, state='disabled')
+-        self.pause_button.pack(side='left', padx=8)
+-        self.resume_button = ttk.Button(parent, text='Load resume plan', command=self._load_resume)
+-        self.resume_button.pack(side='left', padx=8)
++        self.pause_button.grid(row=0, column=0, sticky='w')
++        self.resume_button = ttk.Button(parent, text='Load plan…', command=self._load_resume)
++        self.resume_button.grid(row=0, column=1, padx=6, sticky='w')
++        self.resume_ready_button = ttk.Button(parent, text='Resume', command=self._start_loaded_resume, state='disabled')
++        self.resume_ready_button.grid(row=0, column=2, sticky='w')
+         self.defender_button = ttk.Button(parent, text='Defender…', command=self._defender_dialog)
+-        self.defender_button.pack(side='left', padx=8)
++        self.defender_button.grid(row=1, column=0, sticky='w', pady=(6, 0))
++        self.warmup_button = ttk.Button(parent, text='Read recent chats into disk cache…', command=self._warmup_dialog)
++        self.warmup_button.grid(row=1, column=1, columnspan=2, sticky='w', pady=(6, 0), padx=(6, 0))
++        self.resume_notice = tk.Label(self.restore_card, text='', bg=self.CARD, fg=self.MUTED,
++                                      justify='left', anchor='w', wraplength=420)
++        self.resume_notice.pack(fill='x', pady=(4, 0))
++        self.project_storage = tk.BooleanVar(self, value=False)
++        self.archive_checkbox = tk.Checkbutton(self.backup_card, variable=self.project_storage,
++            text='Use archives for project files',
++            bg=self.NAVY, fg='#FFFFFF', selectcolor=self.NAVY_DARK,
++            activebackground=self.NAVY, activeforeground='#FFFFFF', anchor='w')
++        self.archive_checkbox.pack(fill='x', pady=(8, 0))
++        tk.Label(self.backup_card, text='Archive backups require this Community edition to restore.',
++                 bg=self.NAVY, fg='#C9D8E8', anchor='w', wraplength=420,
++                 font=('Segoe UI', 8)).pack(fill='x')
+         self.phase_progress = ttk.Progressbar(self.status_frame, maximum=100)
+         self.phase_progress.grid(row=7, column=0, columnspan=5, sticky='ew', pady=(10, 4))
+         self.phase_description = tk.Label(self.status_frame, text='Stage progress',
+@@ -50,12 +72,67 @@ class RecoveryUI:
+         grip.bind('<ButtonPress-1>', lambda event: setattr(self, '_log_drag', (event.y_root, int(self.log.cget('height')))))
+         grip.bind('<B1-Motion>', lambda event: self.log.configure(
+             height=max(4, min(60, self._log_drag[1] + (event.y_root-self._log_drag[0])//16))))
++        self.after(300, self._discover_resume_at_startup)
++
++    def _defender_reminder(self):
++        if self.defender_requested or self.defender_last_state is False:
++            return 'If you disabled Microsoft Defender, reactivate real-time protection manually now.'
++        return ''
++
++    def _remind_defender(self):
++        text = self._defender_reminder()
++        if text:
++            self._append_log(text)
++            messagebox.showwarning('Microsoft Defender', text, parent=self)
++
++    def _discover_resume_at_startup(self):
++        # Metadata only, on a worker. Never starts restoring without a click.
++        def work():
++            try:
++                result = resume_discovery.discover_resume_plans(Path.home())
++                self.messages.put(('resume_discovered', result))
++                self.messages.put(('defender_initial', defender_control.status()))
++            except Exception as exc:
++                self.messages.put(('log', 'Resume discovery unavailable: ' + type(exc).__name__))
++        threading.Thread(target=work, daemon=True).start()
++
++    def _select_resume(self, candidate, count=1):
++        self.resume_candidate = candidate
++        self.resume_document = candidate.document
++        availability = ('Ready to resume.' if candidate.source_available else
++                        'Backup unavailable: reconnect it, then load this plan again.')
++        self.resume_notice.configure(text=f'Saved plan loaded: {candidate.document.parent.name} '
++                                     f'({candidate.status}). {availability}'
++                                     + (f' {count} plans found; Load plan selects another.' if count > 1 else ''))
++        self._append_log('Loaded resume plan (no restore started): ' + str(candidate.document))
++        self.resume_ready_button.configure(state='normal' if candidate.source_available and not self.busy
++                                          and self.warmup_cancel is None and not self.selection_in_progress else 'disabled')
++
++    def _wait_for_decision(self, window):
++        self.selection_in_progress = True
++        self.decision_window = window
++        self._set_busy(self.busy)
++        try:
++            self.wait_window(window)
++        finally:
++            self.selection_in_progress = False
++            self.decision_window = None
++            self._set_busy(self.busy)
+ 
+     def _close_recovery_window(self):
++        if self.selection_in_progress and self.decision_window is not None:
++            self.decision_window.lift()
++            self.status_label.configure(text='Close or cancel the selection window before exiting.')
++            return
++        if self.warmup_cancel is not None:
++            self.close_after_warmup = True
++            self.warmup_cancel.set()
++            return
+         if self.busy:
+             self.close_after_pause = True
+             self._request_pause()
+         else:
++            self._remind_defender()
+             self.destroy()
+ 
+     def _request_pause(self):
+@@ -64,23 +141,37 @@ class RecoveryUI:
+         self.status_label.configure(text='Pause requested — finishing admitted writes…')
+ 
+     def _load_resume(self):
+-        if self.busy:
++        if self.busy or self.warmup_cancel is not None or self.selection_in_progress:
+             return
+         selected = filedialog.askopenfilename(parent=self, title='Load resume plan',
+                                                filetypes=[('Lifeboat resume plan', '*.json')])
+         if not selected:
++            self._remind_defender()
+             return
+         try:
+-            state = backup.read_json(Path(selected).parent / 'restore-journal.json')
+-            if state.get('status') == 'prepared' and not messagebox.askyesno(
++            candidate = resume_discovery.inspect_resume_plan(Path(selected), expected_profile=Path.home())
++            self._select_resume(candidate)
++        except Exception as exc:
++            messagebox.showerror('Resume plan', str(exc), parent=self)
++            self._remind_defender()
++
++    def _start_loaded_resume(self):
++        if self.busy or self.warmup_cancel is not None or self.selection_in_progress or not self.resume_document:
++            return
++        try:
++            candidate = resume_discovery.inspect_resume_plan(self.resume_document, expected_profile=Path.home())
++            if not candidate.source_available:
++                raise ValueError('The backup is unavailable. Reconnect it before resuming.')
++            if candidate.status == 'prepared' and not messagebox.askyesno(
+                     'Start prepared restoration?',
+                     'This plan has not started restoring yet. Start replacing local data using the saved safety copy?',
+                     parent=self):
++                self._remind_defender()
+                 return
+         except Exception as exc:
+             messagebox.showerror('Resume plan', str(exc), parent=self)
++            self._remind_defender()
+             return
+-        self.resume_document = Path(selected)
+         self.pause_event = threading.Event()
+         self.operation_paused = False
+         self._run(lambda: restore_operation.resume_from_document(
+@@ -143,13 +234,48 @@ class RecoveryUI:
+             self.last_progress_message = result.get('pauseReason', 'Paused')
+             self._append_log(f'Resume document: {self.resume_document}')
+             messagebox.showinfo('Paused', 'Completed work is saved. Reload this document to continue:\n'
+-                                + str(self.resume_document), parent=self)
++                                + str(self.resume_document) + '\n\n' + self._defender_reminder(), parent=self)
+         else:
++            self.resume_document = None
++            self.resume_candidate = None
++            self.resume_ready_button.configure(state='disabled')
++            self.resume_notice.configure(text='Restoration complete; final verification passed.')
+             warnings = [str(result[key]) for key in ('reportWarning', 'recoveryRetentionError') if key in result]
+             messagebox.showinfo('Restore complete', 'Final verification passed.\n'
+                                 + ('Warnings: ' + '\n'.join(warnings) + '\n' if warnings else 'Reports and recovery retention completed.\n')
+                                 + 'Recovery point: ' + str(result.get('safetyRoot', '')) + '\n'
+-                                + 'If you disabled Defender, reactivate real-time protection now.', parent=self)
++                                + self._defender_reminder(), parent=self)
++
++    def _warmup_dialog(self):
++        if self.busy or self.warmup_cancel is not None or self.selection_in_progress:
++            return
++        if not messagebox.askokcancel('Local conversation pre-read',
++                'Read up to 50 recent conversation files into the temporary operating-system disk cache? '
++                'This does not preload the Codex application, send messages or run agents. '
++                'A speed improvement is not guaranteed and the cache does not survive a restart.', parent=self):
++            return
++        from .conversation_warmup import warm_recent_conversations
++        window = tk.Toplevel(self)
++        window.title('Local conversation pre-read')
++        label = ttk.Label(window, text='Reading local metadata…', padding=16, wraplength=440)
++        label.pack(fill='x')
++        cancel = self.warmup_cancel = threading.Event()
++        ttk.Button(window, text='Stop', command=cancel.set).pack(pady=8)
++        window.protocol('WM_DELETE_WINDOW', cancel.set)
++        self.warmup_window, self.warmup_label = window, label
++        self.warmup_button.configure(state='disabled')
++        for button in self.action_buttons:
++            button.configure(state='disabled')
++        self.resume_button.configure(state='disabled')
++        self.resume_ready_button.configure(state='disabled')
++        def work():
++            try:
++                result = warm_recent_conversations(Path.home() / '.codex', limit=50,
++                    cancel=cancel, progress=lambda value: self.messages.put(('warmup_progress', value)))
++                self.messages.put(('warmup_done', result))
++            except Exception as exc:
++                self.messages.put(('warmup_done', {'status': 'error', 'error': type(exc).__name__}))
++        threading.Thread(target=work, daemon=True).start()
+ 
+     def _defender_dialog(self):
+         if self.defender_prompt is not None and self.defender_prompt.winfo_exists():
+@@ -157,6 +283,14 @@ class RecoveryUI:
+             return
+         window = self.defender_prompt = tk.Toplevel(self)
+         window.title('Microsoft Defender')
++        self.defender_status_label = ttk.Label(window, text='Checking current protection state…', padding=(16, 8))
++        self.defender_status_label.pack(fill='x')
++        def read_state():
++            try:
++                self.messages.put(('defender_dialog_status', defender_control.status()))
++            except Exception:
++                self.messages.put(('defender_dialog_status', {'available': False}))
++        threading.Thread(target=read_state, daemon=True).start()
+         ttk.Label(window, wraplength=480, padding=16,
+                   text='Temporarily disable real-time protection? Windows will request administrator approval. '
+                        'Lifeboat continues working while you decide. Reactivate protection manually when finished. '
+@@ -189,12 +323,49 @@ class RecoveryUI:
+             threading.Thread(target=check, daemon=True).start()
+ 
+     def _recovery_message(self, kind, value):
+-        if kind == 'restore_progress':
++        if kind == 'resume_discovered':
++            candidates, issues = value
++            for issue in issues:
++                self._append_log(issue)
++            if candidates and not self.busy and self.resume_document is None:
++                self._select_resume(candidates[0], len(candidates))
++        elif kind == 'warmup_progress':
++            self.warmup_label.configure(text=f"Files read: {value.get('filesRead', 0)} / {value.get('selected', 50)}\n"
++                                        f"Data read: {value.get('bytesRead', 0) / 1024**2:.1f} MiB")
++        elif kind == 'warmup_done':
++            self.warmup_cancel = None
++            self._set_busy(self.busy)
++            self.warmup_window.destroy()
++            if self.close_after_warmup:
++                self.after_idle(self._close_recovery_window)
++                return True
++            selection = {'state_db_snapshot_updated_at': 'Recent activity in the local index',
++                         'sessions_file_mtime': 'File modification dates (approximate conversation recency)'}.get(
++                             value.get('selectionSource'), 'No eligible local files were selected')
++            messagebox.showinfo('Local conversation pre-read',
++                f"Status: {value.get('status', 'unknown')}\n"
++                f"Files read: {value.get('filesRead', 0)} / {value.get('selected', 0)}\n"
++                f"Partially read: {value.get('partialFiles', 0)}; skipped: {value.get('skipped', 0)}\n"
++                f"Data read: {value.get('bytesRead', 0) / 1024**2:.1f} MiB\n\n"
++                f"Selection: {selection}\n"
++                'This only prepares the temporary disk cache. Codex application preload is not supported.', parent=self)
++        elif kind == 'restore_progress':
+             self._structured_progress(value)
+         elif kind == 'resume_document':
+             self.resume_document = Path(value)
++            self.resume_candidate = None
++            self.resume_notice.configure(text='Current restoration plan: ' + self.resume_document.parent.name)
+             self.pause_button.configure(state='normal')
+             self._append_log('Resume document: ' + str(value))
++        elif kind in {'defender_initial', 'defender_dialog_status'}:
++            state = value.get('RealTimeProtectionEnabled')
++            if isinstance(state, bool):
++                self.defender_last_state = state
++            if kind == 'defender_dialog_status' and self.defender_prompt.winfo_exists():
++                self.defender_status_label.configure(text=(
++                    'Real-time protection: enabled' if state is True else
++                    'Real-time protection: disabled' if state is False else
++                    'Current protection state unavailable'))
+         elif kind == 'defender_hourly':
+             state = value.get('RealTimeProtectionEnabled')
+             if self.defender_last_state is False and state is True:
+diff --git a/src/codex_transfer/restore.py b/src/codex_transfer/restore.py
+index f122bb4..ed910fc 100644
+--- a/src/codex_transfer/restore.py
++++ b/src/codex_transfer/restore.py
+@@ -14,6 +14,7 @@ from typing import Any, Callable
+ try:
+     from . import backup, lineage, location_mapper, path_model, portability_audit, project_identity, recovery, restore_plan, rollout as rollout_io, windows
+     from . import restore_operation
++    from . import project_archives, owned_paths
+     from .restore_checkpoint import CopyCheckpoint, RestorePaused, PAUSE_RESERVE_BYTES
+     from .manifest_index import ManifestIndex
+     from .space_budget import CopySpaceBudget
+@@ -33,6 +34,8 @@ except ImportError:
+     import rollout as rollout_io
+     import windows
+     import restore_operation
++    import project_archives
++    import owned_paths
+     from restore_checkpoint import CopyCheckpoint, RestorePaused, PAUSE_RESERVE_BYTES
+     from manifest_index import ManifestIndex
+     from space_budget import CopySpaceBudget
+@@ -111,12 +114,7 @@ def _ensure_restore_space(
+ 
+ 
+ def _remove_path(path: Path) -> None:
+-    if not path.exists() and not path.is_symlink():
+-        return
+-    if path.is_symlink() or path.is_file():
+-        path.unlink()
+-    else:
+-        shutil.rmtree(path)
++    owned_paths.remove_path(path)
+ 
+ 
+ def _safe_target(
+@@ -224,6 +222,19 @@ def _project_manifest_entries(
+     return entries
+ 
+ 
++def _copy_project_payload(package_root, project, destination, manifest_index=None,
++                          checkpoint=None, on_progress=None):
++    source = package_root / Path(*PurePosixPath(project['backupRelativePath']).parts)
++    if project_archives.is_archived(project):
++        return project_archives.extract_project(
++            package_root, project, destination, _ensure_restore_space,
++            checkpoint=checkpoint, on_progress=on_progress, manifest_index=manifest_index)
++    if checkpoint is not None:
++        return copy_staging_tree(source, destination, _ensure_restore_space,
++                                 checkpoint=checkpoint, on_progress=on_progress)
++    return copy_staging_tree(source, destination, _ensure_restore_space)
++
++
+ def _verify_staged_project(
+     package_root: Path, project: dict[str, Any], staging: Path,
+     manifest_index: ManifestIndex | None = None,
+@@ -273,6 +284,9 @@ def _verify_staged_project(
+         raise RestoreError("Staged project file count differs from its inventory.")
+     if total_bytes != int(project["totalBytes"]):
+         raise RestoreError("Staged project byte count differs from its inventory.")
++    if project_archives.is_archived(project):
++        project_archives.verify_metadata(package_root, project, staging, manifest_index,
++                                         operation.check if operation else None)
+     return {"files": len(actual), "bytes": total_bytes}
+ 
+ 
+@@ -1395,7 +1409,7 @@ def _restore_projects(
+             int(item.get("totalBytes", 0)),
+             int(item.get("fileCount", 0)),
+         )
+-        files, _ = copy_staging_tree(source, staging, _ensure_restore_space)
++        files, _ = _copy_project_payload(package_root, item, staging, manifest_index)
+         record["status"] = "staged"
+         record["stagedAtUtc"] = backup.utc_now()
+         backup.write_json(safety_root / "restore-journal.json", journal)
+@@ -1473,8 +1487,8 @@ def _resume_project(package, safety, translator, journal, item, action, planned,
+         with CopyCheckpoint(safety / ('project-' + record['transactionId'] + '.sqlite'),
+                             source, stage) as checkpoint:
+             checkpoint._pause = operation.pause
+-            files, _ = copy_staging_tree(
+-                source, stage, _ensure_restore_space, checkpoint=checkpoint,
++            files, _ = _copy_project_payload(
++                package, item, stage, index, checkpoint=checkpoint,
+                 on_progress=lambda count, size: operation.emit(
+                     size, int(item.get('totalBytes', 0)), f'Copying project {project_id}: {count} files'))
+         record['status'] = 'staged'
+@@ -1942,6 +1956,12 @@ def _verify_restored(
+                     errors.append(error)
+         finally:
+             results.close()
++        if project_archives.is_archived(item):
++            try:
++                project_archives.verify_metadata(package_root, item, target, manifest_index,
++                                                 operation.check if operation else None)
++            except (OSError, ValueError) as exc:
++                errors.append(f"Archived project metadata verification failed: {exc}")
+         checked_projects += 1
+         if action == "archive-and-replace":
+             disposition_value = plan_item.get("dispositionPath")
+diff --git a/src/codex_transfer/restore_plan.py b/src/codex_transfer/restore_plan.py
+index 63c6582..4ac2c13 100644
+--- a/src/codex_transfer/restore_plan.py
++++ b/src/codex_transfer/restore_plan.py
+@@ -1,4 +1,4 @@
+-"""Read-only comparison and restore planning for package format 2.4."""
++"""Read-only comparison and restore planning for package formats 2.4/2.5."""
+ 
+ from __future__ import annotations
+ 
+@@ -18,6 +18,7 @@ from . import (
+     lineage,
+     location_mapper,
+     project_identity,
++    project_archives,
+     windows,
+ )
+ 
+@@ -793,12 +794,24 @@ def build_restore_plan(
+         state, action, blocking, reason = _classify(
+             source_fp, target_fp, base_fp, str(source.get("state"))
+         )
++        if action == "none" and target is not None and project_archives.is_archived(project):
++            try:
++                project_archives.verify_metadata(package_root, project, target, hash_rows=hash_rows)
++            except (OSError, ValueError):
++                # Content identity does not prove metadata identity. Keep the
++                # normal explicit source/target decision rather than overwrite
++                # independently changed destination timestamps or modes.
++                state, action, blocking = "conflicting", "resolve", True
++                reason = "File contents match, but archived timestamps, modes or empty directories differ."
+         source_bytes = int(project.get("totalBytes", 0))
+         identity = identity_roots.get(item_id, {})
+         source_project = package_root / Path(
+             *PurePosixPath(str(project.get("backupRelativePath") or "")).parts
+         )
+         git_evidence = git_insight.compare_repositories(source_project, target)
++        if project_archives.is_archived(project):
++            git_evidence["sourceStorage"] = project_archives.STORAGE
++            git_evidence["sourceInspection"] = "not-materialized; content and lineage hashes remain authoritative"
+         items.append(
+             {
+                 "key": key,
+diff --git a/src/codex_transfer/resume_discovery.py b/src/codex_transfer/resume_discovery.py
+new file mode 100644
+index 0000000..55e9507
+--- /dev/null
++++ b/src/codex_transfer/resume_discovery.py
+@@ -0,0 +1,113 @@
++"""Read-only discovery of local, unfinished restore plans.
++
++Discovery loads metadata only. It never opens a checkpoint database, scans a
++backup or starts a restoration. A separate user action is required to resume.
++"""
++from __future__ import annotations
++
++from dataclasses import dataclass
++import json
++import os
++from pathlib import Path
++import stat
++
++MAX_DOCUMENT_BYTES = 1_048_576
++RESUMABLE_STATES = frozenset({"prepared", "restoring", "paused"})
++
++
++@dataclass(frozen=True)
++class ResumeCandidate:
++    document: Path
++    package: Path
++    target: Path
++    status: str
++    updated_ns: int
++    source_available: bool
++
++
++def _plain_path(path: Path) -> None:
++    info = path.lstat()
++    if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & 0x400:
++        raise ValueError("Resume metadata must not be a symlink or reparse point")
++
++
++def _read_object(path: Path) -> dict:
++    _plain_path(path)
++    with path.open("rb") as handle:
++        raw = handle.read(MAX_DOCUMENT_BYTES + 1)
++    if len(raw) > MAX_DOCUMENT_BYTES:
++        raise ValueError("Resume metadata is larger than the supported limit")
++    value = json.loads(raw)
++    if not isinstance(value, dict):
++        raise ValueError("Resume metadata must be an object")
++    return value
++
++
++def _absolute(value: object) -> Path:
++    if not isinstance(value, str) or not value or not Path(value).is_absolute():
++        raise ValueError("Resume metadata needs absolute source and target paths")
++    return Path(value).resolve(strict=False)
++
++
++def inspect_resume_plan(document: Path, *, expected_profile: Path) -> ResumeCandidate:
++    document = Path(document).absolute()
++    _plain_path(document.parent)
++    state = _read_object(document)
++    if state.get("resumeVersion") != 1:
++        raise ValueError("Unsupported resume plan version")
++    journal_path = document.parent / "restore-journal.json"
++    journal = _read_object(journal_path)
++    target = _absolute(state.get("targetProfile"))
++    package = _absolute(state.get("package"))
++    if target != Path(expected_profile).resolve(strict=False):
++        raise ValueError("This plan belongs to a different destination profile")
++    if (_absolute(journal.get("targetProfile")) != target
++            or _absolute(journal.get("package")) != package
++            or _absolute(journal.get("safetyRoot")) != document.parent.resolve()
++            or journal.get("resumeExternalRoots") != state.get("externalRoots")):
++        raise ValueError("Resume plan and original restore journal do not match")
++    status = journal.get("status")
++    if status not in RESUMABLE_STATES:
++        raise ValueError("This restore is already complete or no longer resumable")
++    return ResumeCandidate(document.resolve(), package, target, status,
++                           journal_path.stat().st_mtime_ns, package.is_dir())
++
++
++def discover_resume_plans(profile: Path, *, recovery_root: Path | None = None,
++                          max_points: int = 1000) -> tuple[list[ResumeCandidate], list[str]]:
++    """Inspect only direct children of the managed recovery directory.
++
++    The most recently updated valid plan comes first. Offline backups remain
++    visible, but cannot be resumed until they are available again.
++    """
++    if max_points < 1:
++        raise ValueError("max_points must be positive")
++    if recovery_root is None:
++        from . import windows
++        recovery_root = windows.recovery_points_folder(profile)
++    root = Path(recovery_root)
++    candidates, issues = [], []
++    try:
++        _plain_path(root)
++        with os.scandir(root) as entries:
++            for number, entry in enumerate(entries):
++                if number >= max_points:
++                    issues.append("Recovery discovery limit reached; use Load plan for older points.")
++                    break
++                if not entry.is_dir(follow_symlinks=False):
++                    continue
++                folder = Path(entry.path)
++                document = folder / "resume-plan.json"
++                if not document.exists():
++                    continue
++                try:
++                    candidates.append(inspect_resume_plan(document, expected_profile=profile))
++                except (OSError, ValueError, TypeError, KeyError, RuntimeError) as exc:
++                    # Local activity log only; no document contents in diagnostics.
++                    issues.append(f"Ignored recovery point {folder.name}: {type(exc).__name__}: {exc}")
++    except FileNotFoundError:
++        return [], []
++    except (OSError, ValueError) as exc:
++        return [], [f"Recovery plans unavailable: {type(exc).__name__}"]
++    candidates.sort(key=lambda item: (item.updated_ns, str(item.document)), reverse=True)
++    return candidates, issues
+diff --git a/src/codex_transfer/validate.py b/src/codex_transfer/validate.py
+index f367f8d..3c1ad20 100644
+--- a/src/codex_transfer/validate.py
++++ b/src/codex_transfer/validate.py
+@@ -14,7 +14,7 @@ import urllib.parse
+ from pathlib import Path, PurePosixPath
+ from typing import Any, Callable
+ 
+-from . import lineage, path_model, project_identity, rollout as rollout_io
++from . import lineage, path_model, project_identity, project_archives, rollout as rollout_io
+ from .package_inventory import scan_package
+ from .parallel_hash import ordered_map
+ from . import parallel_hash
+@@ -22,7 +22,7 @@ from . import parallel_hash
+ 
+ FORMAT_ID = "codex-portable-backup"
+ FORMAT_VERSION = "2.4"
+-SUPPORTED_FORMAT_VERSIONS = {"2.0", "2.1", "2.2", "2.3", FORMAT_VERSION}
++SUPPORTED_FORMAT_VERSIONS = {"2.0", "2.1", "2.2", "2.3", FORMAT_VERSION, project_archives.FORMAT_VERSION}
+ MANIFEST_EXCLUSIONS = {
+     "manifest/package.json",
+     "manifest/package.json.sha256",
+@@ -146,15 +146,15 @@ def validate(
+         errors.append(f"Onjuist formatId: {package.get('formatId')!r}")
+     if not supports_format(str(package.get("formatVersion"))):
+         errors.append(f"Niet-ondersteunde formatVersion: {package.get('formatVersion')!r}")
+-    if package.get("formatVersion") in {"2.2", "2.3", "2.4"} and not (
++    if package.get("formatVersion") in {"2.2", "2.3", "2.4", "2.5"} and not (
+         package_root / "manifest/project-identities.json"
+     ).is_file():
+         errors.append("Required file missing: manifest/project-identities.json")
+-    if package.get("formatVersion") in {"2.3", "2.4"} and not (
++    if package.get("formatVersion") in {"2.3", "2.4", "2.5"} and not (
+         package_root / "manifest/inventory.json"
+     ).is_file():
+         errors.append("Required file missing: manifest/inventory.json")
+-    if package.get("formatVersion") == "2.4" and not (
++    if package.get("formatVersion") in {"2.4", "2.5"} and not (
+         package_root / "manifest/lineage.json"
+     ).is_file():
+         errors.append("Required file missing: manifest/lineage.json")
+@@ -217,17 +217,27 @@ def validate(
+     except Exception as exc:
+         errors.append(f"sha256.csv kan niet worden gelezen: {exc}")
+ 
++    try:
++        archive_projects = read_json(package_root / "manifest/projects.json")
++        if not isinstance(archive_projects, list):
++            raise ValueError("projects.json must be a list")
++        archive_inventory = project_archives.inspect_package(
++            package_root, package, archive_projects, hash_rows, verify_hashes, progress)
++    except (ValueError, OSError, sqlite3.Error) as exc:
++        errors.append(f"Invalid project archives: {exc}")
++        return {"valid": False, "errors": errors, "warnings": warnings, "checks": checks}
+     actual_files, forbidden_files, forbidden_directories = scan_package(
+         package_root, MANIFEST_EXCLUSIONS,
+         FORBIDDEN_CODEX_PATHS, FORBIDDEN_CODEX_DIRECTORIES,
+     )
++    actual_files.update(archive_inventory["files"])
+     listed_files = set(hash_rows)
+     for value in sorted(actual_files - listed_files):
+         errors.append(f"Unexpected/unhashed file: {value}")
+     for value in sorted(listed_files - actual_files):
+         errors.append(f"Hashed file is missing: {value}")
+-    checked_hashes = 0
+-    processed_bytes = 0
++    checked_hashes = archive_inventory["hashesChecked"]
++    processed_bytes = archive_inventory["bytes"]
+     total_hash_bytes = sum(size for size, _digest in hash_rows.values())
+     last_update = 0.0
+     if progress and verify_hashes:
+@@ -249,8 +259,10 @@ def validate(
+                 digest = sha256_file(path)
+         return row, size, digest
+ 
+-    rows = (ordered_map(hash_row, hash_rows.items()) if parallel_hashes else
+-            ((row, None, None) for row in hash_rows.items()))
++    physical_rows = ((path, expected) for path, expected in hash_rows.items()
++                     if path not in archive_inventory["files"])
++    rows = (ordered_map(hash_row, physical_rows) if parallel_hashes else
++            ((row, None, None) for row in physical_rows))
+     try:
+         for index, (row, measured_size, measured_hash) in enumerate(rows, start=1):
+             relative_path, (expected_size, expected_hash) = row
+@@ -314,6 +326,9 @@ def validate(
+                 )
+     finally:
+         rows.close()
++    if progress and verify_hashes:
++        progress(total_hash_bytes, max(total_hash_bytes, 1), "Backup file and archive hashes verified")
++    checks["archivedProjectFilesChecked"] = archive_inventory["hashesChecked"]
+     checks["hashedFilesChecked"] = checked_hashes
+     checks["payloadHashesVerified"] = verify_hashes
+     if progress:
+@@ -927,12 +942,19 @@ def validate(
+             errors.append(f"Project {item.get('id')} has an invalid backupRelativePath.")
+             continue
+         project_root = package_root / Path(*PurePosixPath(relative_path).parts)
+-        if not project_root.is_dir():
+-            errors.append(f"Project directory missing: {relative_path}")
+-            continue
+-        files = [path for path in project_root.rglob("*") if path.is_file()]
+-        actual_count = len(files)
+-        actual_size = sum(path.stat().st_size for path in files)
++        if project_archives.is_archived(item):
++            archived_stats = archive_inventory["projects"].get(relative_path)
++            if archived_stats is None:
++                errors.append(f"Archived project has not been validated: {relative_path}")
++                continue
++            actual_count, actual_size = archived_stats["files"], archived_stats["bytes"]
++        else:
++            if not project_root.is_dir():
++                errors.append(f"Project directory missing: {relative_path}")
++                continue
++            files = [path for path in project_root.rglob("*") if path.is_file()]
++            actual_count = len(files)
++            actual_size = sum(path.stat().st_size for path in files)
+         if item.get("fileCount") != actual_count:
+             errors.append(
+                 f"Project {item.get('id')} file count differs: {actual_count} instead of {item.get('fileCount')}"
+@@ -948,7 +970,7 @@ def validate(
+         )
+     checks["projectsChecked"] = len(projects)
+ 
+-    if package.get("formatVersion") in {"2.2", "2.3", "2.4"}:
++    if package.get("formatVersion") in {"2.2", "2.3", "2.4", "2.5"}:
+         try:
+             identity_manifest = read_json(
+                 package_root / "manifest/project-identities.json"
+@@ -1033,7 +1055,7 @@ def validate(
+     except Exception as exc:
+         errors.append(f"path-mappings.json is invalid: {exc}")
+ 
+-    if package.get("formatVersion") in {"2.3", "2.4"}:
++    if package.get("formatVersion") in {"2.3", "2.4", "2.5"}:
+         try:
+             inventory = read_json(package_root / "manifest/inventory.json")
+             if inventory.get("inventoryVersion") != 1:
+@@ -1281,7 +1303,7 @@ def validate(
+         except Exception as exc:
+             errors.append(f"inventory.json is invalid: {exc}")
+ 
+-    if package.get("formatVersion") == "2.4":
++    if package.get("formatVersion") in {"2.4", "2.5"}:
+         try:
+             lineage_manifest = read_json(package_root / "manifest/lineage.json")
+             for error in lineage.validate_manifest(lineage_manifest):
+@@ -1338,6 +1360,8 @@ def validate(
+                                 )
+                             except OSError:
+                                 empty_tree_exists = False
++                        elif str(payload_path) in archive_inventory["projects"]:
++                            empty_tree_exists = archive_inventory["projects"][str(payload_path)]["files"] == 0
+                         if str(payload_path) in hash_rows:
+                             size, digest = hash_rows[str(payload_path)]
+                             selected_rows.append(
+@@ -1409,6 +1433,7 @@ def validate(
+         package_root, MANIFEST_EXCLUSIONS,
+         FORBIDDEN_CODEX_PATHS, FORBIDDEN_CODEX_DIRECTORIES,
+     )
++    actual_files_after.update(archive_inventory["files"])
+     package_unchanged = (actual_files_after == actual_files
+                          and forbidden_files_after == forbidden_files
+                          and forbidden_directories_after == forbidden_directories)

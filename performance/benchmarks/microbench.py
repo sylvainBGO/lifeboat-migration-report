@@ -87,15 +87,18 @@ def payload(index, size, profile):
     return hashlib.shake_256(seed).digest(size)
 
 
-def run(base, count=3000, size=4096, repeats=2, profile="mixed", observer=None):
+def run(base, count=3000, size=4096, repeats=2, profile="mixed", observer=None,
+        stop_requested=None, cancel_requested=None):
+    stop_requested = stop_requested or (lambda: False)
+    cancel_requested = cancel_requested or (lambda: False)
     base = Path(base).resolve()
     base.mkdir(parents=True, exist_ok=True)
     # Only this newly generated directory is ever removed.
     if shutil.disk_usage(base).free < count * size * 4 + 500_000_000:
         raise ValueError('Insufficient free space for fixture, outputs and 500 MB reserve')
     root = Path(tempfile.mkdtemp(prefix='lifeboat-bench-', dir=base))
-    report = dict(schema=2, version="0.2", profile=profile, platform=platform.platform(), python=platform.python_version(),
-                  file_count=count, file_bytes=size, repeats=repeats, results=[],
+    report = dict(schema=3, version="0.3", profile=profile, platform=platform.platform(), python=platform.python_version(),
+                  file_count=count, file_bytes=size, repeats=repeats, results=[], completed=False,
                   limitations=['Synthetic strategies, not full restore timings',
                                'Warm OS cache; no cache eviction or physical I/O measurement',
                                'SHA-256 destination readback is not a physical durability guarantee',
@@ -108,6 +111,8 @@ def run(base, count=3000, size=4096, repeats=2, profile="mixed", observer=None):
         setup = []
         def generate():
             for i in range(count):
+                if i % 128 == 0 and cancel_requested():
+                    raise InterruptedError('Benchmark cancellation requested')
                 name = f'{i // 100:05d}/{i:08d}.dat'
                 path = src / name
                 path.parent.mkdir(parents=True, exist_ok=True)
@@ -129,9 +134,14 @@ def run(base, count=3000, size=4096, repeats=2, profile="mixed", observer=None):
             order = list(strategies)
             random.Random(20261103 + repeat).shuffle(order)
             for strategy in order:
+                if cancel_requested():
+                    raise InterruptedError('Benchmark cancellation requested')
+                if stop_requested():
+                    report['status'] = 'stopped'
+                    return report
                 rows = []
                 dst = root / f'destination-{repeat}-{strategy}'
-                state = report['defender_start']
+                state = defender_state()
                 print(f'{repeat+1}/{repeats}: {strategy}', flush=True)
                 if strategy == 'separate':
                     phase(rows, 'source_verify', lambda: verify(src, manifest))
@@ -157,14 +167,18 @@ def run(base, count=3000, size=4096, repeats=2, profile="mixed", observer=None):
                     phase(rows, 'extract_with_crc', extract)
                 phase(rows, 'destination_verify', lambda: verify(dst, manifest))
                 report['results'].append(dict(strategy=strategy, repeat=repeat, defender_before=state,
-                    defender_sample='run_start',
+                    defender_after=defender_state(),
+                    defender_sample='trial_start', observation='first_pass' if repeat == 0 else 'subsequent_pass',
+                    cache_controlled=False,
                     phases=rows, seconds=sum(x['seconds'] for x in rows), verified=True))
                 if observer:
                     observer(report)
                 shutil.rmtree(dst)
-        report['defender_end'] = defender_state()
+        report['completed'] = True
+        report['status'] = 'complete'
         return report
     finally:
+        report['defender_end'] = defender_state()
         shutil.rmtree(root)
 
 

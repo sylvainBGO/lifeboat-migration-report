@@ -1,4 +1,27 @@
-# Lifeboat migration — developer handoff
+# Codex Lifeboat Community — recovery and performance
+
+The current Community build combines upstream **v3.4.11** with three versioned
+patches, applied in this order:
+
+1. `performance/optimizations/restore-first-pass.patch`
+2. `features/resume-copy-foundation.patch`
+3. `features/completion.patch`
+
+It includes durable pause/resume, startup discovery of unfinished plans,
+explicit Defender controls with manual reactivation reminders, optional project
+archive blocks and bounded local conversation pre-reading. Pre-reading warms
+only the temporary OS file cache; it is not a supported Codex application preload.
+
+- [Windows build and acceptance workflow](https://github.com/sylvainBGO/lifeboat-migration-report/actions/workflows/restore-features.yml)
+- [Community downloads and historical releases](https://github.com/sylvainBGO/lifeboat-migration-report/releases)
+- [Current completion record](performance/analysis/completion-status.md)
+- [Benchmark campaign and usage](performance/benchmarks/CAMPAIGN.md)
+
+The `handoff/2026-11-02` directory below is the historical incident package. The
+current program is reconstructed by the Windows workflow; do not use the old
+handoff source directory as the current implementation.
+
+## Historical migration — developer handoff
 
 Public technical evidence for [dkwolf1/Codex-Lifeboat issue #8](https://github.com/dkwolf1/Codex-Lifeboat/issues/8#issuecomment-6588510483).
 

@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "fixture_version": "2026-11-final-1",
+  "upstream_commit": "4fe9724ccb54422455544e56b54399fa2bc94bc3",
+  "restore_variants": ["baseline", "final"],
+  "optional_restore_variant": "final_archive",
+  "production_archive_storage": "archive-blocks-v1",
+  "restore_timing": "Each trial builds its own backup from the same synthetic source; backup, restore with validation/checkpoints and their sum are measured separately.",
+  "invariance_check": "Source and backup file membership/content hashes are checked outside timing; all metadata invariance is not claimed.",
+  "cache_control": "not-controlled; no cache flush; alternate baseline/final order",
+  "quick": {
+    "repeats": 1,
+    "minimum_free_bytes": 1500000000,
+    "restore": [
+      {"profile": "small", "added_files": 200, "bytes_per_file": 1024, "project_roots": 4},
+      {"profile": "large", "added_files": 2, "bytes_per_file": 1048576, "project_roots": 1}
+    ],
+    "io": {"profiles": ["mixed"], "files": 300, "bytes_per_file": 4096, "strategies": 6}
+  },
+  "thorough": {
+    "default_repeats": 3,
+    "allowed_repeats": [2, 3, 4, 5],
+    "minimum_free_bytes": 3000000000,
+    "restore": [
+      {"profile": "small", "added_files": 5000, "bytes_per_file": 1024, "project_roots": 40},
+      {"profile": "large", "added_files": 8, "bytes_per_file": 16777216, "project_roots": 1},
+      {"profile": "overlap", "added_files": 200, "bytes_per_file": 524288, "project_roots": 2}
+    ],
+    "io": {"profiles": ["mixed", "incompressible", "compressible"], "files": 3000, "bytes_per_file": 4096, "strategies": 6}
+  },
+  "limits": [
+    "Synthetic profiles also include upstream JSONL/ZST, SQLite and target authentication fixtures.",
+    "Fixture generation and backup construction are outside restore timing.",
+    "Final restore timing includes durable plan and checkpoints.",
+    "IO ZIP strategies are not metadata-equivalent full restorations.",
+    "No duration guarantee and no extrapolation to a real backup."
+  ]
+}

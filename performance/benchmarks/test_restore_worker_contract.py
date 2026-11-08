@@ -46,7 +46,10 @@ def observed_guard(path, allow_running_test):
     return real_guard(path, allow_running_test)
 backup.check_codex_not_running=observed_guard
 result=worker.restore_trial(root, 'contract', variant)
-worker.save(root/'contract.json', {'result':result,'guards':guards})
+mapping_file=next((root/'packages'/'contract').glob('*/manifest/path-mappings.json'))
+mappings=json.loads(mapping_file.read_text(encoding='utf-8'))
+locations=[item['location']['kind'] for item in mappings['projects'] if item.get('sourcePresent', True)]
+worker.save(root/'contract.json', {'result':result,'guards':guards,'project_locations':locations})
 '''
         for variant, count in (('baseline', 3), ('final', 4), ('final_archive', 4)):
             with self.subTest(variant=variant), tempfile.TemporaryDirectory(prefix='lb-contract-') as folder:
@@ -56,6 +59,7 @@ worker.save(root/'contract.json', {'result':result,'guards':guards})
                 self.assertEqual(completed.returncode, 0, completed.stdout[-3000:] + completed.stderr[-3000:])
                 evidence = json.loads((Path(folder) / 'contract.json').read_text(encoding='utf-8'))
                 self.assertEqual(evidence['guards'], [False] * count)
+                self.assertEqual(evidence['project_locations'], ['known-folder'])
                 row = evidence['result']
                 self.assertTrue(row['valid'], row['checks'])
                 self.assertEqual(row['protocol_version'], PROTOCOL_VERSION)

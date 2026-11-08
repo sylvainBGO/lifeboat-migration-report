@@ -69,6 +69,11 @@ def profile_shape(profile, mode):
 
 def build_fixture(root, profile, mode):
     from codex_transfer import backup, selftest
+    # tempfile may expose an 8.3 alias such as RUNNER~1 on Windows. Resolve
+    # before embedding paths in SQLite/config, just as build_backup resolves
+    # source_profile, or lexical portable-location matching sees an external
+    # project even though both spellings point inside the same fixture.
+    root = Path(root).resolve()
     source = root / 'source'
     if source.exists() or (root / 'fixture.json').exists():
         raise RuntimeError('Refusing to overwrite an existing synthetic fixture')
@@ -160,6 +165,7 @@ def review_synthetic_plan(root, package, target, plan, plan_api):
 
 def restore_trial(root, trial, variant):
     from codex_transfer import backup, restore, restore_plan, selftest
+    root = Path(root).resolve()
     if not re.fullmatch(r'[A-Za-z0-9_-]{1,80}', trial):
         raise ValueError('Invalid synthetic trial identifier')
     package_data = json.loads((root / 'fixture.json').read_text(encoding='utf-8'))

@@ -117,10 +117,10 @@ index 4291922..30b20cb 100644
 +ce dossier ; aucun fichier existant n'est remplacé. Le résultat décrit seulement
 +les données lues, pas des conversations chargées par l'application.
 diff --git a/benchmarks/capture_recovery_ui.py b/benchmarks/capture_recovery_ui.py
-index ac6f035..0a7cf5d 100644
+index ac6f035..fc0927e 100644
 --- a/benchmarks/capture_recovery_ui.py
 +++ b/benchmarks/capture_recovery_ui.py
-@@ -1,29 +1,119 @@
+@@ -1,29 +1,137 @@
 -"""Synthetic UI evidence only; never starts a restore or changes Defender."""
 +"""Synthetic UI/layout evidence; never starts a restore or changes Defender."""
 +import json
@@ -180,6 +180,9 @@ index ac6f035..0a7cf5d 100644
 +                        and outer[2] <= work[2] and outer[3] <= work[3]), (outer, work)
 +            assert not app.resume_notice.winfo_manager(), 'Empty resume notice reserves space'
 +            evidence['checks']['emptyNoticeHidden'] = True
++            header_widgets = {**{'nav_' + name: button for name, button in app.nav_buttons.items()},
++                              'title': app.title_label, 'language_label': app.language_label,
++                              'language_box': app.language_box}
 +
 +            def capture(name, widgets, screenshot=True):
 +                app.update()
@@ -188,11 +191,24 @@ index ac6f035..0a7cf5d 100644
 +                bounds = (canvas.winfo_rootx(), canvas.winfo_rooty(),
 +                          canvas.winfo_rootx() + canvas.winfo_width(),
 +                          canvas.winfo_rooty() + canvas.winfo_height())
++                client = (app.winfo_rootx(), app.winfo_rooty(),
++                          app.winfo_rootx() + app.winfo_width(), app.winfo_rooty() + app.winfo_height())
 +                if screenshot:
-+                    client = (app.winfo_rootx(), app.winfo_rooty(),
-+                              app.winfo_rootx() + app.winfo_width(), app.winfo_rooty() + app.winfo_height())
 +                    assert (client[0] >= work[0] and client[1] >= work[1]
 +                            and client[2] <= work[2] and client[3] <= work[3]), (client, work)
++                header = (app.topbar.winfo_rootx(), app.topbar.winfo_rooty(),
++                          app.topbar.winfo_rootx() + app.topbar.winfo_width(),
++                          app.topbar.winfo_rooty() + app.topbar.winfo_height())
++                header_positions = {}
++                for label, widget in header_widgets.items():
++                    box = (widget.winfo_rootx(), widget.winfo_rooty(),
++                           widget.winfo_rootx() + widget.winfo_width(),
++                           widget.winfo_rooty() + widget.winfo_height())
++                    header_positions[label] = box
++                    assert widget.winfo_ismapped(), label + ' is hidden'
++                    for boundary in (header, client, work) if screenshot else (header, client):
++                        assert (box[0] >= boundary[0] and box[1] >= boundary[1]
++                                and box[2] <= boundary[2] and box[3] <= boundary[3]), (label, box, boundary)
 +                positions = {}
 +                for label, widget in widgets.items():
 +                    box = (widget.winfo_rootx(), widget.winfo_rooty(),
@@ -202,7 +218,9 @@ index ac6f035..0a7cf5d 100644
 +                    assert widget.winfo_ismapped(), label + ' is hidden'
 +                    assert (box[0] >= bounds[0] and box[1] >= bounds[1]
 +                            and box[2] <= bounds[2] and box[3] <= bounds[3]), (label, box, bounds)
-+                evidence['checks'][name] = {'viewport': bounds, 'visibleWidgets': positions}
++                evidence['checks'][name] = {'viewport': bounds, 'visibleWidgets': positions,
++                                           'header': header, 'headerWidgets': header_positions,
++                                           'compactHeader': app._topbar_compact}
 +                if screenshot:
 +                    x, y = app.winfo_rootx(), app.winfo_rooty()
 +                    ImageGrab.grab(bbox=(x, y, x + app.winfo_width(), y + app.winfo_height())).save(output / name)
@@ -2461,7 +2479,7 @@ index 0000000..c569814
 +    _emit(result, control, progress, "finished")
 +    return result
 diff --git a/src/codex_transfer/gui.py b/src/codex_transfer/gui.py
-index b6cab11..4da6ae9 100644
+index b6cab11..f4258c6 100644
 --- a/src/codex_transfer/gui.py
 +++ b/src/codex_transfer/gui.py
 @@ -1,6 +1,7 @@
@@ -2565,12 +2583,63 @@ index b6cab11..4da6ae9 100644
      def _restore_from_taskbar(self, _event=None) -> None:
          """Make a restored frozen Tk window reliably return to the foreground."""
          if self.state() == "iconic":
-@@ -2553,8 +2619,25 @@ class TransferApp(RecoveryUI, tk.Tk):
-         self.language_box.grid(row=0, column=9, rowspan=2, padx=(0, 22))
-         self.language_box.bind("<<ComboboxSelected>>", self._change_language)
+@@ -2495,12 +2561,12 @@ class TransferApp(RecoveryUI, tk.Tk):
+         self.columnconfigure(0, weight=1)
+         self.rowconfigure(1, weight=1)
  
+-        topbar = tk.Frame(self, bg=self.NAVY_DARK, height=76)
++        topbar = self.topbar = tk.Frame(self, bg=self.NAVY_DARK, height=76)
+         topbar.grid(row=0, column=0, sticky="ew")
+         topbar.grid_propagate(False)
+-        topbar.columnconfigure(7, weight=1)
++        topbar.columnconfigure(3, weight=1)
+ 
+-        logo = tk.Canvas(
++        logo = self.brand_logo = tk.Canvas(
+             topbar, width=44, height=44, bg=self.NAVY_DARK,
+             highlightthickness=0, borderwidth=0
+         )
+@@ -2522,16 +2588,18 @@ class TransferApp(RecoveryUI, tk.Tk):
+         )
+         self.subtitle_label.grid(row=1, column=1, sticky="nw", pady=(0, 10))
+         self.sidebar_note = tk.Label(topbar, bg=self.NAVY_DARK)
++        self.navigation_frame = tk.Frame(topbar, bg=self.NAVY_DARK)
++        self.navigation_frame.grid(row=0, column=2, rowspan=2, sticky="ns")
+ 
+         def nav_button(column: int, command) -> tk.Button:
+             button = tk.Button(
+-                topbar, command=command, relief="flat", borderwidth=0,
++                self.navigation_frame, command=command, relief="flat", borderwidth=0,
+                 bg=self.NAVY_DARK, fg="#DCE8F4", activebackground="#173955",
+                 activeforeground="#FFFFFF", disabledforeground="#71879A",
+                 font=("Segoe UI", 9, "bold"), padx=12, pady=10,
+                 cursor="hand2"
+             )
+-            button.grid(row=0, column=column, rowspan=2, sticky="ns", padx=1, pady=10)
++            button.grid(row=0, column=column - 2, sticky="ns", padx=1, pady=10)
+             return button
+ 
+         self.overview_button = nav_button(2, lambda: self._show_tab("overview"))
+@@ -2544,17 +2612,36 @@ class TransferApp(RecoveryUI, tk.Tk):
+         self.language_label = tk.Label(
+             topbar, bg=self.NAVY_DARK, fg="#DCE8F4", font=("Segoe UI", 9)
+         )
+-        self.language_label.grid(row=0, column=8, rowspan=2, padx=(12, 7))
++        self.language_label.grid(row=0, column=4, rowspan=2, padx=(12, 7))
+         self.language_box = ttk.Combobox(
+             topbar, state="readonly", width=11,
+             values=("English", "Nederlands"), style="Language.TCombobox"
+         )
+         self.language_box.current(0 if self.language.get() == "en" else 1)
+-        self.language_box.grid(row=0, column=9, rowspan=2, padx=(0, 22))
++        self.language_box.grid(row=0, column=5, rowspan=2, padx=(0, 22))
+         self.language_box.bind("<<ComboboxSelected>>", self._change_language)
+-
 -        self.main_panel = ttk.Frame(self, style="App.TFrame", padding=(28, 20, 28, 20))
 -        self.main_panel.grid(row=1, column=0, sticky="nsew")
++        self._topbar_compact = None
++        topbar.bind("<Configure>", self._layout_topbar)
++
 +        # Keep the navigation fixed while every card remains reachable on the
 +        # supported minimum window size, including expanded results and logs.
 +        viewport = ttk.Frame(self, style="App.TFrame")
@@ -2593,7 +2662,7 @@ index b6cab11..4da6ae9 100644
          self.main_panel.columnconfigure(0, weight=1)
          self.main_panel.rowconfigure(7, weight=1)
  
-@@ -2711,9 +2794,11 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -2711,9 +2798,11 @@ class TransferApp(RecoveryUI, tk.Tk):
              self.status_frame, bg=self.CARD, fg=self.TEXT_COLOR,
              font=("Segoe UI", 9, "bold"), anchor="w"
          )
@@ -2607,10 +2676,32 @@ index b6cab11..4da6ae9 100644
          self.elapsed_label = tk.Label(
              timing, text="—", bg=self.CARD, fg=self.MUTED, font=("Segoe UI", 8)
          )
-@@ -2894,6 +2979,43 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -2894,6 +2983,65 @@ class TransferApp(RecoveryUI, tk.Tk):
          }
          self._show_tab("overview")
  
++    def _layout_topbar(self, _event=None) -> None:
++        # Keep every navigation/language control visible when the Windows work
++        # area is narrower than our normal minimum. The content remains scrollable.
++        buttons = self.navigation_frame.winfo_children()
++        required = (self.brand_logo.winfo_reqwidth() + 34
++                    + max(self.title_label.winfo_reqwidth(), self.subtitle_label.winfo_reqwidth())
++                    + sum(button.winfo_reqwidth() + 2 for button in buttons)
++                    + self.language_label.winfo_reqwidth() + 19
++                    + self.language_box.winfo_reqwidth() + 22)
++        compact = self.topbar.winfo_width() < required
++        if compact == self._topbar_compact:
++            return
++        self._topbar_compact = compact
++        for button in buttons:
++            button.grid_configure(pady=(0, 8) if compact else 10)
++        self.navigation_frame.grid_configure(
++            row=2 if compact else 0, column=0 if compact else 2,
++            rowspan=1 if compact else 2, columnspan=6 if compact else 1,
++            sticky="w" if compact else "ns", padx=(24, 0) if compact else 0)
++        height = 76 + max(button.winfo_reqheight() for button in buttons) + 8 if compact else 76
++        self.topbar.configure(height=height)
++
 +    def _sync_main_view(self, _event=None) -> None:
 +        width = max(1, self.main_canvas.winfo_width())
 +        height = max(self.main_panel.winfo_reqheight(), self.main_canvas.winfo_height())
@@ -2651,7 +2742,7 @@ index b6cab11..4da6ae9 100644
      def _show_tab(self, tab: str) -> None:
          if tab not in self.nav_buttons:
              tab = "overview"
-@@ -2968,6 +3090,7 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -2968,6 +3116,7 @@ class TransferApp(RecoveryUI, tk.Tk):
                  self.details_button.grid_remove()
                  self.log_frame.grid_remove()
          self._translate_tab()
@@ -2659,7 +2750,7 @@ index b6cab11..4da6ae9 100644
  
      def _translate_tab(self) -> None:
          title_key, subtitle_key = {
-@@ -3001,6 +3124,7 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3001,6 +3150,7 @@ class TransferApp(RecoveryUI, tk.Tk):
          self.details_visible = not self.details_visible
          if self.details_visible:
              self.log_frame.grid()
@@ -2667,7 +2758,7 @@ index b6cab11..4da6ae9 100644
          else:
              self.log_frame.grid_remove()
          self.details_button.configure(
-@@ -3046,6 +3170,7 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3046,6 +3196,7 @@ class TransferApp(RecoveryUI, tk.Tk):
          self.remaining_label.configure(text=f"{self.t('remaining')}: {self.t('calculating')}")
          self.throughput_label.configure(text=f"{self.t('throughput')}: —")
          self._render_operation_state()
@@ -2675,7 +2766,15 @@ index b6cab11..4da6ae9 100644
  
      def _finish_operation(self, success: bool) -> None:
          self.operation_failed = not success
-@@ -3373,9 +3498,12 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3290,6 +3441,7 @@ class TransferApp(RecoveryUI, tk.Tk):
+             if self.operation_paused:
+                 self.header_status.configure(text='● Paused', bg='#FFF0D6', fg='#A85B00')
+                 self.status_label.configure(text=self.last_progress_message)
++        self._layout_topbar()
+ 
+     def _render_last_result(self) -> None:
+         model = self.last_result_model
+@@ -3373,9 +3525,12 @@ class TransferApp(RecoveryUI, tk.Tk):
                      self._finish_operation(True)
                  self._set_busy(False)
                  if self.close_after_pause:
@@ -2688,7 +2787,7 @@ index b6cab11..4da6ae9 100644
              elif kind == "error":
                  self.close_after_pause = False
                  self.phase_progress.stop()
-@@ -3386,15 +3514,22 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3386,15 +3541,22 @@ class TransferApp(RecoveryUI, tk.Tk):
                  if not self.details_visible:
                      self._toggle_details()
                  messagebox.showerror(self.t("error"), str(value), parent=self)
@@ -2713,7 +2812,7 @@ index b6cab11..4da6ae9 100644
              )
          if not value:
              self.phase_started_at = None
-@@ -3405,7 +3540,7 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3405,7 +3567,7 @@ class TransferApp(RecoveryUI, tk.Tk):
          if self.launch_blocked:
              self._show_extract_required()
              return
@@ -2722,7 +2821,7 @@ index b6cab11..4da6ae9 100644
              return
          self._begin_operation(operation)
          self._set_busy(True)
-@@ -3498,20 +3633,22 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3498,20 +3660,22 @@ class TransferApp(RecoveryUI, tk.Tk):
          dependency_blockers = list(dependency_scan.get("blockingIssues", []))
          if dependency_exclusions or dependency_blockers:
              dependency_dialog = DependencyPreflightDialog(self, dependency_scan)
@@ -2747,7 +2846,7 @@ index b6cab11..4da6ae9 100644
              return
          initial_destination = self._initial_destination()
          while True:
-@@ -3521,6 +3658,7 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3521,6 +3685,7 @@ class TransferApp(RecoveryUI, tk.Tk):
                  initial_destination,
              )
              if not selected:
@@ -2755,7 +2854,7 @@ index b6cab11..4da6ae9 100644
                  return
              path_report = backup.destination_path_budget(
                  Path(selected),
-@@ -3573,8 +3711,11 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3573,8 +3738,11 @@ class TransferApp(RecoveryUI, tk.Tk):
              ),
              parent=self,
          ):
@@ -2767,7 +2866,7 @@ index b6cab11..4da6ae9 100644
          def work():
              config_root = Path(tempfile.gettempdir()) / "Codex-Lifeboat"
              config_root.mkdir(parents=True, exist_ok=True)
-@@ -3583,6 +3724,7 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3583,6 +3751,7 @@ class TransferApp(RecoveryUI, tk.Tk):
                  config_path,
                  {
                      "configVersion": 1,
@@ -2775,7 +2874,7 @@ index b6cab11..4da6ae9 100644
                      "destinationRoot": selected,
                      "includeAttachments": True,
                      "projects": [],
-@@ -3805,18 +3947,22 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3805,18 +3974,22 @@ class TransferApp(RecoveryUI, tk.Tk):
      def _restore(self) -> None:
          messagebox.showinfo(self.t("restore"), self.t("restore_intro"), parent=self)
          if not self._version_permission():

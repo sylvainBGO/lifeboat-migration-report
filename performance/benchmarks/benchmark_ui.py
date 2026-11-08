@@ -12,6 +12,57 @@ from benchmark import RunControl, run_suite
 from benchmark_report import CACHE_NOTE, DEFENDER_REMINDER
 
 
+def fit_window_to_work_area(window, preferred, minimum):
+    """Fit the initial client and native frame inside the Windows work area."""
+    window.update_idletasks()
+    area = (0, 0, window.winfo_screenwidth(), window.winfo_screenheight())
+    frame_width, frame_height = 16, 40
+    native = False
+    get_rect = hwnd = None
+    if os.name == 'nt':
+        import ctypes
+        from ctypes import wintypes
+        try:
+            user32 = ctypes.WinDLL('user32', use_last_error=True)
+            system_parameters = user32.SystemParametersInfoW
+            system_parameters.argtypes = [wintypes.UINT, wintypes.UINT, ctypes.c_void_p, wintypes.UINT]
+            system_parameters.restype = wintypes.BOOL
+            work = wintypes.RECT()
+            if not system_parameters(0x0030, 0, ctypes.byref(work), 0):  # SPI_GETWORKAREA
+                raise ctypes.WinError(ctypes.get_last_error())
+            area = (work.left, work.top, work.right, work.bottom)
+            native = True
+            get_ancestor = user32.GetAncestor
+            get_ancestor.argtypes = [wintypes.HWND, wintypes.UINT]
+            get_ancestor.restype = wintypes.HWND
+            hwnd = get_ancestor(window.winfo_id(), 2) or window.winfo_id()
+            get_rect = user32.GetWindowRect
+            get_rect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
+            get_rect.restype = wintypes.BOOL
+            outer = wintypes.RECT()
+            if get_rect(hwnd, ctypes.byref(outer)):
+                frame_width = max(0, outer.right - outer.left - window.winfo_width())
+                frame_height = max(0, outer.bottom - outer.top - window.winfo_height())
+        except (OSError, AttributeError):
+            pass
+    available_width = max(1, area[2] - area[0] - frame_width - 16)
+    available_height = max(1, area[3] - area[1] - frame_height - 16)
+    width, height = min(preferred[0], available_width), min(preferred[1], available_height)
+    minimum = (min(minimum[0], available_width), min(minimum[1], available_height))
+    x = area[0] + (area[2] - area[0] - width - frame_width) // 2
+    y = area[1] + (area[3] - area[1] - height - frame_height) // 2
+    window.minsize(*minimum)
+    window.geometry(f'{width}x{height}+{x}+{y}')
+    window.update_idletasks()
+    outer_bounds = None
+    if get_rect is not None:
+        outer = wintypes.RECT()
+        if get_rect(hwnd, ctypes.byref(outer)):
+            outer_bounds = [outer.left, outer.top, outer.right, outer.bottom]
+    return dict(workArea=list(area), nativeWorkArea=native, clientSize=[width, height],
+                minimumSize=list(minimum), outerBounds=outer_bounds)
+
+
 class DefenderAdapter:
     """Only the explicit disable action invokes the shared production helper."""
     def __init__(self, backend=None):
@@ -66,7 +117,7 @@ class BenchmarkWindow:
         root.columnconfigure(0, weight=1)
         root.rowconfigure(0, weight=1)
         frame.columnconfigure(0, weight=1)
-        frame.rowconfigure(5, weight=1)
+        frame.rowconfigure(5, weight=1, minsize=0)
         ttk.Label(frame, text='Mesurer Lifeboat sur ce PC', style='Title.TLabel').grid(sticky='w')
         ttk.Label(frame, text='Des données reproductibles, une comparaison complète et un rapport à partager.',
                   style='Subtitle.TLabel').grid(row=1, sticky='w', pady=(4, 16))
@@ -127,7 +178,9 @@ class BenchmarkWindow:
         self.progress.grid(row=1, column=0, sticky='ew', pady=8)
         self.elapsed = tk.StringVar(value='')
         ttk.Label(progress, textvariable=self.elapsed).grid(row=2, column=0, sticky='w')
-        self.log = tk.Text(frame, height=5, wrap='word', state='disabled', font=('Consolas', 10))
+        # The log takes remaining height instead of pushing controls below the
+        # physical work area on smaller desktops.
+        self.log = tk.Text(frame, height=1, wrap='word', state='disabled', font=('Consolas', 10))
         self.log.grid(row=5, sticky='nsew', pady=10)
         buttons = ttk.Frame(frame)
         buttons.grid(row=6, sticky='ew')
@@ -139,9 +192,11 @@ class BenchmarkWindow:
         self.cancel_button.pack(side='left')
         self.open_button = ttk.Button(buttons, text='Ouvrir le résumé', state='disabled', command=self.open_summary)
         self.open_button.pack(side='right')
-        ttk.Label(frame, text=DEFENDER_REMINDER, wraplength=800).grid(row=7, sticky='w', pady=(12, 0))
+        self.reminder_label = ttk.Label(frame, text=DEFENDER_REMINDER, wraplength=800)
+        self.reminder_label.grid(row=7, sticky='w', pady=(12, 0))
         self.change_mode()
         self.change_focus()
+        self.window_placement = fit_window_to_work_area(root, (900, 800), (780, 740))
         self.refresh_defender()
         root.after(100, self.poll)
 

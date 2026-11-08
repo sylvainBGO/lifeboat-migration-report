@@ -14,7 +14,7 @@ import unittest
 from unittest.mock import patch
 
 from benchmark import RunControl, WorkerPair, run_suite
-from benchmark_report import paired_comparisons, readable, _atomic_text
+from benchmark_report import PROTOCOL_VERSION, paired_comparisons, readable, _atomic_text
 from microbench import run as run_microbench
 from restore_worker import owned_root
 
@@ -34,9 +34,10 @@ if a.action in ('build','preflight'):
 else:
  SLOW
  r={'kind':'restore','variant':a.variant,'seconds':1 if a.variant=='baseline' else 2,
+    'protocol_version':'__PROTOCOL__',
     'valid':True,'durable_checkpoints':a.variant!='baseline','final_verification':True}
 (root/'results'/(a.trial+'.json')).write_text(json.dumps(r), encoding='utf-8')
-'''.replace('SLOW', 'time.sleep(5)' if slow else 'pass'), encoding='utf-8')
+'''.replace('SLOW', 'time.sleep(5)' if slow else 'pass').replace('__PROTOCOL__', PROTOCOL_VERSION), encoding='utf-8')
 
     def command(self, variant):
         return [sys.executable, str(self.script)]
@@ -97,6 +98,7 @@ class BenchmarkDeliveryTests(unittest.TestCase):
             root = Path(folder)
             report, path = run_suite(root, focus='restore', worker_pair=FakeWorkerPair(root), state_reader=self.state)
             self.assertTrue(report['passed'])
+            self.assertEqual(report['protocol_version'], PROTOCOL_VERSION)
             self.assertEqual(len(report['trials']), 4)
             self.assertEqual(report['comparisons']['small']['reduction_percent'], -100)
             self.assertIn('-100.0 %', path.with_suffix('.txt').read_text(encoding='utf-8'))
@@ -132,6 +134,21 @@ class BenchmarkDeliveryTests(unittest.TestCase):
         common = dict(kind='restore', profile='small', repeat=0, valid=True, seconds=1)
         rows = [dict(common, variant='baseline'), dict(common, variant='final', durable_checkpoints=False)]
         self.assertEqual(paired_comparisons(rows), {})
+
+    def test_comparison_rejects_mixed_timing_protocols(self):
+        common = dict(kind='restore', profile='small', repeat=0, valid=True, seconds=1, durable_checkpoints=True)
+        rows = [dict(common, variant='baseline'),
+                dict(common, variant='final', protocol_version=PROTOCOL_VERSION)]
+        self.assertEqual(paired_comparisons(rows), {})
+
+    def test_worker_from_an_older_protocol_is_rejected_before_publishing_measurements(self):
+        with tempfile.TemporaryDirectory() as folder:
+            pair = FakeWorkerPair(folder)
+            pair.script.write_text(pair.script.read_text(encoding='utf-8').replace(PROTOCOL_VERSION, 'old-protocol'), encoding='utf-8')
+            report, path = run_suite(folder, focus='restore', worker_pair=pair, state_reader=self.state)
+            self.assertEqual(report['status'], 'failed')
+            self.assertEqual(report['trials'], [])
+            self.assertIn('protocol does not match', path.with_suffix('.txt').read_text(encoding='utf-8'))
 
     def test_known_defender_difference_never_produces_a_gain_even_with_missing_samples(self):
         common = dict(kind='restore', profile='small', repeat=0, valid=True, seconds=1, durable_checkpoints=True)

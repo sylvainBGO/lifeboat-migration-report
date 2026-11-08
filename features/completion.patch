@@ -103,13 +103,14 @@ index 4291922..39d5564 100644
 +ce dossier ; aucun fichier existant n'est remplacé. Le résultat décrit seulement
 +les données lues, pas des conversations chargées par l'application.
 diff --git a/benchmarks/capture_recovery_ui.py b/benchmarks/capture_recovery_ui.py
-index ac6f035..c876d93 100644
+index ac6f035..0a7cf5d 100644
 --- a/benchmarks/capture_recovery_ui.py
 +++ b/benchmarks/capture_recovery_ui.py
-@@ -1,29 +1,89 @@
+@@ -1,29 +1,119 @@
 -"""Synthetic UI evidence only; never starts a restore or changes Defender."""
 +"""Synthetic UI/layout evidence; never starts a restore or changes Defender."""
 +import json
++import os
  from pathlib import Path
  import sys
 +from unittest.mock import patch
@@ -144,27 +145,40 @@ index ac6f035..c876d93 100644
 +def main():
 +    output = Path(sys.argv[1])
 +    output.mkdir(parents=True, exist_ok=True)
-+    evidence = {'passed': False, 'requestedSize': [1080, 720], 'checks': {}}
++    evidence = {'passed': False, 'logicalTestSize': [1080, 720], 'checks': {}}
 +    with patch.object(TransferApp, '_discover_resume_at_startup'), \
 +            patch('codex_transfer.windows.removable_drives', return_value=[]):
 +        app = TransferApp()
 +        try:
-+            # Exercise the real supported minimum, without weakening minsize.
-+            app.geometry('1080x720+0+0')
++            # Screenshots use the real initial window fitted to this desktop.
++            # A separate logical 1080x720 test below never produces a screenshot
++            # that could be clipped or covered by the runner's taskbar.
 +            app._show_tab('restore')
 +            app.update()
-+            evidence['actualSize'] = [app.winfo_width(), app.winfo_height()]
-+            assert evidence['actualSize'] == [1080, 720], evidence['actualSize']
++            evidence['initialPlacement'] = app.window_placement
++            evidence['initialActualSize'] = [app.winfo_width(), app.winfo_height()]
++            work = app.window_placement['workArea']
++            if os.name == 'nt':
++                assert app.window_placement['nativeWorkArea'], 'Windows work area was not available'
++            outer = app.window_placement['outerBounds']
++            if outer is not None:
++                assert (outer[0] >= work[0] and outer[1] >= work[1]
++                        and outer[2] <= work[2] and outer[3] <= work[3]), (outer, work)
 +            assert not app.resume_notice.winfo_manager(), 'Empty resume notice reserves space'
 +            evidence['checks']['emptyNoticeHidden'] = True
 +
-+            def capture(name, widgets):
++            def capture(name, widgets, screenshot=True):
 +                app.update()
 +                app.update_idletasks()
 +                canvas = app.main_canvas
 +                bounds = (canvas.winfo_rootx(), canvas.winfo_rooty(),
 +                          canvas.winfo_rootx() + canvas.winfo_width(),
 +                          canvas.winfo_rooty() + canvas.winfo_height())
++                if screenshot:
++                    client = (app.winfo_rootx(), app.winfo_rooty(),
++                              app.winfo_rootx() + app.winfo_width(), app.winfo_rooty() + app.winfo_height())
++                    assert (client[0] >= work[0] and client[1] >= work[1]
++                            and client[2] <= work[2] and client[3] <= work[3]), (client, work)
 +                positions = {}
 +                for label, widget in widgets.items():
 +                    box = (widget.winfo_rootx(), widget.winfo_rooty(),
@@ -175,8 +189,9 @@ index ac6f035..c876d93 100644
 +                    assert (box[0] >= bounds[0] and box[1] >= bounds[1]
 +                            and box[2] <= bounds[2] and box[3] <= bounds[3]), (label, box, bounds)
 +                evidence['checks'][name] = {'viewport': bounds, 'visibleWidgets': positions}
-+                x, y = app.winfo_rootx(), app.winfo_rooty()
-+                ImageGrab.grab(bbox=(x, y, x + app.winfo_width(), y + app.winfo_height())).save(output / name)
++                if screenshot:
++                    x, y = app.winfo_rootx(), app.winfo_rooty()
++                    ImageGrab.grab(bbox=(x, y, x + app.winfo_width(), y + app.winfo_height())).save(output / name)
 +
 +            controls = {name: getattr(app, name) for name in (
 +                'restore_button', 'verify_restore_button', 'pause_button', 'resume_button',
@@ -208,6 +223,21 @@ index ac6f035..c876d93 100644
 +                                             'log': app.log, 'log_frame': app.log_frame})
 +            assert app.main_canvas.yview()[0] > 0, 'Main content did not scroll'
 +            evidence['checks']['resultsAndLogReachable'] = True
++
++            # Preserve the logical minimum-size regression check independently
++            # of the physical desktop used for the evidence above.
++            app.minsize(1080, 720)
++            app.geometry('1080x720+0+0')
++            app.result_frame.grid_remove()
++            app._toggle_details()
++            app._show_tab('restore')
++            app._begin_operation('restore')
++            app._set_busy(True)
++            app._structured_progress(dict(phase='restore sessions', current=146, total=713,
++                message='Restoring conversations — synthetic fixture', phaseSeconds=10, unit='files'))
++            app.update()
++            assert [app.winfo_width(), app.winfo_height()] == [1080, 720]
++            capture('logical-1080x720', controls, screenshot=False)
 +            evidence['passed'] = True
 +        except Exception as error:
 +            evidence['error'] = type(error).__name__ + ': ' + str(error)
@@ -2307,10 +2337,86 @@ index 0000000..c569814
 +    _emit(result, control, progress, "finished")
 +    return result
 diff --git a/src/codex_transfer/gui.py b/src/codex_transfer/gui.py
-index b6cab11..661c011 100644
+index b6cab11..4c28b89 100644
 --- a/src/codex_transfer/gui.py
 +++ b/src/codex_transfer/gui.py
-@@ -2553,8 +2553,25 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -1,6 +1,7 @@
+ from __future__ import annotations
+ 
+ import argparse
++import os
+ import queue
+ import re
+ import tempfile
+@@ -20,6 +21,59 @@ from .recovery_ui import RecoveryUI
+ PROGRESS_STAGE_RANGES = ((0, 15), (15, 48), (48, 62), (62, 94), (94, 100))
+ 
+ 
++def fit_window_to_work_area(window, preferred, minimum):
++    """Fit the initial client and native frame inside the Windows work area."""
++    window.update_idletasks()
++    area = (0, 0, window.winfo_screenwidth(), window.winfo_screenheight())
++    frame_width, frame_height = 16, 40
++    native = False
++    get_rect = hwnd = None
++    if os.name == 'nt':
++        import ctypes
++        from ctypes import wintypes
++        try:
++            user32 = ctypes.WinDLL('user32', use_last_error=True)
++            system_parameters = user32.SystemParametersInfoW
++            system_parameters.argtypes = [wintypes.UINT, wintypes.UINT, ctypes.c_void_p, wintypes.UINT]
++            system_parameters.restype = wintypes.BOOL
++            work = wintypes.RECT()
++            if not system_parameters(0x0030, 0, ctypes.byref(work), 0):  # SPI_GETWORKAREA
++                raise ctypes.WinError(ctypes.get_last_error())
++            area = (work.left, work.top, work.right, work.bottom)
++            native = True
++            get_ancestor = user32.GetAncestor
++            get_ancestor.argtypes = [wintypes.HWND, wintypes.UINT]
++            get_ancestor.restype = wintypes.HWND
++            hwnd = get_ancestor(window.winfo_id(), 2) or window.winfo_id()
++            get_rect = user32.GetWindowRect
++            get_rect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
++            get_rect.restype = wintypes.BOOL
++            outer = wintypes.RECT()
++            if get_rect(hwnd, ctypes.byref(outer)):
++                frame_width = max(0, outer.right - outer.left - window.winfo_width())
++                frame_height = max(0, outer.bottom - outer.top - window.winfo_height())
++        except (OSError, AttributeError):
++            pass
++    # A small outside margin also avoids invisible native resize borders touching
++    # the taskbar. It does not reduce the preferred size on a sufficient screen.
++    available_width = max(1, area[2] - area[0] - frame_width - 16)
++    available_height = max(1, area[3] - area[1] - frame_height - 16)
++    width, height = min(preferred[0], available_width), min(preferred[1], available_height)
++    minimum = (min(minimum[0], available_width), min(minimum[1], available_height))
++    x = area[0] + (area[2] - area[0] - width - frame_width) // 2
++    y = area[1] + (area[3] - area[1] - height - frame_height) // 2
++    window.minsize(*minimum)
++    window.geometry(f'{width}x{height}+{x}+{y}')
++    window.update_idletasks()
++    outer_bounds = None
++    if get_rect is not None:
++        outer = wintypes.RECT()
++        if get_rect(hwnd, ctypes.byref(outer)):
++            outer_bounds = [outer.left, outer.top, outer.right, outer.bottom]
++    return dict(workArea=list(area), nativeWorkArea=native, clientSize=[width, height],
++                minimumSize=list(minimum), outerBounds=outer_bounds)
++
++
+ def weighted_operation_progress(
+     previous: float, stage: int, current: int, total: int
+ ) -> float:
+@@ -2342,6 +2396,7 @@ class TransferApp(RecoveryUI, tk.Tk):
+         self._build()
+         self._init_recovery_ui()
+         self._translate()
++        self.window_placement = fit_window_to_work_area(self, (1320, 820), (1080, 720))
+         self.bind("<Map>", self._restore_from_taskbar, add="+")
+         self.after(100, self._drain_messages)
+         self.after(500, self._tick_operation_clock)
+@@ -2553,8 +2608,25 @@ class TransferApp(RecoveryUI, tk.Tk):
          self.language_box.grid(row=0, column=9, rowspan=2, padx=(0, 22))
          self.language_box.bind("<<ComboboxSelected>>", self._change_language)
  
@@ -2338,7 +2444,7 @@ index b6cab11..661c011 100644
          self.main_panel.columnconfigure(0, weight=1)
          self.main_panel.rowconfigure(7, weight=1)
  
-@@ -2711,9 +2728,11 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -2711,9 +2783,11 @@ class TransferApp(RecoveryUI, tk.Tk):
              self.status_frame, bg=self.CARD, fg=self.TEXT_COLOR,
              font=("Segoe UI", 9, "bold"), anchor="w"
          )
@@ -2352,7 +2458,7 @@ index b6cab11..661c011 100644
          self.elapsed_label = tk.Label(
              timing, text="—", bg=self.CARD, fg=self.MUTED, font=("Segoe UI", 8)
          )
-@@ -2894,6 +2913,43 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -2894,6 +2968,43 @@ class TransferApp(RecoveryUI, tk.Tk):
          }
          self._show_tab("overview")
  
@@ -2396,7 +2502,7 @@ index b6cab11..661c011 100644
      def _show_tab(self, tab: str) -> None:
          if tab not in self.nav_buttons:
              tab = "overview"
-@@ -2968,6 +3024,7 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -2968,6 +3079,7 @@ class TransferApp(RecoveryUI, tk.Tk):
                  self.details_button.grid_remove()
                  self.log_frame.grid_remove()
          self._translate_tab()
@@ -2404,7 +2510,7 @@ index b6cab11..661c011 100644
  
      def _translate_tab(self) -> None:
          title_key, subtitle_key = {
-@@ -3001,6 +3058,7 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3001,6 +3113,7 @@ class TransferApp(RecoveryUI, tk.Tk):
          self.details_visible = not self.details_visible
          if self.details_visible:
              self.log_frame.grid()
@@ -2412,7 +2518,7 @@ index b6cab11..661c011 100644
          else:
              self.log_frame.grid_remove()
          self.details_button.configure(
-@@ -3046,6 +3104,7 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3046,6 +3159,7 @@ class TransferApp(RecoveryUI, tk.Tk):
          self.remaining_label.configure(text=f"{self.t('remaining')}: {self.t('calculating')}")
          self.throughput_label.configure(text=f"{self.t('throughput')}: —")
          self._render_operation_state()
@@ -2420,7 +2526,7 @@ index b6cab11..661c011 100644
  
      def _finish_operation(self, success: bool) -> None:
          self.operation_failed = not success
-@@ -3373,9 +3432,12 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3373,9 +3487,12 @@ class TransferApp(RecoveryUI, tk.Tk):
                      self._finish_operation(True)
                  self._set_busy(False)
                  if self.close_after_pause:
@@ -2433,7 +2539,7 @@ index b6cab11..661c011 100644
              elif kind == "error":
                  self.close_after_pause = False
                  self.phase_progress.stop()
-@@ -3386,15 +3448,22 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3386,15 +3503,22 @@ class TransferApp(RecoveryUI, tk.Tk):
                  if not self.details_visible:
                      self._toggle_details()
                  messagebox.showerror(self.t("error"), str(value), parent=self)
@@ -2458,7 +2564,7 @@ index b6cab11..661c011 100644
              )
          if not value:
              self.phase_started_at = None
-@@ -3405,7 +3474,7 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3405,7 +3529,7 @@ class TransferApp(RecoveryUI, tk.Tk):
          if self.launch_blocked:
              self._show_extract_required()
              return
@@ -2467,7 +2573,7 @@ index b6cab11..661c011 100644
              return
          self._begin_operation(operation)
          self._set_busy(True)
-@@ -3498,20 +3567,22 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3498,20 +3622,22 @@ class TransferApp(RecoveryUI, tk.Tk):
          dependency_blockers = list(dependency_scan.get("blockingIssues", []))
          if dependency_exclusions or dependency_blockers:
              dependency_dialog = DependencyPreflightDialog(self, dependency_scan)
@@ -2492,7 +2598,7 @@ index b6cab11..661c011 100644
              return
          initial_destination = self._initial_destination()
          while True:
-@@ -3521,6 +3592,7 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3521,6 +3647,7 @@ class TransferApp(RecoveryUI, tk.Tk):
                  initial_destination,
              )
              if not selected:
@@ -2500,7 +2606,7 @@ index b6cab11..661c011 100644
                  return
              path_report = backup.destination_path_budget(
                  Path(selected),
-@@ -3573,8 +3645,11 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3573,8 +3700,11 @@ class TransferApp(RecoveryUI, tk.Tk):
              ),
              parent=self,
          ):
@@ -2512,7 +2618,7 @@ index b6cab11..661c011 100644
          def work():
              config_root = Path(tempfile.gettempdir()) / "Codex-Lifeboat"
              config_root.mkdir(parents=True, exist_ok=True)
-@@ -3583,6 +3658,7 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3583,6 +3713,7 @@ class TransferApp(RecoveryUI, tk.Tk):
                  config_path,
                  {
                      "configVersion": 1,
@@ -2520,7 +2626,7 @@ index b6cab11..661c011 100644
                      "destinationRoot": selected,
                      "includeAttachments": True,
                      "projects": [],
-@@ -3805,18 +3881,22 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3805,18 +3936,22 @@ class TransferApp(RecoveryUI, tk.Tk):
      def _restore(self) -> None:
          messagebox.showinfo(self.t("restore"), self.t("restore_intro"), parent=self)
          if not self._version_permission():

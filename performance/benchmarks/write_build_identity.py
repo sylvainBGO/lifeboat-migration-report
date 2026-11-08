@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 
 from benchmark import file_hash, source_hash, baseline_provenance
-from benchmark_report import _atomic_text, utc_now
+from benchmark_report import PROTOCOL_VERSION, _atomic_text, utc_now
 
 
 def main():
@@ -23,11 +23,12 @@ def main():
     if hashes['baseline'] == hashes['final']:
         raise ValueError('Baseline and final sources must not be identical')
     identity = dict(schema=1, built_at=utc_now(), baseline_provenance=baseline_provenance(args.baseline_source),
+                    protocol_version=PROTOCOL_VERSION,
                     report_commit=os.environ.get('GITHUB_SHA', 'local-build'),
                     workflow_run=os.environ.get('GITHUB_RUN_ID'),
                     source_sha256=hashes,
                     patches={name: file_hash(repository / name) for name in patches},
-                    final_path='prepare_restore + create_document + resume_from_document',
+                    final_path='build_restore_plan + synthetic decisions + prepare_restore + create_document + resume_from_document',
                     workers={variant: {'sha256': file_hash(directory / filename)} for variant, filename in
                              [('baseline', 'Lifeboat-Baseline-Worker.exe'), ('final', 'Lifeboat-Final-Worker.exe')]})
     _atomic_text(directory / 'BENCHMARK-BUILD.json', json.dumps(identity, indent=2) + '\n')

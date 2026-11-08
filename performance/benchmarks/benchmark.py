@@ -18,14 +18,16 @@ import threading
 import time
 import uuid
 
-from benchmark_report import CACHE_NOTE, DEFENDER_REMINDER, defender_state, save_report, utc_now
+from benchmark_report import CACHE_NOTE, DEFENDER_REMINDER, PROTOCOL_VERSION, defender_state, save_report, utc_now
 
 
 UPSTREAM = '4fe9724ccb54422455544e56b54399fa2bc94bc3'
 LIMITATIONS = [
     'Données synthétiques : aucune extrapolation aux 88 Gio ou aux cinq millions de fichiers.',
     CACHE_NOTE,
-    'La préparation des données et du backup est mesurée séparément de la restauration.',
+    'La génération des données est exclue ; le backup est mesuré séparément puis ajouté au total.',
+    'Plan comparatif et contrôles de fermeture du parcours GUI inclus ; attente humaine exclue.',
+    'Ce protocole remplace les mesures antérieures qui omettaient le plan comparatif et des gardes communes.',
     'Les contrôles initiaux et finaux restent actifs ; la version finale inclut ses checkpoints durables.',
     'Des empreintes de contenu/appartenance des fichiers sont vérifiées hors chrono et peuvent réchauffer le cache.',
     'Les microtests ZIP et copie sans métadonnées n’ont pas la fidélité d’une restauration complète.',
@@ -218,7 +220,7 @@ def run_suite(directory, mode='quick', repeats=None, focus='all', baseline_sourc
     variants = ('baseline', 'final', 'final_archive') if include_archives else ('baseline', 'final')
     planned = (len(restore_profiles) * len(variants) * repeats if focus != 'io' else 0)
     planned += (len(io_profiles) * 6 * repeats if focus != 'restore' else 0)
-    report = dict(schema=3, kind='lifeboat-benchmark-suite', started_at=utc_now(),
+    report = dict(schema=4, kind='lifeboat-benchmark-suite', protocol_version=PROTOCOL_VERSION, started_at=utc_now(),
                   mode=mode, repeats=repeats, focus=focus, platform=platform.platform(),
                   python=platform.python_version(), status='running', passed=False,
                   planned_trials=planned, trials=[], fixtures=[], archive_setup=[], errors=[],
@@ -292,6 +294,8 @@ def run_suite(directory, mode='quick', repeats=None, focus='all', baseline_sourc
                         before = sample_defender(label + ':before')
                         result = run_worker(pair, variant, root, token, 'restore',
                                             f'{variant}-{repeat}', profile, mode, control)
+                        if result.get('protocol_version') != PROTOCOL_VERSION:
+                            raise RuntimeError('Benchmark worker protocol does not match this launcher')
                         result.update(profile=profile, repeat=repeat, observation='first_pass' if repeat == 0 else 'subsequent_pass',
                                       cache_controlled=False, defender_before=before,
                                       defender_after=sample_defender(label + ':after'))

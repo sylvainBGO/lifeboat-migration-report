@@ -17,7 +17,7 @@ import tempfile
 import time
 
 from microbench import payload
-from benchmark_report import _atomic_text
+from benchmark_report import PROTOCOL_VERSION, _atomic_text
 
 
 def save(path, value):
@@ -110,8 +110,56 @@ def build_fixture(root, profile, mode):
     return facts
 
 
+def review_synthetic_plan(root, package, target, plan, plan_api):
+    """Resolve fixture conflicts through the same decision APIs as the GUI.
+
+    This is not an unattended decision policy for user backups. Every source
+    and target must belong to the freshly generated, marked synthetic fixture.
+    Existing automatic decisions remain unchanged; blocking incoming items
+    use their source, and destination-only items keep their target.
+    """
+    root, package, target = (Path(path).resolve() for path in (root, package, target))
+    marker = root / '.lifeboat-benchmark-owned.json'
+    if (not marker.is_file() or marker.is_symlink()
+            or json.loads(marker.read_text(encoding='utf-8')).get('purpose') != 'synthetic-lifeboat-benchmark'
+            or json.loads((root / 'fixture.json').read_text(encoding='utf-8')).get('synthetic') is not True):
+        raise RuntimeError('Automatic decisions require an owned synthetic fixture')
+    if (not package.is_relative_to(root / 'packages') or not target.is_relative_to(root / 'targets')
+            or Path(str(plan.get('package', ''))).resolve() != package
+            or Path(str(plan.get('targetProfile', ''))).resolve() != target):
+        raise RuntimeError('Comparison plan is outside the owned synthetic trial')
+    source_roots = {'project': root / 'source', 'conversation': package, 'codex': package}
+    for item in plan.get('items', []):
+        kind = item.get('kind')
+        if kind not in source_roots:
+            raise RuntimeError('Unexpected item in synthetic comparison plan')
+        if item.get('source'):
+            anchor = source_roots[kind]
+            path = (anchor / str(item['source'])).resolve()
+            if not path.is_relative_to(anchor):
+                raise RuntimeError('Comparison source is outside the synthetic fixture')
+        if item.get('target') and not Path(str(item['target'])).resolve().is_relative_to(target):
+            raise RuntimeError('Comparison destination is outside the synthetic fixture')
+    decisions = []
+    for item in sorted(plan.get('items', []), key=lambda value: str(value.get('key', ''))):
+        if not item.get('blocking'):
+            continue
+        kind = item['kind']
+        decision = 'keep-source' if item.get('source') else 'keep-target'
+        if kind not in ('project', 'conversation') or decision not in item.get('availableDecisions', []):
+            raise RuntimeError('Synthetic conflict does not offer the expected explicit decision')
+        resolve = (plan_api.resolve_project_decision if kind == 'project'
+                   else plan_api.resolve_conversation_decision)
+        plan = resolve(plan, item['key'], decision)
+        decisions.append({'kind': kind, 'decision': decision})
+    if not plan.get('ready'):
+        raise RuntimeError('Synthetic comparison plan remains blocked: ' + '; '.join(
+            str(reason) for reason in plan.get('blockingReasons', [])[:3]))
+    return plan, decisions
+
+
 def restore_trial(root, trial, variant):
-    from codex_transfer import backup, restore, selftest
+    from codex_transfer import backup, restore, restore_plan, selftest
     if not re.fullmatch(r'[A-Za-z0-9_-]{1,80}', trial):
         raise ValueError('Invalid synthetic trial identifier')
     package_data = json.loads((root / 'fixture.json').read_text(encoding='utf-8'))
@@ -131,7 +179,7 @@ def restore_trial(root, trial, variant):
     backup_started = time.perf_counter()
     package = backup.build_backup(argparse.Namespace(
         config=str(trial_config), destination=str(root / 'packages' / trial),
-        source_profile=str(source), source_codex_home=str(source / '.codex'), allow_running_test=True,
+        source_profile=str(source), source_codex_home=str(source / '.codex'), allow_running_test=False,
     ))
     backup_seconds = time.perf_counter() - backup_started
     package_description = backup.read_json(package / 'manifest' / 'package.json')
@@ -152,7 +200,10 @@ def restore_trial(root, trial, variant):
     # implementation. Never label a plain baseline restore as the final build.
     operation = importlib.import_module('codex_transfer.restore_operation') if variant != 'baseline' else None
     started = time.perf_counter()
-    prepared = restore.prepare_restore(package, target, allow_running_test=True)
+    comparison_plan = restore_plan.build_restore_plan(package, target, allow_running_test=False)
+    comparison_plan, decisions = review_synthetic_plan(root, package, target, comparison_plan, restore_plan)
+    planned_at = time.perf_counter()
+    prepared = restore.prepare_restore(package, target, allow_running_test=False, comparison_plan=comparison_plan)
     prepared_at = time.perf_counter()
     if variant != 'baseline':
         document = operation.create_document(prepared['safetyRoot'], package, target)
@@ -176,10 +227,13 @@ def restore_trial(root, trial, variant):
         checks['normal_report_retention'] = 'recoveryRetention' in result
     version = importlib.import_module('codex_transfer').__version__
     # Paths and fixture authentication data are deliberately excluded.
-    return dict(kind='restore', variant=variant, seconds=elapsed, backup_seconds=backup_seconds,
+    return dict(kind='restore', variant=variant, protocol_version=PROTOCOL_VERSION,
+                seconds=elapsed, backup_seconds=backup_seconds,
                 total_seconds=backup_seconds + elapsed, project_storage=storage,
                 format_version=package_description.get('formatVersion'), input_source_sha256=package_data['source_sha256'],
-                prepare_seconds=prepared_at - started, restore_seconds=elapsed - (prepared_at - started),
+                plan_seconds=planned_at - started, prepare_seconds=prepared_at - planned_at,
+                restore_seconds=elapsed - (prepared_at - started),
+                synthetic_plan_decisions=decisions,
                 valid=all(checks.values()), checks=checks,
                 durable_checkpoints=variant != 'baseline', source_version=version,
                 source_validation=True, final_verification=valid,

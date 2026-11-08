@@ -19,11 +19,11 @@ the separate benchmark sources.
 | Startup and resume | Discover bounded recovery-plan metadata for the current profile; load the newest valid unfinished plan without starting restoration. Offline source media is reported. Manual loading remains available. |
 | Durable recovery | Existing 500,000,000-byte reserve, copy checkpoints, transaction journal, final verification and rollback/retention lifecycle remain in use. Archived projects use the same recovery operation. |
 | Defender | Explicit confirmation followed by Windows UAC, actual-state verification, manual instructions if blocked, and a manual-reactivation reminder on success, cancellation, error, pause and exit. There is no automatic reactivation or silent repeated disabling. |
-| Minimum-size UI | Compact responsive controls and a scrollable central panel keep progress, results and the activity log reachable at the supported 1080 × 720 minimum. Window captures assert the visibility of controls and both progress bars. |
+| Window layout | Compact responsive controls and a scrollable central panel keep progress, results and the activity log reachable. Startup dimensions adapt to the Windows work area, including title/borders and taskbar. Physical captures verify visibility; a separate logical 1080 × 720 layout check remains. |
 | Project archives | Optional production `archive-blocks-v1` backup storage, format 2.5. Direct block creation and extraction into the existing staging tree; logical file SHA-256 plus physical block hashes; exact supported timestamps/modes and empty directories; resumable extraction. Ordinary file backups remain the default. |
 | Local conversation pre-read | Optional bounded read of up to 50 recent local rollout files. It warms temporary OS file cache only. It does not load a persistent Codex application cache, call an agent or open a conversation through the app. |
 | Benchmark delivery | Windows launcher with quick/thorough modes, versioned synthetic scenarios, space check, stop after the current trial, isolated original/final workers and JSON plus readable text reports. |
-| Actual final performance | Compare the original upstream restore with the final durable recovery path and its archive variant. Measure backup creation, restoration and combined elapsed time separately. Integrity checks stay inside restoration timing. |
+| Actual final performance | Compare the original upstream restore with the final durable recovery path and its archive variant. Measure backup creation, comparison-plan construction, preparation, execution and combined elapsed time. Production process guards and integrity checks stay inside their corresponding phase timings. |
 
 Archive backups require this new Community reader; the original upstream reader
 cannot restore format 2.5. The optional archive mode rejects unsupported links,
@@ -65,6 +65,17 @@ that the Windows executable has passed. The final Windows run, published release
 and measured results will be recorded below after completion.
 
 ## Performance interpretation
+
+The current protocol is `2026-11-production-path-2` (report schema 4). It includes
+the production guards during backup creation, comparison-plan construction and
+restore preparation, plus the additional execution guard of durable resume.
+Synthetic fixture conflicts are resolved through the normal decision APIs;
+these automatic choices are restricted to the benchmark's owned source and
+target directories. Human decision time and worker startup are excluded.
+
+The first branch campaign used an earlier protocol which omitted common planning
+and process checks. Its absolute times and percentages are not interchangeable
+with this protocol, and the new tool rejects mixed-protocol comparisons.
 
 Only complete, valid trials enter comparisons. Known different or changing
 Defender conditions must not produce a speedup claim. Unknown Defender state is

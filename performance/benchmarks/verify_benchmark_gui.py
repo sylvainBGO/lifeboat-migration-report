@@ -1,6 +1,7 @@
 """Windows UI acceptance with a fake Defender backend; never changes security."""
 import argparse
 import json
+import os
 from pathlib import Path
 import time
 import tkinter as tk
@@ -55,15 +56,33 @@ def main():
         assert backend.requests == 1 and backend.enabled is False
         assert 'désactivée' in window.defender_status.get()
         root.update_idletasks()
-        bottom = root.winfo_rooty() + root.winfo_height()
-        assert window.start_button.winfo_rooty() + window.start_button.winfo_height() <= bottom
-        assert window.open_button.winfo_rooty() + window.open_button.winfo_height() <= bottom
+        placement = window.window_placement
+        work = placement['workArea']
+        if os.name == 'nt':
+            assert placement['nativeWorkArea'], 'Windows work area was not available'
+        client = (root.winfo_rootx(), root.winfo_rooty(),
+                  root.winfo_rootx() + root.winfo_width(), root.winfo_rooty() + root.winfo_height())
+        def inside(box, area):
+            return (box[0] >= area[0] and box[1] >= area[1]
+                    and box[2] <= area[2] and box[3] <= area[3])
+        assert inside(client, work), (client, work)
+        if placement['outerBounds'] is not None:
+            assert inside(placement['outerBounds'], work), (placement['outerBounds'], work)
+        widget_bounds = {}
+        for name in ('start_button', 'stop_button', 'cancel_button', 'open_button',
+                     'progress', 'reminder_label'):
+            widget = getattr(window, name)
+            box = (widget.winfo_rootx(), widget.winfo_rooty(),
+                   widget.winfo_rootx() + widget.winfo_width(), widget.winfo_rooty() + widget.winfo_height())
+            assert widget.winfo_ismapped() and inside(box, client) and inside(box, work), (name, box, client, work)
+            widget_bounds[name] = box
         from PIL import ImageGrab
         x, y = root.winfo_rootx(), root.winfo_rooty()
         ImageGrab.grab(bbox=(x, y, x + root.winfo_width(), y + root.winfo_height())).save(output / 'benchmark-window-synthetic.png')
         result.update(passed=True, quickAndThorough=True, boundedRepetitions=True,
                       explicitDefenderOnly=True, actualStateDisplayed=True, manualReminder=True,
-                      buttonsInsideWindow=True)
+                      buttonsInsideWindow=True, buttonsInsideWorkArea=True,
+                      initialPlacement=placement, clientBounds=client, visibleWidgetBounds=widget_bounds)
     except Exception as error:
         result['error'] = type(error).__name__ + ': ' + str(error)
     finally:

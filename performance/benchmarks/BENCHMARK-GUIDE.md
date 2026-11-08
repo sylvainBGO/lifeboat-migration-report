@@ -22,9 +22,18 @@ une application Windows à fermer.
 
 **Restauration complète** compare l’amont v3.4.11 avec les sources finales de la
 version communautaire incluses dans ce paquet, dans deux processus distincts.
-Les deux variantes valident la source, préparent la restauration et vérifient
-le résultat. Le temps de la version finale comprend son plan et ses journaux
-durables de reprise. Les identités des sources et exécutables figurent dans
+Les deux variantes construisent le plan comparatif, valident la source,
+préparent la restauration et vérifient le résultat. Les décisions de conflit
+sont déterministes et réservées aux fichiers synthétiques du programme : prendre
+la source pour un élément entrant, conserver la cible pour un élément présent
+seulement à destination. Les décisions automatiques du produit restent intactes ;
+une décision indisponible ou un plan encore bloqué fait échouer l’essai.
+Les temps du plan, de la préparation et de l’exécution sont distingués dans le JSON.
+Le temps de la version finale comprend aussi son plan et ses journaux durables
+de reprise. Les contrôles de fermeture de Codex/ChatGPT restent actifs dans le
+backup, le plan comparatif, la préparation et l’exécution finale, comme dans
+les parcours GUI. Le temps de réflexion ou d’attente d’un utilisateur est exclu.
+Les identités des sources et exécutables figurent dans
 `BENCHMARK-BUILD.json` et dans le rapport. Un composant manquant ou modifié fait
 échouer la comparaison ; le programme ne bascule pas sur une ancienne variante.
 
@@ -36,6 +45,12 @@ coût de préparation des archives n’est donc pas caché. Les registres de cha
 essai sont isolés. Des empreintes vérifient hors chronomètre que le contenu et
 l’ensemble des fichiers source et backup n’ont pas changé ; elles ne prouvent
 pas l’invariance de toutes les métadonnées et peuvent réchauffer le cache.
+
+Le protocole **2026-11-production-path-2** figure dans les rapports, l’identité
+du build et `scenarios.json`. Les premières mesures sans ce numéro omettaient
+le plan comparatif et des contrôles de fermeture communs : leurs durées ne sont
+pas interchangeables avec celles du protocole actuel. Le jeu synthétique conserve
+sa version ; c’est le périmètre du chronométrage qui a changé.
 
 **Copies et archives** est un ensemble de microtests. Le ZIP y est créé à partir
 des seules données synthétiques, et sa préparation est mesurée séparément.

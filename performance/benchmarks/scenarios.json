@@ -1,11 +1,15 @@
 {
-  "schema": 1,
+  "schema": 2,
   "fixture_version": "2026-11-final-1",
+  "protocol_version": "2026-11-production-path-2",
   "upstream_commit": "4fe9724ccb54422455544e56b54399fa2bc94bc3",
   "restore_variants": ["baseline", "final"],
   "optional_restore_variant": "final_archive",
   "production_archive_storage": "archive-blocks-v1",
-  "restore_timing": "Each trial builds its own backup from the same synthetic source; backup, restore with validation/checkpoints and their sum are measured separately.",
+  "restore_timing": "Includes build_restore_plan, explicit synthetic-only decisions, prepare_restore, restore and verification; production application-closed guards stay active in every phase. Final variants additionally include create_document and resume_from_document with its additional guard and checkpoints. Human review/wait time is excluded.",
+  "backup_timing": "Each trial builds its own backup from the same synthetic source with its production application-closed guard active; backup and complete restore times are recorded separately and summed.",
+  "phase_fields": ["plan_seconds", "prepare_seconds", "restore_seconds"],
+  "synthetic_decisions": "Only within owned fixture source/package/target paths: keep-source for blocking incoming items, keep-target for blocking destination-only items, using production decision APIs. Automatic decisions are left intact. Unoffered decisions or remaining blockers fail the trial.",
   "invariance_check": "Source and backup file membership/content hashes are checked outside timing; all metadata invariance is not claimed.",
   "cache_control": "not-controlled; no cache flush; alternate baseline/final order",
   "quick": {
@@ -32,6 +36,7 @@
     "Synthetic profiles also include upstream JSONL/ZST, SQLite and target authentication fixtures.",
     "Fixture generation and backup construction are outside restore timing.",
     "Final restore timing includes durable plan and checkpoints.",
+    "Earlier unversioned protocol measurements omitted the comparison plan and common process guards and are not interchangeable with this protocol.",
     "IO ZIP strategies are not metadata-equivalent full restorations.",
     "No duration guarantee and no extrapolation to a real backup."
   ]

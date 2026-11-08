@@ -12,6 +12,7 @@ import statistics
 import tempfile
 
 
+PROTOCOL_VERSION = '2026-11-production-path-2'
 CACHE_NOTE = (
     'Le cache Windows n’est pas vidé. « Premier passage » désigne la première '
     'observation de la variante, pas une mesure garantie à cache froid. '
@@ -69,6 +70,8 @@ def paired_comparisons(trials, reference='baseline', candidate='final'):
             continue
         if not pair[candidate].get('durable_checkpoints'):
             continue
+        if pair[reference].get('protocol_version') != pair[candidate].get('protocol_version'):
+            continue
         conditions = [_condition(pair[reference]), _condition(pair[candidate])]
         known_states = {(pair[variant].get(boundary) or {}).get('RealTimeProtectionEnabled')
                         for variant in (reference, candidate)
@@ -125,6 +128,7 @@ def readable(report):
         'Début : ' + report.get('started_at', 'inconnu'),
         'Fin : ' + report.get('finished_at', 'pas encore terminée'),
         'Mode : ' + report.get('mode', 'inconnu'),
+        'Protocole : ' + report.get('protocol_version', 'antérieur / non renseigné'),
         'Répétitions demandées : ' + str(report.get('repeats', '?')),
         f"Essais terminés : {len(trials)}/{report.get('planned_trials', '?')}",
         'Campagne validée : ' + ('oui' if report.get('passed') is True else 'non / incomplète'),
@@ -132,9 +136,14 @@ def readable(report):
         '',
         'MÉTHODE',
         CACHE_NOTE,
-        'La comparaison de restauration inclut validation de la source, préparation,',
-        'copie, vérification finale et, dans la version finale, le plan et les journaux',
-        'durables de reprise. La génération du jeu et sa sauvegarde sont hors chrono.',
+        'La restauration inclut le plan comparatif, ses décisions limitées aux fixtures,',
+        'la validation de la source, la préparation, la copie et la vérification finale.',
+        'Les contrôles de fermeture de Codex/ChatGPT du parcours GUI restent actifs ;',
+        'la version finale inclut aussi son plan et ses journaux durables de reprise.',
+        'Le backup, avec son contrôle de fermeture, est mesuré séparément et ajouté',
+        'au total. Génération du jeu, empreintes de contrôle et attente humaine exclues.',
+        'Le protocole précédent omettait le plan comparatif et des gardes communes :',
+        'ses temps ne sont pas interchangeables avec ceux de ce protocole.',
         'Les workers baseline/final sont des processus séparés. Aucun contrôle',
         'd’intégrité n’est désactivé. Aucune donnée personnelle n’est utilisée.',
         '',
@@ -182,6 +191,9 @@ def readable(report):
         if trial.get('backup_seconds') is not None:
             lines.append(f"    Backup {trial['backup_seconds']:.3f} s + restauration {trial['seconds']:.3f} s "
                          f"= {trial['total_seconds']:.3f} s ; source et backup inchangés vérifiés hors chrono.")
+        if all(isinstance(trial.get(key), (float, int)) for key in ('plan_seconds', 'prepare_seconds', 'restore_seconds')):
+            lines.append(f"    Détail restauration : plan {trial['plan_seconds']:.3f} s ; "
+                         f"préparation {trial['prepare_seconds']:.3f} s ; exécution et vérification {trial['restore_seconds']:.3f} s.")
     if report.get('archive_setup'):
         lines += ['', 'PRÉPARATION DES ARCHIVES (hors temps d’extraction)']
         for item in report['archive_setup']:

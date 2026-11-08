@@ -102,6 +102,123 @@ index 4291922..39d5564 100644
 +du dossier `.codex` réel. `--report` désigne un nouveau fichier JSON situé hors de
 +ce dossier ; aucun fichier existant n'est remplacé. Le résultat décrit seulement
 +les données lues, pas des conversations chargées par l'application.
+diff --git a/benchmarks/capture_recovery_ui.py b/benchmarks/capture_recovery_ui.py
+index ac6f035..c876d93 100644
+--- a/benchmarks/capture_recovery_ui.py
++++ b/benchmarks/capture_recovery_ui.py
+@@ -1,29 +1,89 @@
+-"""Synthetic UI evidence only; never starts a restore or changes Defender."""
++"""Synthetic UI/layout evidence; never starts a restore or changes Defender."""
++import json
+ from pathlib import Path
+ import sys
++from unittest.mock import patch
++
+ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
+ from PIL import ImageGrab
+ from codex_transfer.gui import TransferApp
+ 
+-output = Path(sys.argv[1])
+-output.mkdir(parents=True, exist_ok=True)
+-app = TransferApp()
+-app.minsize(900, 650)
+-app.geometry('1000x700+0+0')
+-app._show_tab('restore')
+-app._begin_operation('restore')
+-app._set_busy(True)
+-
+-def capture(name):
+-    app.update()
+-    app.update_idletasks()
+-    x, y = app.winfo_rootx(), app.winfo_rooty()
+-    ImageGrab.grab(bbox=(x, y, x+app.winfo_width(), y+app.winfo_height())).save(output/name)
+-
+-app._apply_progress(50, 100, 'Pre-restore check: Validating backup — synthetic fixture')
+-capture('preflight.png')
+-app._structured_progress(dict(phase='restore sessions', current=146, total=713,
+-                              message='Restoring conversations — synthetic fixture',
+-                              phaseSeconds=10, unit='files'))
+-capture('conversations.png')
+-app.destroy()
++
++def main():
++    output = Path(sys.argv[1])
++    output.mkdir(parents=True, exist_ok=True)
++    evidence = {'passed': False, 'requestedSize': [1080, 720], 'checks': {}}
++    with patch.object(TransferApp, '_discover_resume_at_startup'), \
++            patch('codex_transfer.windows.removable_drives', return_value=[]):
++        app = TransferApp()
++        try:
++            # Exercise the real supported minimum, without weakening minsize.
++            app.geometry('1080x720+0+0')
++            app._show_tab('restore')
++            app.update()
++            evidence['actualSize'] = [app.winfo_width(), app.winfo_height()]
++            assert evidence['actualSize'] == [1080, 720], evidence['actualSize']
++            assert not app.resume_notice.winfo_manager(), 'Empty resume notice reserves space'
++            evidence['checks']['emptyNoticeHidden'] = True
++
++            def capture(name, widgets):
++                app.update()
++                app.update_idletasks()
++                canvas = app.main_canvas
++                bounds = (canvas.winfo_rootx(), canvas.winfo_rooty(),
++                          canvas.winfo_rootx() + canvas.winfo_width(),
++                          canvas.winfo_rooty() + canvas.winfo_height())
++                positions = {}
++                for label, widget in widgets.items():
++                    box = (widget.winfo_rootx(), widget.winfo_rooty(),
++                           widget.winfo_rootx() + widget.winfo_width(),
++                           widget.winfo_rooty() + widget.winfo_height())
++                    positions[label] = box
++                    assert widget.winfo_ismapped(), label + ' is hidden'
++                    assert (box[0] >= bounds[0] and box[1] >= bounds[1]
++                            and box[2] <= bounds[2] and box[3] <= bounds[3]), (label, box, bounds)
++                evidence['checks'][name] = {'viewport': bounds, 'visibleWidgets': positions}
++                x, y = app.winfo_rootx(), app.winfo_rooty()
++                ImageGrab.grab(bbox=(x, y, x + app.winfo_width(), y + app.winfo_height())).save(output / name)
++
++            controls = {name: getattr(app, name) for name in (
++                'restore_button', 'verify_restore_button', 'pause_button', 'resume_button',
++                'resume_ready_button', 'defender_button', 'warmup_button',
++                'progress', 'phase_progress', 'phase_description', 'status_label',
++                'elapsed_label', 'remaining_label', 'throughput_label')}
++            app._begin_operation('restore')
++            app._set_busy(True)
++            app._apply_progress(50, 100, 'Pre-restore check: Validating backup — synthetic fixture')
++            capture('preflight.png', controls)
++
++            app._set_resume_notice('Current restoration plan: synthetic saved plan')
++            app._structured_progress(dict(phase='restore sessions', current=146, total=713,
++                message='Restoring conversations — synthetic fixture', phaseSeconds=10, unit='files'))
++            capture('conversations.png', {**controls, 'resume_notice': app.resume_notice})
++            assert app._recovery_controls_single_row, 'Wide restore toolbar did not compact'
++
++            # Expanded results and log must remain reachable using the same
++            # scroll container; this is a synthetic display, not a restore.
++            app._set_busy(False)
++            app.result_title.configure(text='Synthetic verification result')
++            app.result_status.configure(text='Layout check only')
++            app.result_metrics.configure(text='No backup or restoration was run.')
++            app.result_path.configure(text='Synthetic result')
++            app.result_frame.grid()
++            app._append_log('Synthetic activity log — verifying access at the minimum window size.')
++            app._toggle_details()
++            capture('results-and-log.png', {'result': app.result_frame, 'details': app.details_button,
++                                             'log': app.log, 'log_frame': app.log_frame})
++            assert app.main_canvas.yview()[0] > 0, 'Main content did not scroll'
++            evidence['checks']['resultsAndLogReachable'] = True
++            evidence['passed'] = True
++        except Exception as error:
++            evidence['error'] = type(error).__name__ + ': ' + str(error)
++            raise
++        finally:
++            (output / 'layout-1080x720.json').write_text(json.dumps(evidence, indent=2), encoding='utf-8')
++            app.destroy()
++
++
++if __name__ == '__main__':
++    main()
 diff --git a/benchmarks/run_completion_tests.py b/benchmarks/run_completion_tests.py
 new file mode 100644
 index 0000000..a018ccf
@@ -2190,10 +2307,120 @@ index 0000000..c569814
 +    _emit(result, control, progress, "finished")
 +    return result
 diff --git a/src/codex_transfer/gui.py b/src/codex_transfer/gui.py
-index b6cab11..8fae074 100644
+index b6cab11..661c011 100644
 --- a/src/codex_transfer/gui.py
 +++ b/src/codex_transfer/gui.py
-@@ -3373,9 +3373,12 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -2553,8 +2553,25 @@ class TransferApp(RecoveryUI, tk.Tk):
+         self.language_box.grid(row=0, column=9, rowspan=2, padx=(0, 22))
+         self.language_box.bind("<<ComboboxSelected>>", self._change_language)
+ 
+-        self.main_panel = ttk.Frame(self, style="App.TFrame", padding=(28, 20, 28, 20))
+-        self.main_panel.grid(row=1, column=0, sticky="nsew")
++        # Keep the navigation fixed while every card remains reachable on the
++        # supported minimum window size, including expanded results and logs.
++        viewport = ttk.Frame(self, style="App.TFrame")
++        viewport.grid(row=1, column=0, sticky="nsew")
++        viewport.columnconfigure(0, weight=1)
++        viewport.rowconfigure(0, weight=1)
++        self.main_canvas = tk.Canvas(viewport, bg=self.BG, highlightthickness=0,
++                                     borderwidth=0, yscrollincrement=1)
++        self.main_canvas.grid(row=0, column=0, sticky="nsew")
++        self.main_scrollbar = ttk.Scrollbar(viewport, orient="vertical", command=self.main_canvas.yview)
++        self.main_scrollbar.grid(row=0, column=1, sticky="ns")
++        self.main_canvas.configure(yscrollcommand=self.main_scrollbar.set)
++        self.main_panel = ttk.Frame(self.main_canvas, style="App.TFrame", padding=(28, 20, 28, 20))
++        self.main_window = self.main_canvas.create_window((0, 0), window=self.main_panel, anchor="nw")
++        self.main_canvas.bind("<Configure>", self._sync_main_view)
++        self.main_panel.bind("<Configure>", self._sync_main_view)
++        self.bind("<MouseWheel>", self._scroll_main_view, add="+")
++        self.bind("<Button-4>", self._scroll_main_view, add="+")
++        self.bind("<Button-5>", self._scroll_main_view, add="+")
+         self.main_panel.columnconfigure(0, weight=1)
+         self.main_panel.rowconfigure(7, weight=1)
+ 
+@@ -2711,9 +2728,11 @@ class TransferApp(RecoveryUI, tk.Tk):
+             self.status_frame, bg=self.CARD, fg=self.TEXT_COLOR,
+             font=("Segoe UI", 9, "bold"), anchor="w"
+         )
+-        self.status_label.grid(row=6, column=0, columnspan=3, sticky="w", padx=(18, 0))
++        self.status_label.grid(row=6, column=0, columnspan=5, sticky="ew", padx=(18, 0))
+         timing = tk.Frame(self.status_frame, bg=self.CARD)
+-        timing.grid(row=6, column=3, columnspan=2, sticky="e")
++        # Status text and timing each get the full card width; neither can
++        # squeeze the other beyond the viewport at 1080 pixels.
++        timing.grid(row=9, column=0, columnspan=5, sticky="w", pady=(6, 0))
+         self.elapsed_label = tk.Label(
+             timing, text="—", bg=self.CARD, fg=self.MUTED, font=("Segoe UI", 8)
+         )
+@@ -2894,6 +2913,43 @@ class TransferApp(RecoveryUI, tk.Tk):
+         }
+         self._show_tab("overview")
+ 
++    def _sync_main_view(self, _event=None) -> None:
++        width = max(1, self.main_canvas.winfo_width())
++        height = max(self.main_panel.winfo_reqheight(), self.main_canvas.winfo_height())
++        self.main_canvas.itemconfigure(self.main_window, width=width, height=height)
++        self.main_canvas.configure(scrollregion=(0, 0, width, height))
++        if height <= self.main_canvas.winfo_height():
++            self.main_canvas.yview_moveto(0)
++
++    def _scroll_main_view(self, event):
++        # Text/logs and selection widgets retain their own wheel behaviour.
++        if event.widget.winfo_toplevel() is not self or isinstance(
++                event.widget, (tk.Text, tk.Listbox, ttk.Treeview, ttk.Combobox)):
++            return
++        if self.main_canvas.yview() == (0.0, 1.0):
++            return
++        delta = (-1 if event.num == 4 else 1) if event.num in (4, 5) else (
++            -int(event.delta / 120) if abs(event.delta) >= 120 else -int(event.delta))
++        if delta:
++            self.main_canvas.yview_scroll(delta * 32, "units")
++            return "break"
++
++    def _reveal_main_widget(self, widget) -> None:
++        """Scroll only as far as needed; never change operation or tab state."""
++        self.update_idletasks()
++        if not widget.winfo_ismapped():
++            return
++        self._sync_main_view()
++        top = widget.winfo_rooty() - self.main_panel.winfo_rooty()
++        bottom = top + widget.winfo_height()
++        visible_top = self.main_canvas.canvasy(0)
++        visible_height = self.main_canvas.winfo_height()
++        desired = top if top < visible_top else max(visible_top, bottom - visible_height)
++        if widget.winfo_height() > visible_height:
++            desired = top
++        total = max(self.main_panel.winfo_reqheight(), visible_height)
++        self.main_canvas.yview_moveto(max(0, desired) / max(total, 1))
++
+     def _show_tab(self, tab: str) -> None:
+         if tab not in self.nav_buttons:
+             tab = "overview"
+@@ -2968,6 +3024,7 @@ class TransferApp(RecoveryUI, tk.Tk):
+                 self.details_button.grid_remove()
+                 self.log_frame.grid_remove()
+         self._translate_tab()
++        self.main_canvas.yview_moveto(0)
+ 
+     def _translate_tab(self) -> None:
+         title_key, subtitle_key = {
+@@ -3001,6 +3058,7 @@ class TransferApp(RecoveryUI, tk.Tk):
+         self.details_visible = not self.details_visible
+         if self.details_visible:
+             self.log_frame.grid()
++            self.after_idle(lambda: self._reveal_main_widget(self.log_frame))
+         else:
+             self.log_frame.grid_remove()
+         self.details_button.configure(
+@@ -3046,6 +3104,7 @@ class TransferApp(RecoveryUI, tk.Tk):
+         self.remaining_label.configure(text=f"{self.t('remaining')}: {self.t('calculating')}")
+         self.throughput_label.configure(text=f"{self.t('throughput')}: —")
+         self._render_operation_state()
++        self.after_idle(lambda: self._reveal_main_widget(self.status_frame))
+ 
+     def _finish_operation(self, success: bool) -> None:
+         self.operation_failed = not success
+@@ -3373,9 +3432,12 @@ class TransferApp(RecoveryUI, tk.Tk):
                      self._finish_operation(True)
                  self._set_busy(False)
                  if self.close_after_pause:
@@ -2206,7 +2433,7 @@ index b6cab11..8fae074 100644
              elif kind == "error":
                  self.close_after_pause = False
                  self.phase_progress.stop()
-@@ -3386,15 +3389,22 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3386,15 +3448,22 @@ class TransferApp(RecoveryUI, tk.Tk):
                  if not self.details_visible:
                      self._toggle_details()
                  messagebox.showerror(self.t("error"), str(value), parent=self)
@@ -2231,7 +2458,7 @@ index b6cab11..8fae074 100644
              )
          if not value:
              self.phase_started_at = None
-@@ -3405,7 +3415,7 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3405,7 +3474,7 @@ class TransferApp(RecoveryUI, tk.Tk):
          if self.launch_blocked:
              self._show_extract_required()
              return
@@ -2240,7 +2467,7 @@ index b6cab11..8fae074 100644
              return
          self._begin_operation(operation)
          self._set_busy(True)
-@@ -3498,20 +3508,22 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3498,20 +3567,22 @@ class TransferApp(RecoveryUI, tk.Tk):
          dependency_blockers = list(dependency_scan.get("blockingIssues", []))
          if dependency_exclusions or dependency_blockers:
              dependency_dialog = DependencyPreflightDialog(self, dependency_scan)
@@ -2265,7 +2492,7 @@ index b6cab11..8fae074 100644
              return
          initial_destination = self._initial_destination()
          while True:
-@@ -3521,6 +3533,7 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3521,6 +3592,7 @@ class TransferApp(RecoveryUI, tk.Tk):
                  initial_destination,
              )
              if not selected:
@@ -2273,7 +2500,7 @@ index b6cab11..8fae074 100644
                  return
              path_report = backup.destination_path_budget(
                  Path(selected),
-@@ -3573,8 +3586,11 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3573,8 +3645,11 @@ class TransferApp(RecoveryUI, tk.Tk):
              ),
              parent=self,
          ):
@@ -2285,7 +2512,7 @@ index b6cab11..8fae074 100644
          def work():
              config_root = Path(tempfile.gettempdir()) / "Codex-Lifeboat"
              config_root.mkdir(parents=True, exist_ok=True)
-@@ -3583,6 +3599,7 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3583,6 +3658,7 @@ class TransferApp(RecoveryUI, tk.Tk):
                  config_path,
                  {
                      "configVersion": 1,
@@ -2293,7 +2520,7 @@ index b6cab11..8fae074 100644
                      "destinationRoot": selected,
                      "includeAttachments": True,
                      "projects": [],
-@@ -3805,18 +3822,22 @@ class TransferApp(RecoveryUI, tk.Tk):
+@@ -3805,18 +3881,22 @@ class TransferApp(RecoveryUI, tk.Tk):
      def _restore(self) -> None:
          messagebox.showinfo(self.t("restore"), self.t("restore_intro"), parent=self)
          if not self._version_permission():
@@ -3301,7 +3528,7 @@ index 92b5e41..89b41dc 100644
                        'reportsAndRetention': True, 'migrationGuide': True}
      except Exception:
 diff --git a/src/codex_transfer/recovery_ui.py b/src/codex_transfer/recovery_ui.py
-index 5416d1a..6a4c4f0 100644
+index 5416d1a..ffee3d5 100644
 --- a/src/codex_transfer/recovery_ui.py
 +++ b/src/codex_transfer/recovery_ui.py
 @@ -5,7 +5,7 @@ import time
@@ -3313,7 +3540,7 @@ index 5416d1a..6a4c4f0 100644
  
  PHASES = ['index backup manifest', 'restore projects', 'apply destination project decisions',
            'build restored database', 'reset paginated history projection',
-@@ -25,14 +25,36 @@ class RecoveryUI:
+@@ -25,14 +25,38 @@ class RecoveryUI:
          self.defender_last_state = None
          self.last_metric = None
          self.close_after_pause = False
@@ -3324,7 +3551,7 @@ index 5416d1a..6a4c4f0 100644
 +        self.decision_window = None
          self.protocol('WM_DELETE_WINDOW', self._close_recovery_window)
 -        parent = self.restore_button.master
-+        parent = tk.Frame(self.restore_card, bg=self.CARD)
++        parent = self.recovery_controls = tk.Frame(self.restore_card, bg=self.CARD)
 +        parent.pack(fill='x', pady=(8, 0))
          self.pause_button = ttk.Button(parent, text='Pause', command=self._request_pause, state='disabled')
 -        self.pause_button.pack(side='left', padx=8)
@@ -3342,7 +3569,9 @@ index 5416d1a..6a4c4f0 100644
 +        self.warmup_button.grid(row=1, column=1, columnspan=2, sticky='w', pady=(6, 0), padx=(6, 0))
 +        self.resume_notice = tk.Label(self.restore_card, text='', bg=self.CARD, fg=self.MUTED,
 +                                      justify='left', anchor='w', wraplength=420)
-+        self.resume_notice.pack(fill='x', pady=(4, 0))
++        # An empty notice must not reserve a whole row in the restore card.
++        self._recovery_controls_single_row = None
++        parent.bind('<Configure>', self._layout_recovery_controls)
 +        self.project_storage = tk.BooleanVar(self, value=False)
 +        self.archive_checkbox = tk.Checkbutton(self.backup_card, variable=self.project_storage,
 +            text='Use archives for project files',
@@ -3355,11 +3584,36 @@ index 5416d1a..6a4c4f0 100644
          self.phase_progress = ttk.Progressbar(self.status_frame, maximum=100)
          self.phase_progress.grid(row=7, column=0, columnspan=5, sticky='ew', pady=(10, 4))
          self.phase_description = tk.Label(self.status_frame, text='Stage progress',
-@@ -50,12 +72,67 @@ class RecoveryUI:
+@@ -50,12 +74,92 @@ class RecoveryUI:
          grip.bind('<ButtonPress-1>', lambda event: setattr(self, '_log_drag', (event.y_root, int(self.log.cget('height')))))
          grip.bind('<B1-Motion>', lambda event: self.log.configure(
              height=max(4, min(60, self._log_drag[1] + (event.y_root-self._log_drag[0])//16))))
 +        self.after(300, self._discover_resume_at_startup)
++
++    def _layout_recovery_controls(self, _event=None):
++        buttons = (self.pause_button, self.resume_button, self.resume_ready_button,
++                   self.defender_button, self.warmup_button)
++        available = self.recovery_controls.winfo_width()
++        self.resume_notice.configure(wraplength=max(120, available))
++        single_row = available >= sum(button.winfo_reqwidth() for button in buttons) + 24
++        if single_row == self._recovery_controls_single_row:
++            return
++        self._recovery_controls_single_row = single_row
++        for button in buttons:
++            button.grid_forget()
++        for number, button in enumerate(buttons):
++            row, column = (0, number) if single_row or number < 3 else (1, number - 3)
++            button.grid(row=row, column=column, columnspan=2 if not single_row and number == 4 else 1,
++                        sticky='w', padx=(0 if column == 0 else 6, 0), pady=(6 if row else 0, 0))
++
++    def _set_resume_notice(self, text):
++        self.resume_notice.configure(text=text)
++        if text:
++            self.resume_notice.pack(fill='x', pady=(4, 0))
++        else:
++            self.resume_notice.pack_forget()
++        if self.busy:
++            self.after_idle(lambda: self._reveal_main_widget(self.status_frame))
 +
 +    def _defender_reminder(self):
 +        if self.defender_requested or self.defender_last_state is False:
@@ -3388,7 +3642,7 @@ index 5416d1a..6a4c4f0 100644
 +        self.resume_document = candidate.document
 +        availability = ('Ready to resume.' if candidate.source_available else
 +                        'Backup unavailable: reconnect it, then load this plan again.')
-+        self.resume_notice.configure(text=f'Saved plan loaded: {candidate.document.parent.name} '
++        self._set_resume_notice(f'Saved plan loaded: {candidate.document.parent.name} '
 +                                     f'({candidate.status}). {availability}'
 +                                     + (f' {count} plans found; Load plan selects another.' if count > 1 else ''))
 +        self._append_log('Loaded resume plan (no restore started): ' + str(candidate.document))
@@ -3423,7 +3677,7 @@ index 5416d1a..6a4c4f0 100644
              self.destroy()
  
      def _request_pause(self):
-@@ -64,23 +141,37 @@ class RecoveryUI:
+@@ -64,23 +168,37 @@ class RecoveryUI:
          self.status_label.configure(text='Pause requested — finishing admitted writes…')
  
      def _load_resume(self):
@@ -3434,10 +3688,8 @@ index 5416d1a..6a4c4f0 100644
                                                 filetypes=[('Lifeboat resume plan', '*.json')])
          if not selected:
 +            self._remind_defender()
-             return
-         try:
--            state = backup.read_json(Path(selected).parent / 'restore-journal.json')
--            if state.get('status') == 'prepared' and not messagebox.askyesno(
++            return
++        try:
 +            candidate = resume_discovery.inspect_resume_plan(Path(selected), expected_profile=Path.home())
 +            self._select_resume(candidate)
 +        except Exception as exc:
@@ -3446,8 +3698,10 @@ index 5416d1a..6a4c4f0 100644
 +
 +    def _start_loaded_resume(self):
 +        if self.busy or self.warmup_cancel is not None or self.selection_in_progress or not self.resume_document:
-+            return
-+        try:
+             return
+         try:
+-            state = backup.read_json(Path(selected).parent / 'restore-journal.json')
+-            if state.get('status') == 'prepared' and not messagebox.askyesno(
 +            candidate = resume_discovery.inspect_resume_plan(self.resume_document, expected_profile=Path.home())
 +            if not candidate.source_available:
 +                raise ValueError('The backup is unavailable. Reconnect it before resuming.')
@@ -3465,7 +3719,7 @@ index 5416d1a..6a4c4f0 100644
          self.pause_event = threading.Event()
          self.operation_paused = False
          self._run(lambda: restore_operation.resume_from_document(
-@@ -143,13 +234,48 @@ class RecoveryUI:
+@@ -143,13 +261,48 @@ class RecoveryUI:
              self.last_progress_message = result.get('pauseReason', 'Paused')
              self._append_log(f'Resume document: {self.resume_document}')
              messagebox.showinfo('Paused', 'Completed work is saved. Reload this document to continue:\n'
@@ -3475,7 +3729,7 @@ index 5416d1a..6a4c4f0 100644
 +            self.resume_document = None
 +            self.resume_candidate = None
 +            self.resume_ready_button.configure(state='disabled')
-+            self.resume_notice.configure(text='Restoration complete; final verification passed.')
++            self._set_resume_notice('Restoration complete; final verification passed.')
              warnings = [str(result[key]) for key in ('reportWarning', 'recoveryRetentionError') if key in result]
              messagebox.showinfo('Restore complete', 'Final verification passed.\n'
                                  + ('Warnings: ' + '\n'.join(warnings) + '\n' if warnings else 'Reports and recovery retention completed.\n')
@@ -3516,7 +3770,7 @@ index 5416d1a..6a4c4f0 100644
  
      def _defender_dialog(self):
          if self.defender_prompt is not None and self.defender_prompt.winfo_exists():
-@@ -157,6 +283,14 @@ class RecoveryUI:
+@@ -157,6 +310,14 @@ class RecoveryUI:
              return
          window = self.defender_prompt = tk.Toplevel(self)
          window.title('Microsoft Defender')
@@ -3531,7 +3785,7 @@ index 5416d1a..6a4c4f0 100644
          ttk.Label(window, wraplength=480, padding=16,
                    text='Temporarily disable real-time protection? Windows will request administrator approval. '
                         'Lifeboat continues working while you decide. Reactivate protection manually when finished. '
-@@ -189,12 +323,49 @@ class RecoveryUI:
+@@ -189,12 +350,49 @@ class RecoveryUI:
              threading.Thread(target=check, daemon=True).start()
  
      def _recovery_message(self, kind, value):
@@ -3567,7 +3821,7 @@ index 5416d1a..6a4c4f0 100644
          elif kind == 'resume_document':
              self.resume_document = Path(value)
 +            self.resume_candidate = None
-+            self.resume_notice.configure(text='Current restoration plan: ' + self.resume_document.parent.name)
++            self._set_resume_notice('Current restoration plan: ' + self.resume_document.parent.name)
              self.pause_button.configure(state='normal')
              self._append_log('Resume document: ' + str(value))
 +        elif kind in {'defender_initial', 'defender_dialog_status'}:

@@ -19,6 +19,7 @@ the separate benchmark sources.
 | Startup and resume | Discover bounded recovery-plan metadata for the current profile; load the newest valid unfinished plan without starting restoration. Offline source media is reported. Manual loading remains available. |
 | Durable recovery | Existing 500,000,000-byte reserve, copy checkpoints, transaction journal, final verification and rollback/retention lifecycle remain in use. Archived projects use the same recovery operation. |
 | Defender | Explicit confirmation followed by Windows UAC, actual-state verification, manual instructions if blocked, and a manual-reactivation reminder on success, cancellation, error, pause and exit. There is no automatic reactivation or silent repeated disabling. |
+| Minimum-size UI | Compact responsive controls and a scrollable central panel keep progress, results and the activity log reachable at the supported 1080 × 720 minimum. Window captures assert the visibility of controls and both progress bars. |
 | Project archives | Optional production `archive-blocks-v1` backup storage, format 2.5. Direct block creation and extraction into the existing staging tree; logical file SHA-256 plus physical block hashes; exact supported timestamps/modes and empty directories; resumable extraction. Ordinary file backups remain the default. |
 | Local conversation pre-read | Optional bounded read of up to 50 recent local rollout files. It warms temporary OS file cache only. It does not load a persistent Codex application cache, call an agent or open a conversation through the app. |
 | Benchmark delivery | Windows launcher with quick/thorough modes, versioned synthetic scenarios, space check, stop after the current trial, isolated original/final workers and JSON plus readable text reports. |
@@ -46,7 +47,8 @@ is the consolidated publication gate. It runs:
 - Packaged application regression and compatibility scenarios.
 - Packaged pause/reopen recovery for ordinary files and archived projects.
 - Packaged local pre-read against three synthetic files.
-- Packaged application open/close, plus synthetic screenshots.
+- Packaged application open/close, plus synthetic screenshots and minimum-size
+  layout bounds for controls, progress, results and the activity log.
 - Benchmark contracts, synthetic UI verification and a bounded quick campaign
   through the packaged original and final workers, including the production
   archive format.

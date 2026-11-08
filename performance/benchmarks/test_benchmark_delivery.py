@@ -35,7 +35,7 @@ else:
  SLOW
  r={'kind':'restore','variant':a.variant,'seconds':1 if a.variant=='baseline' else 2,
     'valid':True,'durable_checkpoints':a.variant!='baseline','final_verification':True}
-(root/'results'/(a.trial+'.json')).write_text(json.dumps(r))
+(root/'results'/(a.trial+'.json')).write_text(json.dumps(r), encoding='utf-8')
 '''.replace('SLOW', 'time.sleep(5)' if slow else 'pass'), encoding='utf-8')
 
     def command(self, variant):
@@ -65,9 +65,9 @@ class BenchmarkDeliveryTests(unittest.TestCase):
             self.assertFalse(report['passed'])
             self.assertEqual(len(report['trials']), 1)
             self.assertEqual(report['comparisons'], {})
-            self.assertEqual(sentinel.read_text(), 'user content')
-            self.assertEqual(json.loads(path.read_text())['status'], 'stopped')
-            self.assertIn('Aucune paire complète', path.with_suffix('.txt').read_text())
+            self.assertEqual(sentinel.read_text(encoding='utf-8'), 'user content')
+            self.assertEqual(json.loads(path.read_text(encoding='utf-8'))['status'], 'stopped')
+            self.assertIn('Aucune paire complète', path.with_suffix('.txt').read_text(encoding='utf-8'))
             self.assertFalse(list(root.glob('lb-benchmark-*')))
 
     def test_cancel_running_synthetic_worker_saves_both_reports(self):
@@ -89,7 +89,7 @@ class BenchmarkDeliveryTests(unittest.TestCase):
             self.assertEqual(report['status'], 'cancelled')
             self.assertFalse(report['passed'])
             self.assertTrue(path.is_file())
-            self.assertIn('INTERROMPU', path.with_suffix('.txt').read_text())
+            self.assertIn('INTERROMPU', path.with_suffix('.txt').read_text(encoding='utf-8'))
             self.assertFalse(list(root.glob('lb-benchmark-*')))
 
     def test_completed_orchestration_reports_a_regression_honestly(self):
@@ -99,7 +99,7 @@ class BenchmarkDeliveryTests(unittest.TestCase):
             self.assertTrue(report['passed'])
             self.assertEqual(len(report['trials']), 4)
             self.assertEqual(report['comparisons']['small']['reduction_percent'], -100)
-            self.assertIn('-100.0 %', path.with_suffix('.txt').read_text())
+            self.assertIn('-100.0 %', path.with_suffix('.txt').read_text(encoding='utf-8'))
 
     def test_space_preflight_fails_before_any_fixture_and_remains_reportable(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -109,7 +109,7 @@ class BenchmarkDeliveryTests(unittest.TestCase):
             self.assertEqual(report['trials'], [])
             self.assertFalse(report['space_preflight']['passed'])
             self.assertTrue(path.with_suffix('.txt').is_file())
-            self.assertIn('réactiver', path.with_suffix('.txt').read_text())
+            self.assertIn('réactiver', path.with_suffix('.txt').read_text(encoding='utf-8'))
 
     def test_microbench_stops_at_trial_boundary_and_preserves_content_guarantee(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -149,10 +149,10 @@ class BenchmarkDeliveryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'report.json'
             sentinel = path.with_name(path.name + '.tmp')
-            sentinel.write_text('unrelated user data')
+            sentinel.write_text('unrelated user data', encoding='utf-8')
             _atomic_text(path, 'report')
-            self.assertEqual(path.read_text(), 'report')
-            self.assertEqual(sentinel.read_text(), 'unrelated user data')
+            self.assertEqual(path.read_text(encoding='utf-8'), 'report')
+            self.assertEqual(sentinel.read_text(encoding='utf-8'), 'unrelated user data')
             self.assertEqual(set(p.name for p in Path(folder).iterdir()), {'report.json', 'report.json.tmp'})
 
     def test_source_comparison_refuses_identical_directories_and_identical_code(self):
@@ -161,7 +161,7 @@ class BenchmarkDeliveryTests(unittest.TestCase):
             second = Path(folder) / 'second'
             for source in (first, second):
                 (source / 'codex_transfer').mkdir(parents=True)
-                (source / 'codex_transfer' / 'restore.py').write_text('same code')
+                (source / 'codex_transfer' / 'restore.py').write_text('same code', encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'different source directories'):
                 WorkerPair(first, first)
             with self.assertRaisesRegex(ValueError, 'contents are identical'):
@@ -170,7 +170,7 @@ class BenchmarkDeliveryTests(unittest.TestCase):
     def test_frozen_worker_identity_is_checked_before_measurement(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
-            (root / 'BENCHMARK-BUILD.json').write_text(json.dumps({'workers': {'baseline': {'sha256': 'wrong'}}}))
+            (root / 'BENCHMARK-BUILD.json').write_text(json.dumps({'workers': {'baseline': {'sha256': 'wrong'}}}), encoding='utf-8')
             (root / 'Lifeboat-Baseline-Worker.exe').write_bytes(b'changed executable')
             with self.assertRaisesRegex(RuntimeError, 'identity mismatch'):
                 WorkerPair(executable_directory=root).identity()
@@ -178,7 +178,7 @@ class BenchmarkDeliveryTests(unittest.TestCase):
     def test_worker_refuses_an_unmarked_directory_without_modifying_it(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
-            (root / 'keep.txt').write_text('do not touch')
+            (root / 'keep.txt').write_text('do not touch', encoding='utf-8')
             with self.assertRaisesRegex(RuntimeError, 'ownership marker'):
                 owned_root(root, 'token')
             self.assertEqual([p.name for p in root.iterdir()], ['keep.txt'])

@@ -7,7 +7,7 @@ class BenchmarkTests(unittest.TestCase):
     def test_strategies_and_cleanup(self):
         with tempfile.TemporaryDirectory() as folder:
             sentinel = Path(folder)/'keep.txt'
-            sentinel.write_text('user file')
+            sentinel.write_text('user file', encoding='utf-8')
             result = run(folder, count=12, size=200, repeats=1)
             self.assertEqual(len(result['results']), 6)
             self.assertTrue(all(x['verified'] for x in result['results']))

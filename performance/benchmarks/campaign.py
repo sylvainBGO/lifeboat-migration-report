@@ -169,7 +169,7 @@ def restore_case(root, profile, smoke):
             raise AssertionError('Rejected collision changed destination')
         # Keep a nested directory within its parent, but no second project owns it.
         # Retain the separately registered portable-profile project.
-        values = json.loads(config.read_text())
+        values = json.loads(config.read_text(encoding='utf-8'))
         values['projects'] = extra[1:]
         save(config, values)
         args.destination = str(root / 'packages-safe')
@@ -230,7 +230,7 @@ def resume_case(root):
     save(journal,state)
     copied=Counter()
     def attempt(free_bytes, stop_after=None):
-        state=json.loads(journal.read_text())
+        state=json.loads(journal.read_text(encoding='utf-8'))
         for item in sorted(source.iterdir()):
             if item.name in state['done']: continue
             if free_bytes < 500_000_000 + item.stat().st_size: return 'space_pause'
@@ -339,7 +339,7 @@ def main():
                     finally:
                         if process.poll() is None: process.kill();process.wait()
                 result_path=root/'result.json'
-                result=json.loads(result_path.read_text()) if result_path.exists() else dict(passed=False,error_type='WorkerFailedOrTimedOut')
+                result=json.loads(result_path.read_text(encoding='utf-8')) if result_path.exists() else dict(passed=False,error_type='WorkerFailedOrTimedOut')
                 result.update(scenario=scenario,exit_code=process.returncode)
                 if process.returncode: result['passed']=False
                 if not result['passed']:

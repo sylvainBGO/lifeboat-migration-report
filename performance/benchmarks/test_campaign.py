@@ -21,7 +21,7 @@ class CampaignTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp); dest=root/'report.json'
             save(dest,{'results':[1]});save(dest,{'results':[1,2]})
-            self.assertEqual(json.loads(dest.read_text())['results'],[1,2])
+            self.assertEqual(json.loads(dest.read_text(encoding='utf-8'))['results'],[1,2])
             self.assertFalse(dest.with_suffix('.tmp').exists())
             self.assertEqual(sanitize(str(root/'fixture'),root),'<fixture>'+str(Path('/fixture')).replace('/', __import__('os').sep))
 

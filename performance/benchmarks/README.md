@@ -1,4 +1,25 @@
-# Windows benchmark 0.2 — instructions
+# Current Windows benchmark delivery
+
+Use **Lifeboat-Benchmark-Windows.zip**, produced by the `Complete Windows benchmark
+delivery` workflow. Extract everything and open `Lancer-Benchmark.cmd`.
+The [French usage guide](BENCHMARK-GUIDE.md) describes the quick/thorough UI,
+bounded repetitions, explicit Defender/UAC action, interruption, and the JSON +
+readable TXT reports. The benchmark never automatically changes or reenables
+Defender; its explicit UI action uses the same control module as the application.
+
+The complete-restore comparison now uses **separate original and final workers**.
+Final timings include `prepare_restore`, creation of the durable resume document,
+and `resume_from_document` with the real checkpoints and mandatory final checks.
+All three release patches are applied before building the final worker. Worker
+hashes and exact source identities are recorded and verified before measurement.
+The first observation and later repetitions are distinguishable, but OS caches
+are never claimed to be cold or flushed. Unmatched/invalid trials do not produce
+a misleading speedup. See [scenarios.json](scenarios.json) for the versioned data.
+
+## Historical standalone microbenchmark 0.2
+
+The sections below describe earlier isolated tools and milestones, not the
+current delivered UI or the new full final-build comparison.
 
 Extract all files, then double-click Run-Benchmark.cmd. It runs three repetitions of six copy/extraction strategies on 3,000 mixed-content synthetic files. Send only the new benchmark-v2-*.json in results/. The build-server smoke report is no longer bundled.
 

@@ -1,0 +1,1253 @@
+{
+  "schema": 4,
+  "kind": "lifeboat-benchmark-suite",
+  "protocol_version": "2026-11-production-path-2",
+  "started_at": "2026-11-08T18:55:28.014547+00:00",
+  "mode": "quick",
+  "repeats": 1,
+  "focus": "all",
+  "platform": "Windows-2025Server-10.0.26100-SP0",
+  "python": "3.12.10",
+  "status": "complete",
+  "passed": true,
+  "planned_trials": 12,
+  "trials": [
+    {
+      "kind": "restore",
+      "variant": "baseline",
+      "protocol_version": "2026-11-production-path-2",
+      "seconds": 1.8998214000000075,
+      "backup_seconds": 1.3120677,
+      "total_seconds": 3.2118891000000076,
+      "project_storage": "files",
+      "format_version": "2.4",
+      "input_source_sha256": "c4c72c68fc0a1ae5ffc59741ca2e0cda71c45a47b4219eb6dc58625d859239a1",
+      "plan_seconds": 0.3515797999999677,
+      "prepare_seconds": 0.61128640000004,
+      "restore_seconds": 0.9369551999999999,
+      "synthetic_plan_decisions": [
+        {
+          "kind": "conversation",
+          "decision": "keep-target"
+        },
+        {
+          "kind": "project",
+          "decision": "keep-source"
+        }
+      ],
+      "valid": true,
+      "checks": {
+        "final_verification": true,
+        "target_authentication_preserved": true,
+        "target_installation_preserved": true,
+        "target_conversation_preserved": true,
+        "source_unchanged": true,
+        "backup_unchanged": true
+      },
+      "durable_checkpoints": false,
+      "source_version": "3.4.11",
+      "source_validation": true,
+      "final_verification": true,
+      "fixture": {
+        "fixture_version": "2026-11-final-2",
+        "profile": "small",
+        "mode": "quick",
+        "added_files": 200,
+        "added_bytes": 204800,
+        "project_roots": 4
+      },
+      "verification": {
+        "sqliteQuickCheck": "ok",
+        "threads": 4,
+        "expectedThreadIds": 4,
+        "recentIndexEntries": 3,
+        "projects": 4,
+        "projectDispositions": 0,
+        "pathPortability": {
+          "status": "portable",
+          "needsReviewReferences": 0,
+          "oldSourceReferences": 0,
+          "fieldsNeedingReview": 0
+        }
+      },
+      "profile": "small",
+      "repeat": 0,
+      "observation": "first_pass",
+      "cache_controlled": false,
+      "defender_before": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      },
+      "defender_after": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      }
+    },
+    {
+      "kind": "restore",
+      "variant": "final",
+      "protocol_version": "2026-11-production-path-2",
+      "seconds": 3.0651290999999787,
+      "backup_seconds": 1.130539400000032,
+      "total_seconds": 4.195668500000011,
+      "project_storage": "files",
+      "format_version": "2.4",
+      "input_source_sha256": "c4c72c68fc0a1ae5ffc59741ca2e0cda71c45a47b4219eb6dc58625d859239a1",
+      "plan_seconds": 0.3643136999999683,
+      "prepare_seconds": 0.5394415000000095,
+      "restore_seconds": 2.161373900000001,
+      "synthetic_plan_decisions": [
+        {
+          "kind": "conversation",
+          "decision": "keep-target"
+        },
+        {
+          "kind": "project",
+          "decision": "keep-source"
+        }
+      ],
+      "valid": true,
+      "checks": {
+        "final_verification": true,
+        "target_authentication_preserved": true,
+        "target_installation_preserved": true,
+        "target_conversation_preserved": true,
+        "source_unchanged": true,
+        "backup_unchanged": true,
+        "durable_journal_created": true,
+        "normal_report_retention": true
+      },
+      "durable_checkpoints": true,
+      "source_version": "3.4.11",
+      "source_validation": true,
+      "final_verification": true,
+      "fixture": {
+        "fixture_version": "2026-11-final-2",
+        "profile": "small",
+        "mode": "quick",
+        "added_files": 200,
+        "added_bytes": 204800,
+        "project_roots": 4
+      },
+      "verification": {
+        "sqliteQuickCheck": "ok",
+        "threads": 4,
+        "expectedThreadIds": 4,
+        "recentIndexEntries": 3,
+        "projects": 4,
+        "projectDispositions": 0,
+        "pathPortability": {
+          "status": "portable",
+          "needsReviewReferences": 0,
+          "oldSourceReferences": 0,
+          "fieldsNeedingReview": 0
+        }
+      },
+      "profile": "small",
+      "repeat": 0,
+      "observation": "first_pass",
+      "cache_controlled": false,
+      "defender_before": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      },
+      "defender_after": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      }
+    },
+    {
+      "kind": "restore",
+      "variant": "final_archive",
+      "protocol_version": "2026-11-production-path-2",
+      "seconds": 4.445111700000041,
+      "backup_seconds": 1.2950667000000067,
+      "total_seconds": 5.7401784000000475,
+      "project_storage": "archive-blocks-v1",
+      "format_version": "2.5",
+      "input_source_sha256": "c4c72c68fc0a1ae5ffc59741ca2e0cda71c45a47b4219eb6dc58625d859239a1",
+      "plan_seconds": 0.33992580000000316,
+      "prepare_seconds": 0.4966229999999996,
+      "restore_seconds": 3.608562900000038,
+      "synthetic_plan_decisions": [
+        {
+          "kind": "conversation",
+          "decision": "keep-target"
+        },
+        {
+          "kind": "project",
+          "decision": "keep-source"
+        }
+      ],
+      "valid": true,
+      "checks": {
+        "final_verification": true,
+        "target_authentication_preserved": true,
+        "target_installation_preserved": true,
+        "target_conversation_preserved": true,
+        "source_unchanged": true,
+        "backup_unchanged": true,
+        "durable_journal_created": true,
+        "normal_report_retention": true
+      },
+      "durable_checkpoints": true,
+      "source_version": "3.4.11",
+      "source_validation": true,
+      "final_verification": true,
+      "fixture": {
+        "fixture_version": "2026-11-final-2",
+        "profile": "small",
+        "mode": "quick",
+        "added_files": 200,
+        "added_bytes": 204800,
+        "project_roots": 4
+      },
+      "verification": {
+        "sqliteQuickCheck": "ok",
+        "threads": 4,
+        "expectedThreadIds": 4,
+        "recentIndexEntries": 3,
+        "projects": 4,
+        "projectDispositions": 0,
+        "pathPortability": {
+          "status": "portable",
+          "needsReviewReferences": 0,
+          "oldSourceReferences": 0,
+          "fieldsNeedingReview": 0
+        }
+      },
+      "profile": "small",
+      "repeat": 0,
+      "observation": "first_pass",
+      "cache_controlled": false,
+      "defender_before": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      },
+      "defender_after": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      }
+    },
+    {
+      "kind": "restore",
+      "variant": "baseline",
+      "protocol_version": "2026-11-production-path-2",
+      "seconds": 0.9448790999999801,
+      "backup_seconds": 0.6315004999999587,
+      "total_seconds": 1.5763795999999388,
+      "project_storage": "files",
+      "format_version": "2.4",
+      "input_source_sha256": "3a27d377a4683ba795516ecefce916dd043df657677cc3ea38b5bc290ea46266",
+      "plan_seconds": 0.3620113999999717,
+      "prepare_seconds": 0.39891540000002124,
+      "restore_seconds": 0.1839522999999872,
+      "synthetic_plan_decisions": [
+        {
+          "kind": "conversation",
+          "decision": "keep-target"
+        },
+        {
+          "kind": "project",
+          "decision": "keep-source"
+        }
+      ],
+      "valid": true,
+      "checks": {
+        "final_verification": true,
+        "target_authentication_preserved": true,
+        "target_installation_preserved": true,
+        "target_conversation_preserved": true,
+        "source_unchanged": true,
+        "backup_unchanged": true
+      },
+      "durable_checkpoints": false,
+      "source_version": "3.4.11",
+      "source_validation": true,
+      "final_verification": true,
+      "fixture": {
+        "fixture_version": "2026-11-final-2",
+        "profile": "large",
+        "mode": "quick",
+        "added_files": 2,
+        "added_bytes": 2097152,
+        "project_roots": 1
+      },
+      "verification": {
+        "sqliteQuickCheck": "ok",
+        "threads": 4,
+        "expectedThreadIds": 4,
+        "recentIndexEntries": 3,
+        "projects": 1,
+        "projectDispositions": 0,
+        "pathPortability": {
+          "status": "portable",
+          "needsReviewReferences": 0,
+          "oldSourceReferences": 0,
+          "fieldsNeedingReview": 0
+        }
+      },
+      "profile": "large",
+      "repeat": 0,
+      "observation": "first_pass",
+      "cache_controlled": false,
+      "defender_before": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      },
+      "defender_after": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      }
+    },
+    {
+      "kind": "restore",
+      "variant": "final",
+      "protocol_version": "2026-11-production-path-2",
+      "seconds": 2.2973582000000192,
+      "backup_seconds": 0.6423216999999681,
+      "total_seconds": 2.9396798999999874,
+      "project_storage": "files",
+      "format_version": "2.4",
+      "input_source_sha256": "3a27d377a4683ba795516ecefce916dd043df657677cc3ea38b5bc290ea46266",
+      "plan_seconds": 0.36359899999996514,
+      "prepare_seconds": 0.44085650000005216,
+      "restore_seconds": 1.492902700000002,
+      "synthetic_plan_decisions": [
+        {
+          "kind": "conversation",
+          "decision": "keep-target"
+        },
+        {
+          "kind": "project",
+          "decision": "keep-source"
+        }
+      ],
+      "valid": true,
+      "checks": {
+        "final_verification": true,
+        "target_authentication_preserved": true,
+        "target_installation_preserved": true,
+        "target_conversation_preserved": true,
+        "source_unchanged": true,
+        "backup_unchanged": true,
+        "durable_journal_created": true,
+        "normal_report_retention": true
+      },
+      "durable_checkpoints": true,
+      "source_version": "3.4.11",
+      "source_validation": true,
+      "final_verification": true,
+      "fixture": {
+        "fixture_version": "2026-11-final-2",
+        "profile": "large",
+        "mode": "quick",
+        "added_files": 2,
+        "added_bytes": 2097152,
+        "project_roots": 1
+      },
+      "verification": {
+        "sqliteQuickCheck": "ok",
+        "threads": 4,
+        "expectedThreadIds": 4,
+        "recentIndexEntries": 3,
+        "projects": 1,
+        "projectDispositions": 0,
+        "pathPortability": {
+          "status": "portable",
+          "needsReviewReferences": 0,
+          "oldSourceReferences": 0,
+          "fieldsNeedingReview": 0
+        }
+      },
+      "profile": "large",
+      "repeat": 0,
+      "observation": "first_pass",
+      "cache_controlled": false,
+      "defender_before": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      },
+      "defender_after": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      }
+    },
+    {
+      "kind": "restore",
+      "variant": "final_archive",
+      "protocol_version": "2026-11-production-path-2",
+      "seconds": 2.289691000000005,
+      "backup_seconds": 0.9891913000000159,
+      "total_seconds": 3.2788823000000207,
+      "project_storage": "archive-blocks-v1",
+      "format_version": "2.5",
+      "input_source_sha256": "3a27d377a4683ba795516ecefce916dd043df657677cc3ea38b5bc290ea46266",
+      "plan_seconds": 0.3131430999999907,
+      "prepare_seconds": 0.42535040000001345,
+      "restore_seconds": 1.5511975000000007,
+      "synthetic_plan_decisions": [
+        {
+          "kind": "conversation",
+          "decision": "keep-target"
+        },
+        {
+          "kind": "project",
+          "decision": "keep-source"
+        }
+      ],
+      "valid": true,
+      "checks": {
+        "final_verification": true,
+        "target_authentication_preserved": true,
+        "target_installation_preserved": true,
+        "target_conversation_preserved": true,
+        "source_unchanged": true,
+        "backup_unchanged": true,
+        "durable_journal_created": true,
+        "normal_report_retention": true
+      },
+      "durable_checkpoints": true,
+      "source_version": "3.4.11",
+      "source_validation": true,
+      "final_verification": true,
+      "fixture": {
+        "fixture_version": "2026-11-final-2",
+        "profile": "large",
+        "mode": "quick",
+        "added_files": 2,
+        "added_bytes": 2097152,
+        "project_roots": 1
+      },
+      "verification": {
+        "sqliteQuickCheck": "ok",
+        "threads": 4,
+        "expectedThreadIds": 4,
+        "recentIndexEntries": 3,
+        "projects": 1,
+        "projectDispositions": 0,
+        "pathPortability": {
+          "status": "portable",
+          "needsReviewReferences": 0,
+          "oldSourceReferences": 0,
+          "fieldsNeedingReview": 0
+        }
+      },
+      "profile": "large",
+      "repeat": 0,
+      "observation": "first_pass",
+      "cache_controlled": false,
+      "defender_before": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      },
+      "defender_after": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      }
+    },
+    {
+      "kind": "io",
+      "profile": "mixed",
+      "variant": "fused_no_metadata",
+      "repeat": 0,
+      "seconds": 0.5219000000000733,
+      "valid": true,
+      "observation": "first_pass",
+      "cache_controlled": false,
+      "phases": [
+        {
+          "phase": "copy_and_source_hash",
+          "seconds": 0.32338220000002593,
+          "cpu_seconds": 0.28125
+        },
+        {
+          "phase": "destination_verify",
+          "seconds": 0.19851780000004737,
+          "cpu_seconds": 0.1875,
+          "details": {
+            "hash_read_seconds": 0.18512640000000147,
+            "slowest_file_seconds": [
+              0.0008164000000192573,
+              0.0007231999999817162,
+              0.0006993000000079519,
+              0.0006863000000407737,
+              0.0006802000000334374,
+              0.0006796999999778564,
+              0.0006772000000410117,
+              0.0006703999999899679,
+              0.0006698000000255888,
+              0.0006680999999844062
+            ]
+          }
+        }
+      ],
+      "defender_before": {
+        "status": "ok",
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false,
+        "AntivirusEnabled": true
+      },
+      "defender_after": {
+        "status": "ok",
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false,
+        "AntivirusEnabled": true
+      }
+    },
+    {
+      "kind": "io",
+      "profile": "mixed",
+      "variant": "fused",
+      "repeat": 0,
+      "seconds": 0.6159152999999833,
+      "valid": true,
+      "observation": "first_pass",
+      "cache_controlled": false,
+      "phases": [
+        {
+          "phase": "copy_and_source_hash",
+          "seconds": 0.40292329999999765,
+          "cpu_seconds": 0.375
+        },
+        {
+          "phase": "destination_verify",
+          "seconds": 0.21299199999998564,
+          "cpu_seconds": 0.21875,
+          "details": {
+            "hash_read_seconds": 0.20039079999997966,
+            "slowest_file_seconds": [
+              0.005828699999995024,
+              0.0010590999999635642,
+              0.001000099999998838,
+              0.0009430999999722189,
+              0.0008667000000173175,
+              0.0008396000000061576,
+              0.0008225999999922351,
+              0.000780700000007073,
+              0.0007789000000002488,
+              0.0007785999999896376
+            ]
+          }
+        }
+      ],
+      "defender_before": {
+        "status": "ok",
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false,
+        "AntivirusEnabled": true
+      },
+      "defender_after": {
+        "status": "ok",
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false,
+        "AntivirusEnabled": true
+      }
+    },
+    {
+      "kind": "io",
+      "profile": "mixed",
+      "variant": "zip",
+      "repeat": 0,
+      "seconds": 0.3008702999999855,
+      "valid": true,
+      "observation": "first_pass",
+      "cache_controlled": false,
+      "phases": [
+        {
+          "phase": "extract_with_crc",
+          "seconds": 0.10329469999999219,
+          "cpu_seconds": 0.09375
+        },
+        {
+          "phase": "destination_verify",
+          "seconds": 0.1975755999999933,
+          "cpu_seconds": 0.203125,
+          "details": {
+            "hash_read_seconds": 0.18447620000000597,
+            "slowest_file_seconds": [
+              0.000796400000012909,
+              0.0007604000000469568,
+              0.0007203000000117754,
+              0.0007147000000031767,
+              0.0007001000000173008,
+              0.0006996000000185632,
+              0.000698499999998603,
+              0.0006913999999937914,
+              0.0006879000000026281,
+              0.0006870999999932792
+            ]
+          }
+        }
+      ],
+      "defender_before": {
+        "status": "ok",
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false,
+        "AntivirusEnabled": true
+      },
+      "defender_after": {
+        "status": "ok",
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false,
+        "AntivirusEnabled": true
+      }
+    },
+    {
+      "kind": "io",
+      "profile": "mixed",
+      "variant": "copytree_no_metadata",
+      "repeat": 0,
+      "seconds": 0.515769999999975,
+      "valid": true,
+      "observation": "first_pass",
+      "cache_controlled": false,
+      "phases": [
+        {
+          "phase": "source_verify",
+          "seconds": 0.200979899999993,
+          "cpu_seconds": 0.203125,
+          "details": {
+            "hash_read_seconds": 0.18811410000000706,
+            "slowest_file_seconds": [
+              0.0008455999999910091,
+              0.0008326999999894724,
+              0.0008311999999932596,
+              0.0007370000000150867,
+              0.0007196999999905529,
+              0.0007170000000087384,
+              0.0007075000000327236,
+              0.000699199999985467,
+              0.0006977999999548956,
+              0.000688700000011977
+            ]
+          }
+        },
+        {
+          "phase": "copy",
+          "seconds": 0.11440729999998211,
+          "cpu_seconds": 0.109375
+        },
+        {
+          "phase": "destination_verify",
+          "seconds": 0.20038279999999986,
+          "cpu_seconds": 0.203125,
+          "details": {
+            "hash_read_seconds": 0.18718189999998458,
+            "slowest_file_seconds": [
+              0.0009782000000200242,
+              0.0007979999999747633,
+              0.0007027999999991152,
+              0.0006890000000225882,
+              0.0006889999999657448,
+              0.0006879000000026281,
+              0.0006801000000109525,
+              0.0006776999999829059,
+              0.0006766000000197891,
+              0.0006720000000086657
+            ]
+          }
+        }
+      ],
+      "defender_before": {
+        "status": "ok",
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false,
+        "AntivirusEnabled": true
+      },
+      "defender_after": {
+        "status": "ok",
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false,
+        "AntivirusEnabled": true
+      }
+    },
+    {
+      "kind": "io",
+      "profile": "mixed",
+      "variant": "copyfile",
+      "repeat": 0,
+      "seconds": 0.5785118000000011,
+      "valid": true,
+      "observation": "first_pass",
+      "cache_controlled": false,
+      "phases": [
+        {
+          "phase": "source_verify",
+          "seconds": 0.2007403999999724,
+          "cpu_seconds": 0.203125,
+          "details": {
+            "hash_read_seconds": 0.1870241999999962,
+            "slowest_file_seconds": [
+              0.0008194999999773245,
+              0.0008162000000311309,
+              0.0007489000000191481,
+              0.0007406999999943764,
+              0.0007142999999700805,
+              0.0007016999999791551,
+              0.0006993999999735934,
+              0.0006923000000256252,
+              0.0006908000000294123,
+              0.0006893000000331995
+            ]
+          }
+        },
+        {
+          "phase": "listed_copy2",
+          "seconds": 0.1751560000000154,
+          "cpu_seconds": 0.125
+        },
+        {
+          "phase": "destination_verify",
+          "seconds": 0.20261540000001332,
+          "cpu_seconds": 0.1875,
+          "details": {
+            "hash_read_seconds": 0.18923969999997325,
+            "slowest_file_seconds": [
+              0.0008606000000099812,
+              0.0008143000000018219,
+              0.0008136999999805994,
+              0.000799700000015946,
+              0.000799700000015946,
+              0.0007928999999649022,
+              0.0007711000000085733,
+              0.0007688000000030115,
+              0.0007597999999688909,
+              0.0007441000000198983
+            ]
+          }
+        }
+      ],
+      "defender_before": {
+        "status": "ok",
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false,
+        "AntivirusEnabled": true
+      },
+      "defender_after": {
+        "status": "ok",
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false,
+        "AntivirusEnabled": true
+      }
+    },
+    {
+      "kind": "io",
+      "profile": "mixed",
+      "variant": "separate",
+      "repeat": 0,
+      "seconds": 0.5401289000000133,
+      "valid": true,
+      "observation": "first_pass",
+      "cache_controlled": false,
+      "phases": [
+        {
+          "phase": "source_verify",
+          "seconds": 0.19753759999997555,
+          "cpu_seconds": 0.203125,
+          "details": {
+            "hash_read_seconds": 0.18478489999995418,
+            "slowest_file_seconds": [
+              0.0008220999999934975,
+              0.000783899999987625,
+              0.0007805999999845881,
+              0.0007308000000421089,
+              0.0007133999999950902,
+              0.0006759999999985666,
+              0.0006750999999667329,
+              0.0006738000000154898,
+              0.00067359999997052,
+              0.0006730999999717824
+            ]
+          }
+        },
+        {
+          "phase": "copy",
+          "seconds": 0.13763629999999694,
+          "cpu_seconds": 0.078125
+        },
+        {
+          "phase": "destination_verify",
+          "seconds": 0.20495500000004085,
+          "cpu_seconds": 0.203125,
+          "details": {
+            "hash_read_seconds": 0.19236899999998514,
+            "slowest_file_seconds": [
+              0.0009880999999722917,
+              0.000881100000015067,
+              0.0008780000000001564,
+              0.0008239999999659631,
+              0.0008156000000099084,
+              0.0007912000000374064,
+              0.0007850000000075852,
+              0.0007805999999845881,
+              0.0007620999999744527,
+              0.0007507999999916137
+            ]
+          }
+        }
+      ],
+      "defender_before": {
+        "status": "ok",
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false,
+        "AntivirusEnabled": true
+      },
+      "defender_after": {
+        "status": "ok",
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false,
+        "AntivirusEnabled": true
+      }
+    }
+  ],
+  "fixtures": [
+    {
+      "fixture_version": "2026-11-final-2",
+      "profile": "small",
+      "mode": "quick",
+      "added_files": 200,
+      "added_bytes": 204800,
+      "project_roots": 4,
+      "source_sha256": "c4c72c68fc0a1ae5ffc59741ca2e0cda71c45a47b4219eb6dc58625d859239a1",
+      "synthetic": true
+    },
+    {
+      "fixture_version": "2026-11-final-2",
+      "profile": "large",
+      "mode": "quick",
+      "added_files": 2,
+      "added_bytes": 2097152,
+      "project_roots": 1,
+      "source_sha256": "3a27d377a4683ba795516ecefce916dd043df657677cc3ea38b5bc290ea46266",
+      "synthetic": true
+    }
+  ],
+  "archive_setup": [
+    {
+      "profile": "mixed",
+      "seconds": 0.04011739999998554,
+      "archive_bytes": 660908
+    }
+  ],
+  "errors": [],
+  "include_archives": true,
+  "limitations": [
+    "Données synthétiques : aucune extrapolation aux 88 Gio ou aux cinq millions de fichiers.",
+    "Le cache Windows n’est pas vidé. « Premier passage » désigne la première observation de la variante, pas une mesure garantie à cache froid. Les variantes alternent leur ordre entre les répétitions.",
+    "La génération des données est exclue ; le backup est mesuré séparément puis ajouté au total.",
+    "Plan comparatif et contrôles de fermeture du parcours GUI inclus ; attente humaine exclue.",
+    "Ce protocole remplace les mesures antérieures qui omettaient le plan comparatif et des gardes communes.",
+    "Les contrôles initiaux et finaux restent actifs ; la version finale inclut ses checkpoints durables.",
+    "Des empreintes de contenu/appartenance des fichiers sont vérifiées hors chrono et peuvent réchauffer le cache.",
+    "Les microtests ZIP et copie sans métadonnées n’ont pas la fidélité d’une restauration complète.",
+    "Les observations de Defender aux limites des essais ne prouvent pas un état constant entre elles.",
+    "Un test rapide est exploratoire ; les petits écarts et essais brefs sont sensibles au bruit."
+  ],
+  "cache_controlled": false,
+  "defender_samples": [
+    {
+      "at": "2026-11-08T18:55:29.164719+00:00",
+      "boundary": "start",
+      "state": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      }
+    },
+    {
+      "at": "2026-11-08T18:55:34.382232+00:00",
+      "boundary": "small, baseline, passage 1/1:before",
+      "state": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      }
+    },
+    {
+      "at": "2026-11-08T18:55:41.010718+00:00",
+      "boundary": "small, baseline, passage 1/1:after",
+      "state": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      }
+    },
+    {
+      "at": "2026-11-08T18:55:41.772123+00:00",
+      "boundary": "small, final, passage 1/1:before",
+      "state": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      }
+    },
+    {
+      "at": "2026-11-08T18:55:49.482060+00:00",
+      "boundary": "small, final, passage 1/1:after",
+      "state": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      }
+    },
+    {
+      "at": "2026-11-08T18:55:50.214130+00:00",
+      "boundary": "small, final_archive, passage 1/1:before",
+      "state": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      }
+    },
+    {
+      "at": "2026-11-08T18:55:59.115507+00:00",
+      "boundary": "small, final_archive, passage 1/1:after",
+      "state": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      }
+    },
+    {
+      "at": "2026-11-08T18:56:02.100366+00:00",
+      "boundary": "large, baseline, passage 1/1:before",
+      "state": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      }
+    },
+    {
+      "at": "2026-11-08T18:56:06.559384+00:00",
+      "boundary": "large, baseline, passage 1/1:after",
+      "state": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      }
+    },
+    {
+      "at": "2026-11-08T18:56:07.323923+00:00",
+      "boundary": "large, final, passage 1/1:before",
+      "state": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      }
+    },
+    {
+      "at": "2026-11-08T18:56:13.036919+00:00",
+      "boundary": "large, final, passage 1/1:after",
+      "state": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      }
+    },
+    {
+      "at": "2026-11-08T18:56:13.790862+00:00",
+      "boundary": "large, final_archive, passage 1/1:before",
+      "state": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      }
+    },
+    {
+      "at": "2026-11-08T18:56:19.795028+00:00",
+      "boundary": "large, final_archive, passage 1/1:after",
+      "state": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      }
+    },
+    {
+      "at": "2026-11-08T18:56:22.640874+00:00",
+      "boundary": "mixed:fused_no_metadata:before",
+      "state": {
+        "status": "ok",
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false,
+        "AntivirusEnabled": true,
+        "available": true
+      }
+    },
+    {
+      "at": "2026-11-08T18:56:22.640874+00:00",
+      "boundary": "mixed:fused_no_metadata:after",
+      "state": {
+        "status": "ok",
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false,
+        "AntivirusEnabled": true,
+        "available": true
+      }
+    },
+    {
+      "at": "2026-11-08T18:56:24.877800+00:00",
+      "boundary": "mixed:fused:before",
+      "state": {
+        "status": "ok",
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false,
+        "AntivirusEnabled": true,
+        "available": true
+      }
+    },
+    {
+      "at": "2026-11-08T18:56:24.877800+00:00",
+      "boundary": "mixed:fused:after",
+      "state": {
+        "status": "ok",
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false,
+        "AntivirusEnabled": true,
+        "available": true
+      }
+    },
+    {
+      "at": "2026-11-08T18:56:26.686888+00:00",
+      "boundary": "mixed:zip:before",
+      "state": {
+        "status": "ok",
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false,
+        "AntivirusEnabled": true,
+        "available": true
+      }
+    },
+    {
+      "at": "2026-11-08T18:56:26.686888+00:00",
+      "boundary": "mixed:zip:after",
+      "state": {
+        "status": "ok",
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false,
+        "AntivirusEnabled": true,
+        "available": true
+      }
+    },
+    {
+      "at": "2026-11-08T18:56:28.733963+00:00",
+      "boundary": "mixed:copytree_no_metadata:before",
+      "state": {
+        "status": "ok",
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false,
+        "AntivirusEnabled": true,
+        "available": true
+      }
+    },
+    {
+      "at": "2026-11-08T18:56:28.733963+00:00",
+      "boundary": "mixed:copytree_no_metadata:after",
+      "state": {
+        "status": "ok",
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false,
+        "AntivirusEnabled": true,
+        "available": true
+      }
+    },
+    {
+      "at": "2026-11-08T18:56:30.846961+00:00",
+      "boundary": "mixed:copyfile:before",
+      "state": {
+        "status": "ok",
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false,
+        "AntivirusEnabled": true,
+        "available": true
+      }
+    },
+    {
+      "at": "2026-11-08T18:56:30.846961+00:00",
+      "boundary": "mixed:copyfile:after",
+      "state": {
+        "status": "ok",
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false,
+        "AntivirusEnabled": true,
+        "available": true
+      }
+    },
+    {
+      "at": "2026-11-08T18:56:32.919839+00:00",
+      "boundary": "mixed:separate:before",
+      "state": {
+        "status": "ok",
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false,
+        "AntivirusEnabled": true,
+        "available": true
+      }
+    },
+    {
+      "at": "2026-11-08T18:56:32.919839+00:00",
+      "boundary": "mixed:separate:after",
+      "state": {
+        "status": "ok",
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false,
+        "AntivirusEnabled": true,
+        "available": true
+      }
+    },
+    {
+      "at": "2026-11-08T18:56:34.508619+00:00",
+      "boundary": "end",
+      "state": {
+        "available": true,
+        "RealTimeProtectionEnabled": false,
+        "IsTamperProtected": false
+      }
+    }
+  ],
+  "defender_changed": false,
+  "defender_start": {
+    "available": true,
+    "RealTimeProtectionEnabled": false,
+    "IsTamperProtected": false
+  },
+  "space_preflight": {
+    "free_bytes": 30051549184,
+    "required_bytes": 1500000000,
+    "passed": true
+  },
+  "comparisons": {
+    "large": {
+      "pairs": 1,
+      "paired_repeats": [
+        0
+      ],
+      "baseline_median_seconds": 0.9448790999999801,
+      "final_median_seconds": 2.2973582000000192,
+      "reduction_percent": -143.13779403101069,
+      "reference": "baseline",
+      "candidate": "final",
+      "defender_conditions_known": true,
+      "baseline_backup_median_seconds": 0.6315004999999587,
+      "final_backup_median_seconds": 0.6423216999999681,
+      "baseline_total_median_seconds": 1.5763795999999388,
+      "final_total_median_seconds": 2.9396798999999874,
+      "total_reduction_percent": -86.48299559319985
+    },
+    "small": {
+      "pairs": 1,
+      "paired_repeats": [
+        0
+      ],
+      "baseline_median_seconds": 1.8998214000000075,
+      "final_median_seconds": 3.0651290999999787,
+      "reduction_percent": -61.337749959020705,
+      "reference": "baseline",
+      "candidate": "final",
+      "defender_conditions_known": true,
+      "baseline_backup_median_seconds": 1.3120677,
+      "final_backup_median_seconds": 1.130539400000032,
+      "baseline_total_median_seconds": 3.2118891000000076,
+      "final_total_median_seconds": 4.195668500000011,
+      "total_reduction_percent": -30.629307842540413
+    }
+  },
+  "archive_comparisons": {
+    "large": {
+      "pairs": 1,
+      "paired_repeats": [
+        0
+      ],
+      "baseline_median_seconds": 2.2973582000000192,
+      "final_median_seconds": 2.289691000000005,
+      "reduction_percent": 0.33373985824301816,
+      "reference": "final",
+      "candidate": "final_archive",
+      "defender_conditions_known": true,
+      "baseline_backup_median_seconds": 0.6423216999999681,
+      "final_backup_median_seconds": 0.9891913000000159,
+      "baseline_total_median_seconds": 2.9396798999999874,
+      "final_total_median_seconds": 3.2788823000000207,
+      "total_reduction_percent": -11.538752909799287
+    },
+    "small": {
+      "pairs": 1,
+      "paired_repeats": [
+        0
+      ],
+      "baseline_median_seconds": 3.0651290999999787,
+      "final_median_seconds": 4.445111700000041,
+      "reduction_percent": -45.022005761521484,
+      "reference": "final",
+      "candidate": "final_archive",
+      "defender_conditions_known": true,
+      "baseline_backup_median_seconds": 1.130539400000032,
+      "final_backup_median_seconds": 1.2950667000000067,
+      "baseline_total_median_seconds": 4.195668500000011,
+      "final_total_median_seconds": 5.7401784000000475,
+      "total_reduction_percent": -36.81200981440819
+    }
+  },
+  "implementation": {
+    "type": "separate-packaged-processes",
+    "build": {
+      "schema": 1,
+      "built_at": "2026-11-08T18:55:26.678312+00:00",
+      "baseline_provenance": {
+        "reference_upstream_commit": "4fe9724ccb54422455544e56b54399fa2bc94bc3",
+        "verified_upstream": true,
+        "origin": "pinned-clean-upstream-checkout",
+        "observed_git_commit": "4fe9724ccb54422455544e56b54399fa2bc94bc3",
+        "upstream_commit": "4fe9724ccb54422455544e56b54399fa2bc94bc3"
+      },
+      "protocol_version": "2026-11-production-path-2",
+      "report_commit": "b4cc981ceb02a40796c927c102bfbcab5fb703ad",
+      "workflow_run": "42512089907",
+      "source_sha256": {
+        "baseline": "125eb2ce58a35f62ba3978babe1f8c697bcd1f147d95c574dc8786dcf751b276",
+        "final": "797c5da7f51819c70a7f4ab268d266c18f6ff0f69bd6d1c6f238ab2498f34aa5"
+      },
+      "patches": {
+        "performance/optimizations/restore-first-pass.patch": "42e25048091b9d733bcfd2fa1ca0d7f70df499873a9755de685919e6d968d778",
+        "features/resume-copy-foundation.patch": "e41a9b750fcbab5707026259618e391f98d17f1c337613b45a936bd913352868",
+        "features/completion.patch": "98d97807a705146180af59d1c297212a3be1973b9e17bcedcd4bc27a01a742c5"
+      },
+      "final_path": "build_restore_plan + synthetic decisions + prepare_restore + create_document + resume_from_document",
+      "workers": {
+        "baseline": {
+          "sha256": "033bb4c696e9e4c41fa2a5363bc92cf7537a194907dac2096a6f2eefa5fc2c35"
+        },
+        "final": {
+          "sha256": "4211b8d8eb34a3324ce5ffb975d8bcc19ac0e8ac124bff37bfcfbb16a79c94a1"
+        }
+      }
+    },
+    "verified_workers": {
+      "baseline": {
+        "sha256": "033bb4c696e9e4c41fa2a5363bc92cf7537a194907dac2096a6f2eefa5fc2c35"
+      },
+      "final": {
+        "sha256": "4211b8d8eb34a3324ce5ffb975d8bcc19ac0e8ac124bff37bfcfbb16a79c94a1"
+      }
+    }
+  },
+  "temporary_cleanup_complete": true,
+  "defender_end": {
+    "available": true,
+    "RealTimeProtectionEnabled": false,
+    "IsTamperProtected": false
+  },
+  "finished_at": "2026-11-08T18:56:34.508619+00:00"
+}

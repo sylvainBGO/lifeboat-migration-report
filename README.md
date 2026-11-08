@@ -1,5 +1,16 @@
 # Codex Lifeboat Community — recovery and performance
 
+**Current tested download: [Community Recovery 23](https://github.com/sylvainBGO/lifeboat-migration-report/releases/tag/community-recovery-23)**, published November 8, 2026.
+
+- [Windows application ZIP](https://github.com/sylvainBGO/lifeboat-migration-report/releases/download/community-recovery-23/Codex-Lifeboat-Community-Windows.zip)
+- [Windows benchmark ZIP](https://github.com/sylvainBGO/lifeboat-migration-report/releases/download/community-recovery-23/Lifeboat-Benchmark-Windows.zip)
+- [Complete integrated source ZIP](https://github.com/sylvainBGO/lifeboat-migration-report/releases/download/community-recovery-23/Codex-Lifeboat-Community-Sources.zip)
+- [SHA-256 checksums](https://github.com/sylvainBGO/lifeboat-migration-report/releases/download/community-recovery-23/SHA256.txt)
+- [Acceptance record and measured limitations](performance/analysis/completion-status.md)
+
+This is an unofficial community prerelease. Its Windows acceptance gate passed;
+the small quick campaign does not establish a final-release performance gain.
+
 The current Community build combines upstream **v3.4.11** with three versioned
 patches, applied in this order:
 
@@ -55,6 +66,6 @@ The 88.48 GiB / 5,151,949-file backup contained 713 conversations and 40 project
 
 Final verification was targeted: it reused prior project evidence and did not repeat the full project content or portability audits. The 42 copied attachments do not represent recovery of all 302 historical attachment references.
 
-This is **unofficial, incident-specific recovery tooling**, not a general-purpose recovery release. Read the report and scope restrictions before reusing code. The archive retains historical French documentation and notices as delivered; the [current issue report is in English](https://github.com/dkwolf1/Codex-Lifeboat/issues/8#issuecomment-6588510483). Statements in historical files that the package had not yet been published are superseded by this public release.
+The historical handoff contains **unofficial, incident-specific recovery tooling**; it is separate from the current Community application linked at the top of this page. Read the report and scope restrictions before reusing code. The archive retains historical French documentation and notices as delivered; the [current issue report is in English](https://github.com/dkwolf1/Codex-Lifeboat/issues/8#issuecomment-6588510483). Statements in historical files that the package had not yet been published are superseded by this public release.
 
 No private backup, user SQLite database, authentication material, conversation content, raw private screenshots or executable private recovery plan is included. Original upstream license files are retained in the source tree.

@@ -59,10 +59,9 @@ application ZIP, benchmark ZIP, source ZIP, build provenance and SHA-256 checksu
 The benchmark workflows remain available for explicitly requested supplementary
 campaigns rather than automatically repeating this acceptance gate.
 
-At the preparation of this commit, local Linux discovery ran 116 component tests:
-79 passed and 37 were skipped because they require Windows. This is not evidence
-that the Windows executable has passed. The final Windows run, published release
-and measured results will be recorded below after completion.
+The completed Windows gate ran 116 component tests: 115 passed and one extended-
+attribute test was unavailable on Windows. All 29 benchmark contracts passed.
+The exact published build and its complete acceptance record are linked below.
 
 ## Performance interpretation
 
@@ -97,6 +96,57 @@ outcomes depend on the user's Windows environment.
 
 ## Final evidence
 
-Pending the consolidated Windows build on this branch. Consult the workflow
-run attached to the exact commit before treating these sources as a tested
-Windows release.
+**Community Recovery 23 was published and its assets were verified on November 8, 2026.**
+
+- [Release and three ZIP downloads](https://github.com/sylvainBGO/lifeboat-migration-report/releases/tag/community-recovery-23)
+- [Published source commit](https://github.com/sylvainBGO/lifeboat-migration-report/commit/b4cc981ceb02a40796c927c102bfbcab5fb703ad)
+- [Successful main Windows run](https://github.com/sylvainBGO/lifeboat-migration-report/actions/runs/42512089907)
+- [Merged implementation PR](https://github.com/sylvainBGO/lifeboat-migration-report/pull/1)
+- [Machine-readable acceptance record](../results/community-recovery-23/acceptance.json)
+- [Complete benchmark JSON](../results/community-recovery-23/benchmark.json) and [readable report](../results/community-recovery-23/benchmark.txt)
+
+The gate passed 115 component tests (one additional test is unavailable on
+Windows) and all 29 benchmark contracts. Both the source and packaged application
+passed 97 regression checks and 12 compatibility scenarios. Packaged ordinary-file
+and archive pause/reopen recovery, local pre-read of three synthetic files, and
+GUI open/close passed. Physical UI bounds were verified inside a 1024 × 720 Windows
+work area, including navigation, language selection, recovery controls and results.
+
+All 12 packaged quick campaign trials completed with valid results. All six full
+restore trials preserved the destination conversation, authentication and installation
+identity; source and backup content remained unchanged. Each restored database
+contained the expected four conversation identities and three active index entries.
+
+The application, source and benchmark ZIPs passed ZIP integrity checks. Their SHA-256
+values matched both the workflow checksum manifest and GitHub's published release
+asset digests. Build identities point to the exact source commit and main workflow
+above. Defender mutation and UAC-command contracts were tested with mocks; no real
+protection setting was changed by the acceptance process.
+
+### Measurements from the published build
+
+Protocol: `2026-11-production-path-2`; fixture: `2026-11-final-2`. One trial per variant
+and profile, Windows CI, cache not flushed. Defender was observed disabled at every
+sampling point. This campaign does not compare protection enabled and disabled.
+The listed added files are in addition to the common Codex/SQLite/conversation fixture.
+
+| Added workload | Variant | Backup (s) | Full restore (s) | Backup + restore (s) |
+| --- | --- | ---: | ---: | ---: |
+| 200 × 1 KiB, 4 projects | Upstream v3.4.11 | 1.312 | 1.900 | 3.212 |
+| 200 × 1 KiB, 4 projects | Final ordinary files | 1.131 | 3.065 | 4.196 |
+| 200 × 1 KiB, 4 projects | Final archive blocks | 1.295 | 4.445 | 5.740 |
+| 2 × 1 MiB, 1 project | Upstream v3.4.11 | 0.632 | 0.945 | 1.576 |
+| 2 × 1 MiB, 1 project | Final ordinary files | 0.642 | 2.297 | 2.940 |
+| 2 × 1 MiB, 1 project | Final archive blocks | 0.989 | 2.290 | 3.279 |
+
+The final ordinary-file path is slower than upstream on both of these very small
+workloads. The archive path also has a higher combined backup-plus-restore time
+than final ordinary files in both profiles. The 0.008-second difference in restore
+time for the two-file profile is too small and too sparsely sampled to establish
+an archive speedup. No quantified cause is inferred without profiling.
+
+The benchmark now measures the complete production path and exposes these costs.
+It does not establish a speed improvement on ELISYNK, a persistent Codex cache
+preload, or a duration for the historical 88.48 GiB / 5,151,949-file backup.
+The packaged thorough mode can produce repeated measurements on the actual Windows
+machine without using its personal backup.

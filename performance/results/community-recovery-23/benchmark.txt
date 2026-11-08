@@ -1,0 +1,90 @@
+LIFEBOAT — RAPPORT DE MESURES SYNTHÉTIQUES
+
+État : TERMINÉ
+Début : 2026-11-08T18:55:28.014547+00:00
+Fin : 2026-11-08T18:56:34.508619+00:00
+Mode : quick
+Protocole : 2026-11-production-path-2
+Répétitions demandées : 1
+Essais terminés : 12/12
+Campagne validée : oui
+Archives de production : incluses
+
+MÉTHODE
+Le cache Windows n’est pas vidé. « Premier passage » désigne la première observation de la variante, pas une mesure garantie à cache froid. Les variantes alternent leur ordre entre les répétitions.
+La restauration inclut le plan comparatif, ses décisions limitées aux fixtures,
+la validation de la source, la préparation, la copie et la vérification finale.
+Les contrôles de fermeture de Codex/ChatGPT du parcours GUI restent actifs ;
+la version finale inclut aussi son plan et ses journaux durables de reprise.
+Le backup, avec son contrôle de fermeture, est mesuré séparément et ajouté
+au total. Génération du jeu, empreintes de contrôle et attente humaine exclues.
+Le protocole précédent omettait le plan comparatif et des gardes communes :
+ses temps ne sont pas interchangeables avec ceux de ce protocole.
+Les workers baseline/final sont des processus séparés. Aucun contrôle
+d’intégrité n’est désactivé. Aucune donnée personnelle n’est utilisée.
+
+COMPARAISONS COMPLÈTES
+large: 1 paire(s), médiane original 0.945 s → version finale 2.297 s ; réduction -143.1 %.
+  Sauvegarde : 0.632 → 0.642 s ; total sauvegarde + restauration : 1.576 → 2.940 s (-86.5 %).
+small: 1 paire(s), médiane original 1.900 s → version finale 3.065 s ; réduction -61.3 %.
+  Sauvegarde : 1.312 → 1.131 s ; total sauvegarde + restauration : 3.212 → 4.196 s (-30.6 %).
+
+ARCHIVES DE PRODUCTION — VERSION FINALE FICHIERS / ARCHIVES
+large: 1 paire(s), restauration fichiers 2.297 s → archives 2.290 s (+0.3 %).
+  Création du backup : 0.642 → 0.989 s ; total : 2.940 → 3.279 s (-11.5 %).
+small: 1 paire(s), restauration fichiers 3.065 s → archives 4.445 s (-45.0 %).
+  Création du backup : 1.131 → 1.295 s ; total : 4.196 → 5.740 s (-36.8 %).
+
+DÉTAIL DES ESSAIS (ordre réel)
+01. restore/small/baseline, répétition 1, premier passage : 1.900 s, OK.
+    Backup 1.312 s + restauration 1.900 s = 3.212 s ; source et backup inchangés vérifiés hors chrono.
+    Détail restauration : plan 0.352 s ; préparation 0.611 s ; exécution et vérification 0.937 s.
+02. restore/small/final, répétition 1, premier passage : 3.065 s, OK.
+    Backup 1.131 s + restauration 3.065 s = 4.196 s ; source et backup inchangés vérifiés hors chrono.
+    Détail restauration : plan 0.364 s ; préparation 0.539 s ; exécution et vérification 2.161 s.
+03. restore/small/final_archive, répétition 1, premier passage : 4.445 s, OK.
+    Backup 1.295 s + restauration 4.445 s = 5.740 s ; source et backup inchangés vérifiés hors chrono.
+    Détail restauration : plan 0.340 s ; préparation 0.497 s ; exécution et vérification 3.609 s.
+04. restore/large/baseline, répétition 1, premier passage : 0.945 s, OK.
+    Backup 0.632 s + restauration 0.945 s = 1.576 s ; source et backup inchangés vérifiés hors chrono.
+    Détail restauration : plan 0.362 s ; préparation 0.399 s ; exécution et vérification 0.184 s.
+05. restore/large/final, répétition 1, premier passage : 2.297 s, OK.
+    Backup 0.642 s + restauration 2.297 s = 2.940 s ; source et backup inchangés vérifiés hors chrono.
+    Détail restauration : plan 0.364 s ; préparation 0.441 s ; exécution et vérification 1.493 s.
+06. restore/large/final_archive, répétition 1, premier passage : 2.290 s, OK.
+    Backup 0.989 s + restauration 2.290 s = 3.279 s ; source et backup inchangés vérifiés hors chrono.
+    Détail restauration : plan 0.313 s ; préparation 0.425 s ; exécution et vérification 1.551 s.
+07. io/mixed/fused_no_metadata, répétition 1, premier passage : 0.522 s, OK.
+08. io/mixed/fused, répétition 1, premier passage : 0.616 s, OK.
+09. io/mixed/zip, répétition 1, premier passage : 0.301 s, OK.
+10. io/mixed/copytree_no_metadata, répétition 1, premier passage : 0.516 s, OK.
+11. io/mixed/copyfile, répétition 1, premier passage : 0.579 s, OK.
+12. io/mixed/separate, répétition 1, premier passage : 0.540 s, OK.
+
+PRÉPARATION DES ARCHIVES (hors temps d’extraction)
+mixed: création ZIP 0.040 s, 660908 octets.
+
+MICROTESTS DE COPIE ET ARCHIVES
+Ces microtests isolés n’ont pas tous les mêmes garanties de métadonnées.
+Ils ne remplacent pas la comparaison complète de restauration ci-dessus.
+
+MICROSOFT DEFENDER
+Au début : protection désactivée
+À la fin : protection désactivée
+L’état est observé aux limites des essais, sans changement automatique.
+
+LIMITES
+- Données synthétiques : aucune extrapolation aux 88 Gio ou aux cinq millions de fichiers.
+- Le cache Windows n’est pas vidé. « Premier passage » désigne la première observation de la variante, pas une mesure garantie à cache froid. Les variantes alternent leur ordre entre les répétitions.
+- La génération des données est exclue ; le backup est mesuré séparément puis ajouté au total.
+- Plan comparatif et contrôles de fermeture du parcours GUI inclus ; attente humaine exclue.
+- Ce protocole remplace les mesures antérieures qui omettaient le plan comparatif et des gardes communes.
+- Les contrôles initiaux et finaux restent actifs ; la version finale inclut ses checkpoints durables.
+- Des empreintes de contenu/appartenance des fichiers sont vérifiées hors chrono et peuvent réchauffer le cache.
+- Les microtests ZIP et copie sans métadonnées n’ont pas la fidélité d’une restauration complète.
+- Les observations de Defender aux limites des essais ne prouvent pas un état constant entre elles.
+- Un test rapide est exploratoire ; les petits écarts et essais brefs sont sensibles au bruit.
+
+Si vous avez désactivé la protection en temps réel de Microsoft Defender, pensez à la réactiver manuellement. Ce programme ne la réactive jamais.
+
+Les deux fichiers JSON et TXT peuvent être transmis ensemble.

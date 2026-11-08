@@ -1,0 +1,936 @@
+{
+  "schema": 1,
+  "status": "published_and_verified",
+  "release": {
+    "release": "community-recovery-23",
+    "url": "https://github.com/sylvainBGO/lifeboat-migration-report/releases/tag/community-recovery-23",
+    "prerelease": true,
+    "code_commit": "b4cc981ceb02a40796c927c102bfbcab5fb703ad",
+    "workflow_run": 42512089907,
+    "workflow_url": "https://github.com/sylvainBGO/lifeboat-migration-report/actions/runs/42512089907",
+    "run_number": 23,
+    "published_at": "2026-11-08T18:56:44Z",
+    "assets": [
+      {
+        "name": "Codex-Lifeboat-Community-Sources.zip",
+        "bytes": 427245,
+        "sha256": "23d74c053447ae1a70ad16b1d705bfdec973551ef8288549994dc7d2cc25d230",
+        "url": "https://github.com/sylvainBGO/lifeboat-migration-report/releases/download/community-recovery-23/Codex-Lifeboat-Community-Sources.zip"
+      },
+      {
+        "name": "Codex-Lifeboat-Community-Windows.zip",
+        "bytes": 14833785,
+        "sha256": "c59b31600818717a2fe17e444ba8e4cbc6c7beb14161da833ce52fa47e6949be",
+        "url": "https://github.com/sylvainBGO/lifeboat-migration-report/releases/download/community-recovery-23/Codex-Lifeboat-Community-Windows.zip"
+      },
+      {
+        "name": "Lifeboat-Benchmark-Windows.zip",
+        "bytes": 41032566,
+        "sha256": "1ff9c034205baac78b800ee73318724b737c291a0121cdcb8a9b8bc1cbcdb8e6",
+        "url": "https://github.com/sylvainBGO/lifeboat-migration-report/releases/download/community-recovery-23/Lifeboat-Benchmark-Windows.zip"
+      },
+      {
+        "name": "SHA256.txt",
+        "bytes": 306,
+        "sha256": "a0f5c8fa0cc5ce213e0f0be343dcf3fcc5ccc24a805b95ad91171783bf9371ad",
+        "url": "https://github.com/sylvainBGO/lifeboat-migration-report/releases/download/community-recovery-23/SHA256.txt"
+      }
+    ]
+  },
+  "pull_request": "https://github.com/sylvainBGO/lifeboat-migration-report/pull/1",
+  "branch_acceptance": {
+    "commit": "a43ec83d8fa541ec802342a51e3d44ce2075ea29",
+    "run": 42511447712,
+    "passed": true
+  },
+  "upstream_commit": "4fe9724ccb54422455544e56b54399fa2bc94bc3",
+  "build_identity": {
+    "schema": 1,
+    "built_at": "2026-11-08T18:55:26.678312+00:00",
+    "baseline_provenance": {
+      "reference_upstream_commit": "4fe9724ccb54422455544e56b54399fa2bc94bc3",
+      "verified_upstream": true,
+      "origin": "pinned-clean-upstream-checkout",
+      "observed_git_commit": "4fe9724ccb54422455544e56b54399fa2bc94bc3",
+      "upstream_commit": "4fe9724ccb54422455544e56b54399fa2bc94bc3"
+    },
+    "protocol_version": "2026-11-production-path-2",
+    "report_commit": "b4cc981ceb02a40796c927c102bfbcab5fb703ad",
+    "workflow_run": "42512089907",
+    "source_sha256": {
+      "baseline": "125eb2ce58a35f62ba3978babe1f8c697bcd1f147d95c574dc8786dcf751b276",
+      "final": "797c5da7f51819c70a7f4ab268d266c18f6ff0f69bd6d1c6f238ab2498f34aa5"
+    },
+    "patches": {
+      "performance/optimizations/restore-first-pass.patch": "42e25048091b9d733bcfd2fa1ca0d7f70df499873a9755de685919e6d968d778",
+      "features/resume-copy-foundation.patch": "e41a9b750fcbab5707026259618e391f98d17f1c337613b45a936bd913352868",
+      "features/completion.patch": "98d97807a705146180af59d1c297212a3be1973b9e17bcedcd4bc27a01a742c5"
+    },
+    "final_path": "build_restore_plan + synthetic decisions + prepare_restore + create_document + resume_from_document",
+    "workers": {
+      "baseline": {
+        "sha256": "033bb4c696e9e4c41fa2a5363bc92cf7537a194907dac2096a6f2eefa5fc2c35"
+      },
+      "final": {
+        "sha256": "4211b8d8eb34a3324ce5ffb975d8bcc19ac0e8ac124bff37bfcfbb16a79c94a1"
+      }
+    }
+  },
+  "validation": {
+    "components": {
+      "passed": true,
+      "testsRun": 116,
+      "skipped": [
+        {
+          "test": "test_archive_optimization.ArchiveTests.test_unsupported_extended_attributes_fail_closed",
+          "reason": "Extended attributes are unavailable"
+        }
+      ],
+      "failures": [],
+      "errors": [],
+      "hostProtectionChanged": false
+    },
+    "source_regression": {
+      "passed": true,
+      "checks": 97,
+      "all_checks_passed": true,
+      "compatibility_passed": 12,
+      "compatibility_total": 12
+    },
+    "packaged_regression": {
+      "passed": true,
+      "checks": 97,
+      "all_checks_passed": true,
+      "compatibility_passed": 12,
+      "compatibility_total": 12
+    },
+    "benchmark_contracts": {
+      "tests": 29,
+      "passed": 29,
+      "skipped": 0,
+      "evidence": "Windows workflow job128827140856"
+    },
+    "ordinary_recovery": {
+      "passed": true,
+      "projectStorage": "files",
+      "pausedAndReopened": true,
+      "completedProjectsNotRecopied": true,
+      "finalVerification": true,
+      "reportsAndRetention": true,
+      "migrationGuide": true
+    },
+    "archive_recovery": {
+      "passed": true,
+      "projectStorage": "archive-blocks-v1",
+      "pausedAndReopened": true,
+      "completedProjectsNotRecopied": true,
+      "finalVerification": true,
+      "reportsAndRetention": true,
+      "migrationGuide": true
+    },
+    "local_pre_read": {
+      "schemaVersion": 1,
+      "mode": "os_file_cache",
+      "applicationPreloadSupported": false,
+      "applicationCacheLoaded": false,
+      "persistentCache": false,
+      "speedupMeasured": false,
+      "sourceReadOnly": true,
+      "status": "completed",
+      "selected": 3,
+      "filesRead": 3,
+      "partialFiles": 0,
+      "changedFiles": 0,
+      "skipped": 0,
+      "rejectedCandidates": 0,
+      "bytesRead": 12,
+      "metadataBytesRead": 0,
+      "selectionSource": "sessions_file_mtime",
+      "warnings": [
+        "index_snapshot_unavailable",
+        "file_mtime_is_not_conversation_recency"
+      ],
+      "limitingFactors": [],
+      "limits": {
+        "conversations": 3,
+        "readBytes": 268435456,
+        "bytesPerFile": 16777216,
+        "indexBytes": 67108864,
+        "seconds": 60.0,
+        "discoveryEntries": 20000
+      },
+      "elapsedSeconds": 0.0
+    },
+    "application_layout": {
+      "passed": true,
+      "logicalTestSize": [
+        1080,
+        720
+      ],
+      "checks": {
+        "emptyNoticeHidden": true,
+        "preflight.png": {
+          "viewport": [
+            16,
+            163,
+            993,
+            704
+          ],
+          "visibleWidgets": {
+            "restore_button": [
+              67,
+              244,
+              203,
+              287
+            ],
+            "verify_restore_button": [
+              213,
+              247,
+              321,
+              284
+            ],
+            "pause_button": [
+              67,
+              295,
+              149,
+              326
+            ],
+            "resume_button": [
+              155,
+              295,
+              237,
+              326
+            ],
+            "resume_ready_button": [
+              243,
+              295,
+              325,
+              326
+            ],
+            "defender_button": [
+              331,
+              295,
+              413,
+              326
+            ],
+            "warmup_button": [
+              419,
+              295,
+              619,
+              326
+            ],
+            "progress": [
+              67,
+              560,
+              942,
+              578
+            ],
+            "phase_progress": [
+              67,
+              619,
+              942,
+              637
+            ],
+            "phase_description": [
+              67,
+              641,
+              942,
+              662
+            ],
+            "status_label": [
+              85,
+              588,
+              942,
+              609
+            ],
+            "elapsed_label": [
+              67,
+              668,
+              205,
+              687
+            ],
+            "remaining_label": [
+              223,
+              668,
+              361,
+              687
+            ],
+            "throughput_label": [
+              379,
+              668,
+              517,
+              687
+            ]
+          },
+          "header": [
+            16,
+            39,
+            1008,
+            163
+          ],
+          "headerWidgets": {
+            "nav_overview": [
+              41,
+              113,
+              145,
+              153
+            ],
+            "nav_backup": [
+              147,
+              113,
+              232,
+              153
+            ],
+            "nav_restore": [
+              234,
+              113,
+              322,
+              153
+            ],
+            "nav_recovery": [
+              324,
+              113,
+              465,
+              153
+            ],
+            "nav_diagnostics": [
+              467,
+              113,
+              578,
+              153
+            ],
+            "title": [
+              94,
+              50,
+              242,
+              84
+            ],
+            "language_label": [
+              826,
+              65,
+              884,
+              86
+            ],
+            "language_box": [
+              891,
+              61,
+              986,
+              90
+            ]
+          },
+          "compactHeader": true
+        },
+        "conversations.png": {
+          "viewport": [
+            16,
+            163,
+            993,
+            704
+          ],
+          "visibleWidgets": {
+            "restore_button": [
+              67,
+              219,
+              203,
+              262
+            ],
+            "verify_restore_button": [
+              213,
+              222,
+              321,
+              259
+            ],
+            "pause_button": [
+              67,
+              270,
+              149,
+              301
+            ],
+            "resume_button": [
+              155,
+              270,
+              237,
+              301
+            ],
+            "resume_ready_button": [
+              243,
+              270,
+              325,
+              301
+            ],
+            "defender_button": [
+              331,
+              270,
+              413,
+              301
+            ],
+            "warmup_button": [
+              419,
+              270,
+              619,
+              301
+            ],
+            "progress": [
+              67,
+              560,
+              942,
+              578
+            ],
+            "phase_progress": [
+              67,
+              619,
+              942,
+              637
+            ],
+            "phase_description": [
+              67,
+              641,
+              942,
+              662
+            ],
+            "status_label": [
+              85,
+              588,
+              942,
+              609
+            ],
+            "elapsed_label": [
+              67,
+              668,
+              205,
+              687
+            ],
+            "remaining_label": [
+              223,
+              668,
+              361,
+              687
+            ],
+            "throughput_label": [
+              379,
+              668,
+              517,
+              687
+            ],
+            "resume_notice": [
+              67,
+              305,
+              942,
+              326
+            ]
+          },
+          "header": [
+            16,
+            39,
+            1008,
+            163
+          ],
+          "headerWidgets": {
+            "nav_overview": [
+              41,
+              113,
+              145,
+              153
+            ],
+            "nav_backup": [
+              147,
+              113,
+              232,
+              153
+            ],
+            "nav_restore": [
+              234,
+              113,
+              322,
+              153
+            ],
+            "nav_recovery": [
+              324,
+              113,
+              465,
+              153
+            ],
+            "nav_diagnostics": [
+              467,
+              113,
+              578,
+              153
+            ],
+            "title": [
+              94,
+              50,
+              242,
+              84
+            ],
+            "language_label": [
+              826,
+              65,
+              884,
+              86
+            ],
+            "language_box": [
+              891,
+              61,
+              986,
+              90
+            ]
+          },
+          "compactHeader": true
+        },
+        "results-and-log.png": {
+          "viewport": [
+            16,
+            163,
+            993,
+            704
+          ],
+          "visibleWidgets": {
+            "result": [
+              44,
+              390,
+              965,
+              488
+            ],
+            "details": [
+              44,
+              496,
+              181,
+              524
+            ],
+            "log": [
+              44,
+              551,
+              950,
+              685
+            ],
+            "log_frame": [
+              44,
+              524,
+              965,
+              704
+            ]
+          },
+          "header": [
+            16,
+            39,
+            1008,
+            163
+          ],
+          "headerWidgets": {
+            "nav_overview": [
+              41,
+              113,
+              145,
+              153
+            ],
+            "nav_backup": [
+              147,
+              113,
+              232,
+              153
+            ],
+            "nav_restore": [
+              234,
+              113,
+              322,
+              153
+            ],
+            "nav_recovery": [
+              324,
+              113,
+              465,
+              153
+            ],
+            "nav_diagnostics": [
+              467,
+              113,
+              578,
+              153
+            ],
+            "title": [
+              94,
+              50,
+              242,
+              84
+            ],
+            "language_label": [
+              826,
+              65,
+              884,
+              86
+            ],
+            "language_box": [
+              891,
+              61,
+              986,
+              90
+            ]
+          },
+          "compactHeader": true
+        },
+        "resultsAndLogReachable": true,
+        "logical-1080x720": {
+          "viewport": [
+            8,
+            155,
+            1073,
+            751
+          ],
+          "visibleWidgets": {
+            "restore_button": [
+              59,
+              211,
+              195,
+              254
+            ],
+            "verify_restore_button": [
+              205,
+              214,
+              313,
+              251
+            ],
+            "pause_button": [
+              59,
+              262,
+              141,
+              293
+            ],
+            "resume_button": [
+              147,
+              262,
+              229,
+              293
+            ],
+            "resume_ready_button": [
+              235,
+              262,
+              317,
+              293
+            ],
+            "defender_button": [
+              323,
+              262,
+              405,
+              293
+            ],
+            "warmup_button": [
+              411,
+              262,
+              611,
+              293
+            ],
+            "progress": [
+              59,
+              552,
+              1022,
+              570
+            ],
+            "phase_progress": [
+              59,
+              611,
+              1022,
+              629
+            ],
+            "phase_description": [
+              59,
+              633,
+              1022,
+              654
+            ],
+            "status_label": [
+              77,
+              580,
+              1022,
+              601
+            ],
+            "elapsed_label": [
+              59,
+              660,
+              197,
+              679
+            ],
+            "remaining_label": [
+              215,
+              660,
+              353,
+              679
+            ],
+            "throughput_label": [
+              371,
+              660,
+              509,
+              679
+            ]
+          },
+          "header": [
+            8,
+            31,
+            1088,
+            155
+          ],
+          "headerWidgets": {
+            "nav_overview": [
+              33,
+              105,
+              137,
+              145
+            ],
+            "nav_backup": [
+              139,
+              105,
+              224,
+              145
+            ],
+            "nav_restore": [
+              226,
+              105,
+              314,
+              145
+            ],
+            "nav_recovery": [
+              316,
+              105,
+              457,
+              145
+            ],
+            "nav_diagnostics": [
+              459,
+              105,
+              570,
+              145
+            ],
+            "title": [
+              86,
+              42,
+              234,
+              76
+            ],
+            "language_label": [
+              906,
+              57,
+              964,
+              78
+            ],
+            "language_box": [
+              971,
+              53,
+              1066,
+              82
+            ]
+          },
+          "compactHeader": true
+        }
+      },
+      "initialPlacement": {
+        "workArea": [
+          0,
+          0,
+          1024,
+          720
+        ],
+        "nativeWorkArea": true,
+        "clientSize": [
+          992,
+          665
+        ],
+        "minimumSize": [
+          992,
+          665
+        ],
+        "outerBounds": [
+          8,
+          8,
+          1016,
+          712
+        ]
+      },
+      "initialActualSize": [
+        992,
+        665
+      ]
+    },
+    "benchmark_ui": {
+      "passed": true,
+      "defender_backend": "fake; no real setting changed",
+      "quickAndThorough": true,
+      "boundedRepetitions": true,
+      "explicitDefenderOnly": true,
+      "actualStateDisplayed": true,
+      "manualReminder": true,
+      "buttonsInsideWindow": true,
+      "buttonsInsideWorkArea": true,
+      "initialPlacement": {
+        "workArea": [
+          0,
+          0,
+          1024,
+          720
+        ],
+        "nativeWorkArea": true,
+        "clientSize": [
+          900,
+          665
+        ],
+        "minimumSize": [
+          780,
+          665
+        ],
+        "outerBounds": [
+          54,
+          8,
+          970,
+          712
+        ]
+      },
+      "clientBounds": [
+        62,
+        39,
+        962,
+        704
+      ],
+      "visibleWidgetBounds": {
+        "start_button": [
+          82,
+          628,
+          158,
+          653
+        ],
+        "stop_button": [
+          166,
+          628,
+          325,
+          653
+        ],
+        "cancel_button": [
+          333,
+          628,
+          409,
+          653
+        ],
+        "open_button": [
+          845,
+          628,
+          942,
+          653
+        ],
+        "progress": [
+          82,
+          531,
+          942,
+          553
+        ],
+        "reminder_label": [
+          82,
+          665,
+          855,
+          684
+        ]
+      }
+    },
+    "packaged_gui_open_and_close": true,
+    "zip_integrity_verified": true,
+    "release_asset_digests_match_verified_artifact": true
+  },
+  "benchmark": {
+    "report": "benchmark.json",
+    "readable_report": "benchmark.txt",
+    "protocol_version": "2026-11-production-path-2",
+    "fixture_version": "2026-11-final-2",
+    "passed": true,
+    "trials": 12,
+    "restore_trials": 6,
+    "comparisons": {
+      "large": {
+        "pairs": 1,
+        "paired_repeats": [
+          0
+        ],
+        "baseline_median_seconds": 0.9448790999999801,
+        "final_median_seconds": 2.2973582000000192,
+        "reduction_percent": -143.13779403101069,
+        "reference": "baseline",
+        "candidate": "final",
+        "defender_conditions_known": true,
+        "baseline_backup_median_seconds": 0.6315004999999587,
+        "final_backup_median_seconds": 0.6423216999999681,
+        "baseline_total_median_seconds": 1.5763795999999388,
+        "final_total_median_seconds": 2.9396798999999874,
+        "total_reduction_percent": -86.48299559319985
+      },
+      "small": {
+        "pairs": 1,
+        "paired_repeats": [
+          0
+        ],
+        "baseline_median_seconds": 1.8998214000000075,
+        "final_median_seconds": 3.0651290999999787,
+        "reduction_percent": -61.337749959020705,
+        "reference": "baseline",
+        "candidate": "final",
+        "defender_conditions_known": true,
+        "baseline_backup_median_seconds": 1.3120677,
+        "final_backup_median_seconds": 1.130539400000032,
+        "baseline_total_median_seconds": 3.2118891000000076,
+        "final_total_median_seconds": 4.195668500000011,
+        "total_reduction_percent": -30.629307842540413
+      }
+    },
+    "archive_comparisons": {
+      "large": {
+        "pairs": 1,
+        "paired_repeats": [
+          0
+        ],
+        "baseline_median_seconds": 2.2973582000000192,
+        "final_median_seconds": 2.289691000000005,
+        "reduction_percent": 0.33373985824301816,
+        "reference": "final",
+        "candidate": "final_archive",
+        "defender_conditions_known": true,
+        "baseline_backup_median_seconds": 0.6423216999999681,
+        "final_backup_median_seconds": 0.9891913000000159,
+        "baseline_total_median_seconds": 2.9396798999999874,
+        "final_total_median_seconds": 3.2788823000000207,
+        "total_reduction_percent": -11.538752909799287
+      },
+      "small": {
+        "pairs": 1,
+        "paired_repeats": [
+          0
+        ],
+        "baseline_median_seconds": 3.0651290999999787,
+        "final_median_seconds": 4.445111700000041,
+        "reduction_percent": -45.022005761521484,
+        "reference": "final",
+        "candidate": "final_archive",
+        "defender_conditions_known": true,
+        "baseline_backup_median_seconds": 1.130539400000032,
+        "final_backup_median_seconds": 1.2950667000000067,
+        "baseline_total_median_seconds": 4.195668500000011,
+        "final_total_median_seconds": 5.7401784000000475,
+        "total_reduction_percent": -36.81200981440819
+      }
+    },
+    "defender_start": {
+      "available": true,
+      "RealTimeProtectionEnabled": false,
+      "IsTamperProtected": false
+    },
+    "defender_end": {
+      "available": true,
+      "RealTimeProtectionEnabled": false,
+      "IsTamperProtected": false
+    },
+    "defender_changed": false,
+    "cache_controlled": false,
+    "mode": "quick",
+    "repeats": 1,
+    "interpretation": "These small one-pass Windows CI workloads do not demonstrate a final-release speedup. Archive creation plus restoration is slower than ordinary final files in both profiles. This is not a forecast for the historical backup or ELISYNK."
+  },
+  "scope": {
+    "personal_backup_used": false,
+    "host_defender_settings_changed": false,
+    "persistent_codex_application_preload_supported": false,
+    "historical_restore_duration_guaranteed": false
+  }
+}

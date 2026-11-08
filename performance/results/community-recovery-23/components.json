@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "testsRun": 116,
+  "skipped": [
+    {
+      "test": "test_archive_optimization.ArchiveTests.test_unsupported_extended_attributes_fail_closed",
+      "reason": "Extended attributes are unavailable"
+    }
+  ],
+  "failures": [],
+  "errors": [],
+  "hostProtectionChanged": false
+}
